@@ -63,7 +63,7 @@ def run(date, ck):
 
 # 抓取並保存某個股某日tick
 def save(code, ck, date):
-    tData = tick(code, ck, date)
+    tData = tick(code, ck, date.replace('-', ''))
 
     if tData == None:
         return False
@@ -121,6 +121,12 @@ if __name__ == '__main__':
         required=False,
         type=str
     )
+    parser.add_argument(
+        '-date',
+        help='tick date',
+        default=datetime.now().date().__str__(),
+        type=str
+    )
     args = parser.parse_args()
 
-    run(datetime.now().date().__str__(), args.ck)
+    run(args.date, args.ck)
