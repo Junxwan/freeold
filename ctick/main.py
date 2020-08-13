@@ -1,28 +1,33 @@
+# -*- coding: UTF-8 -*-
+
 import os
+import argparse
 import time
 from datetime import datetime
 import json
 import requests
 import openpyxl
-
-CK = 'POA^fIDQ8QDo3WA^CMREcITI6P7$xDRE$F9c1Y7396QZ6ABQiP73HVjfxUVrz'
-
-codes = []
-
-xlsx = openpyxl.load_workbook('code.xlsx')
-
-for cell in xlsx.active:
-    if cell[0].value == None:
-        continue
-
-    codes.append(cell[0].value)
+import logging
 
 
-def tick(code, date=''):
+# 個股清單
+def readCode():
+    codes = []
+    xlsx = openpyxl.load_workbook('code.xlsx')
+    for cell in xlsx.active:
+        if cell[0].value == None:
+            continue
+
+        codes.append(str(cell[0].value))
+    return codes
+
+
+# 抓取某個股某日tick
+def tick(code, ck, date=''):
     resp = requests.get('https://www.cmoney.tw/notice/chart/stock-chart-service.ashx', params={
         'action': 'r',
         'id': code,
-        'ck': CK,
+        'ck': ck,
         'date': date,
         '_': int(time.time()),
     }, headers={
@@ -33,28 +38,42 @@ def tick(code, date=''):
     if resp.ok:
         try:
             return resp.json()['DataPrice']
-        except json.decoder.JSONDecodeError:
-            return None
+        except json.decoder.JSONDecodeError as e:
+            logging.error('code: ' + code + ' date: ' + date + ' error: ' + e.__str__())
 
     return None
 
 
-for code in codes:
-    tData = tick(code)
+# 執行抓取tick資料
+def run(date, ck):
+    codes = readCode()
+
+    if codes.__len__() == 0:
+        logging.info('無個股代碼')
+        return
+
+    for code in codes:
+        if save(code, ck, date):
+            logging.info('code: ' + code + ' date: ' + date + ' 保存tick資料')
+        else:
+            logging.info('code: ' + code + ' date: ' + date + ' 無資料')
+
+        time.sleep(5)
+
+
+# 抓取並保存某個股某日tick
+def save(code, ck, date):
+    tData = tick(code, ck, date)
 
     if tData == None:
-        # TODO error
-        continue
-
-    time.sleep(5)
+        return False
 
     context = []
 
     # 將原始tick name重新命名
     for t in tData:
         if t[0] < 1500000000000:
-            # TODO error
-            continue
+            return False
 
         context.append({
             'time': int(t[0] / 1000),
@@ -73,7 +92,7 @@ for code in codes:
         os.mkdir(dir)
 
     if os.path.exists(path):
-        continue
+        return True
 
     f = open(path, 'w+')
     f.write(json.dumps({
@@ -82,3 +101,26 @@ for code in codes:
         'data': context,
     }))
     f.close()
+
+    return True
+
+
+# main
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s [%(levelname)s] %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        filename=(datetime.now().strftime("%Y-%m-%d.log")))
+    logging.getLogger().addHandler(logging.StreamHandler())
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-ck',
+        help='cmoney api ck',
+        default='HGF$1M7ZnXUA6NTraECEfK{7TBRjAGBbALljuRmIn5T7FP9v{P7vDID3pNErz',
+        required=False,
+        type=str
+    )
+    args = parser.parse_args()
+
+    run(datetime.now().date().__str__(), args.ck)
