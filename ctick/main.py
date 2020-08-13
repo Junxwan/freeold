@@ -3,10 +3,19 @@ import time
 from datetime import datetime
 import json
 import requests
-
-codes = (2330, 1101)
+import openpyxl
 
 CK = 'POA^fIDQ8QDo3WA^CMREcITI6P7$xDRE$F9c1Y7396QZ6ABQiP73HVjfxUVrz'
+
+codes = []
+
+xlsx = openpyxl.load_workbook('code.xlsx')
+
+for cell in xlsx.active:
+    if cell[0].value == None:
+        continue
+
+    codes.append(cell[0].value)
 
 
 def tick(code, date=''):
@@ -37,8 +46,11 @@ for code in codes:
         # TODO error
         continue
 
+    time.sleep(5)
+
     context = []
 
+    # 將原始tick name重新命名
     for t in tData:
         if t[0] < 1500000000000:
             # TODO error
@@ -52,6 +64,7 @@ for code in codes:
             'min': t[4],
         })
 
+    # 檢查檔案路徑並把資料寫入檔案中
     date = datetime.fromtimestamp(context[0]['time']).date().__str__()
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), str(code))
     path = os.path.join(dir, date) + ".json"
