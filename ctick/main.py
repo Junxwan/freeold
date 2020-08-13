@@ -45,7 +45,7 @@ def tick(code, ck, date=''):
 
 
 # 執行抓取tick資料
-def run(date, ck):
+def run(date, ck, dir):
     codes = readCode()
 
     if codes.__len__() == 0:
@@ -53,7 +53,7 @@ def run(date, ck):
         return
 
     for code in codes:
-        if save(code, ck, date):
+        if save(code, ck, date, dir):
             logging.info('code: ' + code + ' date: ' + date + ' 保存tick資料')
         else:
             logging.info('code: ' + code + ' date: ' + date + ' 無資料')
@@ -62,7 +62,7 @@ def run(date, ck):
 
 
 # 抓取並保存某個股某日tick
-def save(code, ck, date):
+def save(code, ck, date, dir):
     tData = tick(code, ck, date.replace('-', ''))
 
     if tData == None:
@@ -85,7 +85,7 @@ def save(code, ck, date):
 
     # 檢查檔案路徑並把資料寫入檔案中
     date = datetime.fromtimestamp(context[0]['time']).date().__str__()
-    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), str(code))
+    dir = os.path.join(dir, str(code))
     path = os.path.join(dir, date) + ".json"
 
     if os.path.exists(dir) == False:
@@ -127,6 +127,14 @@ if __name__ == '__main__':
         default=datetime.now().date().__str__(),
         type=str
     )
+
+    parser.add_argument(
+        '-dir',
+        help='file dir',
+        default=os.path.dirname(os.path.abspath(__file__)),
+        type=str
+    )
+
     args = parser.parse_args()
 
-    run(args.date, args.ck)
+    run(args.date, args.ck, args.dir)
