@@ -32,12 +32,20 @@ def run(date, ck, session, file, dir):
     c = cmoney.Cmoney(ck, session)
 
     count = 0
+    ok = 0
+    failure = 0
+    exists = 0
+    emy = []
+
+    logging.info('======================= start ' + date + ' =======================')
+
     for code in codes:
-        dir, path = fileInfo(date, code, dir)
+        _, path = fileInfo(date, code, dir)
 
         count += 1
 
         if os.path.exists(path):
+            exists += 1
             logging.info('code: ' + code + ' date: ' + date + ' exists - ' + str(count))
             continue
 
@@ -47,18 +55,32 @@ def run(date, ck, session, file, dir):
 
         if tData == None:
             logging.info('code: ' + code + ' date: ' + date + ' empty - ' + str(count))
+            emy.append(code)
             continue
 
-        if save(tData, code, dir):
+        date = datetime.fromtimestamp(tData[0]['time']).date().__str__()
+
+        if save(tData, code, date, dir):
+            ok += 1
             logging.info('code: ' + code + ' date: ' + date + ' save tick - ' + str(count))
         else:
+            failure += 1
             logging.info('code: ' + code + ' date: ' + date + ' save failure - ' + str(count))
+
+    logging.info(
+        'total:' + str(codes.__len__()) +
+        ' ok: ' + str(ok) +
+        ' failure: ' + str(failure) +
+        ' exists: ' + str(exists) +
+        ' empty: ' + str(emy.__len__())
+    )
+    logging.info('empty: ' + emy.__str__())
+    logging.info('======================= end ' + date + ' =======================')
 
 
 # 抓取並保存某個股某日tick
-def save(context, code, dir):
+def save(context, code, date, dir):
     # 檢查檔案路徑並把資料寫入檔案中
-    date = datetime.fromtimestamp(context[0]['time']).date().__str__()
     dir, path = fileInfo(date, code, dir)
 
     if os.path.exists(dir) == False:
