@@ -4,6 +4,7 @@ import time
 
 import requests
 
+
 class Cmoney():
     def __init__(self, ck, session):
         self.__ck = ck
@@ -20,6 +21,7 @@ class Cmoney():
             '_': self.__time,
         }, headers={
             'Referer': 'www.cmoney.tw',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
             'Cookie': 'AspSession=' + self.__session
         })
 
@@ -31,6 +33,9 @@ class Cmoney():
             except json.decoder.JSONDecodeError as e:
                 logging.error('code: ' + code + ' date: ' + date + ' error: ' + e.__str__())
                 return None
+
+        if len(tData) == 0:
+            return None
 
         context = []
 

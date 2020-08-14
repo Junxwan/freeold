@@ -1,13 +1,11 @@
 # -*- coding: UTF-8 -*-
 
 import os
-import argparse
 import time
 from datetime import datetime
 import json
 import openpyxl
 import logging
-
 from . import cmoney
 
 
@@ -33,26 +31,35 @@ def run(date, ck, session, file, dir):
 
     c = cmoney.Cmoney(ck, session)
 
+    count = 0
     for code in codes:
+        dir, path = fileInfo(date, code, dir)
+
+        count += 1
+
+        if os.path.exists(path):
+            logging.info('code: ' + code + ' date: ' + date + ' exists - ' + str(count))
+            continue
+
         tData = c.tick(code, date)
 
+        time.sleep(3)
+
         if tData == None:
-            return False
+            logging.info('code: ' + code + ' date: ' + date + ' empty - ' + str(count))
+            continue
 
         if save(tData, code, dir):
-            logging.info('code: ' + code + ' date: ' + date + ' 保存tick資料')
+            logging.info('code: ' + code + ' date: ' + date + ' save tick - ' + str(count))
         else:
-            logging.info('code: ' + code + ' date: ' + date + ' 無資料')
-
-        time.sleep(5)
+            logging.info('code: ' + code + ' date: ' + date + ' save failure - ' + str(count))
 
 
 # 抓取並保存某個股某日tick
 def save(context, code, dir):
     # 檢查檔案路徑並把資料寫入檔案中
     date = datetime.fromtimestamp(context[0]['time']).date().__str__()
-    dir = os.path.join(dir, str(code))
-    path = os.path.join(dir, date) + ".json"
+    dir, path = fileInfo(date, code, dir)
 
     if os.path.exists(dir) == False:
         os.mkdir(dir)
@@ -69,3 +76,10 @@ def save(context, code, dir):
     f.close()
 
     return True
+
+
+def fileInfo(date, code, dir):
+    dir = os.path.join(dir, str(code))
+    path = os.path.join(dir, date) + ".json"
+
+    return dir, path
