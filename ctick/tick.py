@@ -39,6 +39,8 @@ def run(date, ck, session, file, dir):
 
     logging.info('======================= start ' + date + ' =======================')
 
+    t = str(date).replace('-', '')
+
     for code in codes:
         _, path = fileInfo(date, code, dir)
 
@@ -49,9 +51,9 @@ def run(date, ck, session, file, dir):
             logging.info('code: ' + code + ' date: ' + date + ' exists - ' + str(count))
             continue
 
-        tData = c.tick(code, date)
+        tData = c.tick(code, t)
 
-        time.sleep(3)
+        time.sleep(2)
 
         if tData == None:
             logging.info('code: ' + code + ' date: ' + date + ' empty - ' + str(count))
