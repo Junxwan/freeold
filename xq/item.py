@@ -33,7 +33,7 @@ def run(total, dir, image):
         pyautogui.press('numlock')
 
         if (i != max - 1):
-            time.sleep(10)
+            time.sleep(7)
 
     pyautogui.alert(
         text='完成:' + str(total) + ' 時間:' + str(int((time.time() - now) / 60)) + ' 分',
