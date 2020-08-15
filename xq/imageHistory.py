@@ -19,7 +19,7 @@ class image(item.image):
         time.sleep(0.5)
         pyautogui.click(800, 1010, self.__prevDay)
         time.sleep(0.05 * self.__prevDay)
-        pyautogui.screenshot(os.path.join(dir, 'A-' + str(name) + '.png'), region=(75, 150, 1800, 840))
+        pyautogui.screenshot(os.path.join(dir, 'A-' + str(name) + '.png'), region=(75, 150, 1865, 890))
 
         # 1. 點擊走勢圖
         # 2. 點擊日期menu
@@ -33,7 +33,7 @@ class image(item.image):
         time.sleep(0.5)
         pyautogui.click(42 + (53 * self.__dayX), 306 + (29 * self.__dayY))
         time.sleep(2)
-        pyautogui.screenshot(os.path.join(dir, 'B-' + str(name) + '.png'), region=(75, 150, 1865, 760))
+        pyautogui.screenshot(os.path.join(dir, 'B-' + str(name) + '.png'), region=(75, 150, 1865, 890))
 
     def total(self):
         return 18
