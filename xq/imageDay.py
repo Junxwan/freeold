@@ -14,14 +14,14 @@ def xqImage(i, dir):
     # 3. 截取技術分析圖
     pyautogui.click(450, 130)
     time.sleep(1)
-    pyautogui.screenshot(os.path.join(dir, str(i) + '-A' + '.png'), region=(75, 150, 1865, 970))
+    pyautogui.screenshot(os.path.join(dir, 'A-' + str(i) + '.png'), region=(75, 150, 1865, 970))
 
     # 1. 點擊走勢圖
     # 2. 等待
     # 3. 截取走勢圖
     pyautogui.click(180, 130)
     time.sleep(1)
-    pyautogui.screenshot(os.path.join(dir, str(i) + '-B' + '.png'), region=(75, 150, 1865, 970))
+    pyautogui.screenshot(os.path.join(dir, 'B-' + str(i) + '.png'), region=(75, 150, 1865, 970))
 
 
 def run(total, dir):
@@ -52,4 +52,5 @@ def run(total, dir):
         if (i != max - 1):
             time.sleep(10)
 
-    pyautogui.alert(text='完成:' + str(total) + ' 時間:' + str(int((time.time() - now) / 60)) + ' 分', title='結果', button='OK')
+    pyautogui.alert(text='完成:' + str(total) + ' 時間:' + str(int((time.time() - now) / 60)) + ' 分', title='結果',
+                    button='OK')
