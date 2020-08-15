@@ -5,13 +5,6 @@ from datetime import datetime
 import openpyxl
 from ctick.tick import run
 
-filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log', datetime.now().strftime("%Y-%m-%d-tick.log"))
-
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s [%(levelname)s] %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    filename=filename)
-logging.getLogger().addHandler(logging.StreamHandler())
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -66,4 +59,13 @@ else:
     dates.append(args.date)
 
 for date in dates:
+    filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log',
+                            datetime.now().strftime("%Y-%m-%d-tick-(" + date + ').log'))
+
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s [%(levelname)s] %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        filename=filename)
+    logging.getLogger().addHandler(logging.StreamHandler())
+
     run(date, args.ck, args.session, args.file, args.dir)
