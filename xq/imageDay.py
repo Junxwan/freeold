@@ -1,4 +1,3 @@
-import argparse
 import math
 import os
 import time
@@ -7,24 +6,6 @@ import pyautogui
 PAGE_TOTAL = 20
 
 pyautogui.FAILSAFE = True
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument(
-    '-total',
-    help='stock total',
-    required=True,
-    type=int
-)
-
-parser.add_argument(
-    '-dir',
-    help='image dir',
-    default=os.path.dirname(os.path.abspath(__file__)),
-    type=str
-)
-
-args = parser.parse_args()
 
 
 def xqImage(i, dir):
@@ -72,6 +53,3 @@ def run(total, dir):
             time.sleep(10)
 
     pyautogui.alert(text='完成:' + str(total) + ' 時間:' + str(int(time.time() - now) / 60) + ' 分', title='結果', button='OK')
-
-
-run(args.total, args.dir)

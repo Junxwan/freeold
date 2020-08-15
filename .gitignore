@@ -1,9 +1,7 @@
 venv
 \.idea/
-
 *.xlsx
 *.log
+*/__pycache__/
 
 code.xlsx
-
-ctick/__pycache__/
