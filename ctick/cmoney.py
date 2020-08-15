@@ -20,7 +20,6 @@ class Cmoney():
             'date': date,
             '_': self.__time,
         }, headers={
-            'host': '192.168.0.1',
             'Referer': 'www.cmoney.tw',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
             'Cookie': 'AspSession=' + self.__session
