@@ -1,13 +1,14 @@
 import argparse
 import os
-from xq.imageDay import run as day
+from xq.item import run
+from xq.imageDay import image as day
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
     '-total',
     help='stock total',
-    required=True,
+    default=100,
     type=int
 )
 
@@ -28,4 +29,4 @@ parser.add_argument(
 args = parser.parse_args()
 
 if args.model == 'day':
-    day(args.total, args.dir)
+    run(args.total, args.dir, day())
