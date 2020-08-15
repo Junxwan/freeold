@@ -3,6 +3,7 @@ import time
 import pyautogui
 from . import item
 
+
 class image(item.image):
 
     def screen(self, i, dir):
@@ -19,3 +20,6 @@ class image(item.image):
         pyautogui.click(180, 130)
         time.sleep(1)
         pyautogui.screenshot(os.path.join(dir, 'B-' + str(i) + '.png'), region=(75, 150, 1865, 970))
+
+    def total(self):
+        return 20
