@@ -103,7 +103,7 @@ def save(context, code, date, dir):
 
 
 def fileInfo(date, code, dir):
-    dir = os.path.join(dir, str(code))
-    path = os.path.join(dir, date) + ".json"
+    dir = os.path.join(dir, date)
+    path = os.path.join(dir, str(code)) + ".json"
 
     return dir, path
