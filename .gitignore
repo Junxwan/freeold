@@ -2,6 +2,6 @@ venv
 \.idea/
 *.xlsx
 *.log
-*/__pycache__/
+*.pyc
 
 code.xlsx
