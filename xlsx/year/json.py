@@ -7,6 +7,22 @@ import openpyxl
 
 
 def run(input, output):
+    paths = []
+    if os.path.isfile(input):
+        paths.append(input)
+
+    if os.path.isdir(input):
+        for f in os.listdir(input):
+            fullPath = os.path.join(input, f)
+
+            if os.path.splitext(fullPath)[-1] == '.xlsx':
+                paths.append(fullPath)
+
+    for path in paths:
+        toJson(path, output)
+
+
+def toJson(input, output):
     logging.info('read: ' + input + ' ...')
     xlsx = openpyxl.load_workbook(input)
     sheet = xlsx.active
