@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime
 
-from xlsx.json import year
+from xlsx.json import year, stock
 
 filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log',
                         datetime.now().strftime("%Y-%m-%d-xlsx.log"))
@@ -38,5 +38,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.model == 'year-json':
-    year.run(args.input, args.output)
+switch = {
+    'year-json': year.run,
+    'stock-json': stock.run,
+}
+
+switch[args.model](args.input, args.output)
