@@ -38,5 +38,5 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.model == 'year':
+if args.model == 'year-json':
     year.run(args.input, args.output)
