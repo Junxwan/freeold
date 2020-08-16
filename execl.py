@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime
 
-from xlsx.year import json as year
+from xlsx.json import year
 
 filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log',
                         datetime.now().strftime("%Y-%m-%d-xlsx.log"))
