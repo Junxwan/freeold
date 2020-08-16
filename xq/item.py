@@ -10,30 +10,32 @@ def run(total, dir, image):
     pageTotal = image.total()
     now = time.time()
     count = total / pageTotal
-    max = math.ceil(count)
 
-    for i in range(0, max):
-        start = 0
-        down = pageTotal
+    if total < pageTotal:
+        for i in range(0, total):
+            image.run(str(i), i, dir)
+    else:
+        max = math.ceil(count)
 
-        if (i == max - 1) & (count != max):
-            start = pageTotal - (total % pageTotal)
-            down = (total % pageTotal)
+        for i in range(0, max):
+            start = 0
+            down = pageTotal
 
-        # 截圖並且將自選股移動至下一頁(每20筆一頁)
-        for c in range(start, pageTotal):
-            pyautogui.click(2150, 270 + (c * 43))
-            time.sleep(0.5)
-            image.screen(c + (pageTotal * i), dir)
-            time.sleep(0.5)
+            if (i == max - 1) & (count != max):
+                start = pageTotal - (total % pageTotal)
+                down = (total % pageTotal)
 
-        pyautogui.click(2150, 255 + ((pageTotal - 1) * 43))
-        pyautogui.press('numlock')
-        pyautogui.press('down', down)
-        pyautogui.press('numlock')
+            # 截圖並且將自選股移動至下一頁(每20筆一頁)
+            for c in range(start, pageTotal):
+                image.run(str(c + (pageTotal * i)), c, dir)
 
-        if (i != max - 1):
-            time.sleep(7)
+            pyautogui.click(2150, 255 + ((pageTotal - 1) * 43))
+            pyautogui.press('numlock')
+            pyautogui.press('down', down)
+            pyautogui.press('numlock')
+
+            if (i != max - 1):
+                time.sleep(7)
 
     pyautogui.alert(
         text='完成:' + str(total) + ' 時間:' + str(int((time.time() - now) / 60)) + ' 分',
@@ -44,8 +46,14 @@ def run(total, dir, image):
 
 class image():
 
-    def screen(self, i, dir):
+    def screenshot(self, name, dir):
         pass
+
+    def run(self, name, offset, dir):
+        pyautogui.click(2150, 270 + (offset * 43))
+        time.sleep(0.5)
+        self.screenshot(name, dir)
+        time.sleep(0.5)
 
     def total(self):
         pass
