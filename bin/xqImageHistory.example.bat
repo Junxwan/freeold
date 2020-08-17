@@ -23,6 +23,6 @@ set /p dayY=dayY:
 cd /d <project path>
 
 :: venv python path
-<project path>\venv\Scripts\python image.py -total=%total% -model=history -dir=%dir% -prevDay=%prevDay% -prevMonth=%prevMonth% -dayX=%dayX% -dayY=%dayY%
+<project path>\venv\Scripts\python auto.py -total=%total% -model=history -dir=%dir% -prevDay=%prevDay% -prevMonth=%prevMonth% -dayX=%dayX% -dayY=%dayY%
 
 pause
