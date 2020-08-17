@@ -7,15 +7,8 @@ from xq.imageHistory import image as history
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    '-total',
-    help='stock total',
-    default=100,
-    type=int
-)
-
-parser.add_argument(
     '-dir',
-    help='image dir',
+    help='file dir',
     default=os.path.dirname(os.path.abspath(__file__)),
     type=str
 )
@@ -25,6 +18,13 @@ parser.add_argument(
     help='image model',
     default='day',
     type=str
+)
+
+parser.add_argument(
+    '-xq-total',
+    help='stock total',
+    default=100,
+    type=int
 )
 
 parser.add_argument(
