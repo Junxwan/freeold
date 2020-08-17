@@ -1,5 +1,6 @@
 tick.bat
-xqImageDay.bat
-xqImageHistory.bat
+xq.day.image.bat
+xq.history.image.bat
 execl.bat
 execl.year.json.bat
+execl.day.json.bat

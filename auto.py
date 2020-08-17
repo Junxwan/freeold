@@ -21,36 +21,36 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-xq-total',
+    '-xqTotal',
     help='stock total',
     default=100,
     type=int
 )
 
 parser.add_argument(
-    '-xqDayX for history',
-    help='trend chart date for x',
+    '-xqDayX',
+    help='trend chart date for xq x',
     default=1,
     type=int
 )
 
 parser.add_argument(
-    '-xqDayY for history',
-    help='trend chart date for y',
+    '-xqDayY',
+    help='trend chart date for xq y',
     default=1,
     type=int
 )
 
 parser.add_argument(
-    '-xqPrevDay for history',
-    help='Technical analysis a few days ago',
+    '-xqPrevDay',
+    help='Technical analysis a few days ago for xq',
     default=0,
     type=int
 )
 
 parser.add_argument(
-    '-xqPrevMonth for history',
-    help='Technical analysis a few Month ago',
+    '-xqPrevMonth',
+    help='Technical analysis a few Month ago for xq',
     default=0,
     type=int
 )
@@ -58,7 +58,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 if args.model == 'xq-day-image':
-    run(args.total, args.dir, day())
+    run(args.xqTotal, args.dir, day())
 
 if args.model == 'xq-history-image':
-    run(args.total, args.dir, history(args.prevDay, args.prevMonth, args.dayX, args.dayY))
+    run(args.xqTotal, args.dir, history(args.xqPrevDay, args.xqPrevMonth, args.xqDayX, args.xqDayY))
