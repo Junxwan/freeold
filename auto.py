@@ -28,28 +28,28 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-dayX',
+    '-xqDayX for history',
     help='trend chart date for x',
     default=1,
     type=int
 )
 
 parser.add_argument(
-    '-dayY',
+    '-xqDayY for history',
     help='trend chart date for y',
     default=1,
     type=int
 )
 
 parser.add_argument(
-    '-prevDay',
+    '-xqPrevDay for history',
     help='Technical analysis a few days ago',
     default=0,
     type=int
 )
 
 parser.add_argument(
-    '-prevMonth',
+    '-xqPrevMonth for history',
     help='Technical analysis a few Month ago',
     default=0,
     type=int
@@ -57,8 +57,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.model == 'day':
+if args.model == 'xq-day-image':
     run(args.total, args.dir, day())
 
-if args.model == 'history':
+if args.model == 'xq-history-image':
     run(args.total, args.dir, history(args.prevDay, args.prevMonth, args.dayX, args.dayY))

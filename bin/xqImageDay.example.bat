@@ -11,6 +11,6 @@ set /p total=total:
 cd /d <project path>
 
 :: venv python path
-<project path>\venv\Scripts\python auto.py -total=%total% -model=day -dir=%dir%
+<project path>\venv\Scripts\python auto.py -total=%total% -model=xq-day-image -dir=%dir%
 
 pause
