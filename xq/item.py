@@ -1,4 +1,5 @@
 import math
+import os
 import time
 
 import pyautogui
@@ -10,6 +11,9 @@ def run(total, dir, image):
     pageTotal = image.total()
     now = time.time()
     count = total / pageTotal
+
+    if os.path.exists(dir) == False:
+        os.mkdir(dir)
 
     if total < pageTotal:
         for i in range(0, total):
