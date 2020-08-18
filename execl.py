@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime
 
-from xlsx.json import year, day, stock
+from xlsx import cmoney
 
 filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log',
                         datetime.now().strftime("%Y-%m-%d-xlsx.log"))
@@ -38,12 +38,12 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-switch = {
-    'year-json': year.run,
-    'stock-json': stock.run,
-    'day-json': day.run,
-}
-
 logging.info('=================== ' + args.model + ' =================== ')
 
-switch[args.model](args.input, args.output)
+switch = {
+    'cmoney-year-json': cmoney.year,
+    'cmoney-day-json': cmoney.day,
+    'cmoney-stock-json': cmoney.stock,
+}
+
+switch[args.model](args.input).output(args.output)
