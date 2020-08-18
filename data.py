@@ -3,7 +3,9 @@ import logging
 import os
 from datetime import datetime
 import openpyxl
-from ctick.tick import run
+import crawler
+
+from crawler.info import yahoo
 
 
 def cmoneyTick(args):
@@ -19,7 +21,7 @@ def cmoneyTick(args):
         dates.append(args.cmDate)
 
     for date in dates:
-        run(date, args.cmCk, args.cmSession, args.file, args.dir)
+        crawler.cmoney.pullTick(date, args.cmCk, args.cmSession, args.file, args.dir)
 
 
 filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log',
@@ -80,8 +82,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-switch = {
-    'tick-cmoney': cmoneyTick,
-}
+if args.model == 'tick-cmoney':
+    cmoneyTick(args)
 
-switch[args.model](args)
+if args.model == 'yahoo-info':
+    yahoo.pullInfo(args.file, args.dir)

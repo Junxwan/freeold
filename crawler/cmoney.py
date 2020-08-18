@@ -1,12 +1,10 @@
-# -*- coding: UTF-8 -*-
-
+import json
+import logging
 import os
 import time
 from datetime import datetime
-import json
 import openpyxl
-import logging
-from . import cmoney
+import api.cmoney as cmoney
 
 
 # 個股清單
@@ -22,14 +20,14 @@ def readCode(path):
 
 
 # 執行抓取tick資料
-def run(date, ck, session, file, dir):
+def pullTick(date, ck, session, file, dir):
     codes = readCode(file)
 
     if codes.__len__() == 0:
         logging.info('無個股代碼')
         return
 
-    c = cmoney.Cmoney(ck, session)
+    c = cmoney.new(ck, session)
 
     count = 0
     ok = 0

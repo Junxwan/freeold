@@ -5,7 +5,7 @@ import time
 import requests
 
 
-class Cmoney():
+class new():
     def __init__(self, ck, session):
         self.__ck = ck
         self.__session = session

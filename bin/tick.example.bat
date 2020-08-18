@@ -20,6 +20,6 @@ set /p session=session:
 cd /d <project path>
 
 :: venv python path
-<project path>\venv\Scripts\python crawler.py -cmCk=%ck% -cmSession=%session% -cmDate=%date% -dir=%path% -file=%file%
+<project path>\venv\Scripts\python data.py -cmCk=%ck% -cmSession=%session% -cmDate=%date% -dir=%path% -file=%file%
 
 pause
