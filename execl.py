@@ -44,6 +44,7 @@ switch = {
     'cmoney-year-json': cmoney.year,
     'cmoney-day-json': cmoney.day,
     'cmoney-stock-json': cmoney.stock,
+    'cmoney-weak-day': cmoney.weakDay,
 }
 
 switch[args.model](args.input).output(args.output)

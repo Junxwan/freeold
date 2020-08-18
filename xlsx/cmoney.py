@@ -164,3 +164,78 @@ class year():
                     f.close()
 
                     logging.info('date: ' + date)
+
+
+# 每日弱勢股
+# 成交量1000張以上
+# 最大漲跌%3以上
+# 最多100檔
+# 收黑k
+class weakDay():
+    __price = []
+
+    def __init__(self, path):
+        xlsx = openpyxl.load_workbook(path)
+        sheet = xlsx.active
+
+        header = sheet.cell(1, 3).value
+        self.__date = f'{header[:4]}-{header[4:6]}-{header[6:8]}'
+        self.__read(sheet)
+
+    def __read(self, sheet):
+        for rows in sheet.iter_rows(2):
+            if (rows[0].value == None) | (rows[0].value == ''):
+                continue
+
+            if (rows[8].value == None) | (rows[8].value == ''):
+                continue
+
+            # 成交小於1000張
+            if rows[8].value <= 1000:
+                continue
+
+            diff = round(((rows[4].value / rows[5].value) - 1) * 100, 2)
+
+            # 最大漲跌小於3
+            if diff < 3:
+                continue
+
+            # 收黑
+            if rows[2].value <= rows[3].value:
+                continue
+
+            p = []
+            for v in rows:
+                p.append(v.value)
+
+            p.append(diff)
+            self.__price.append(p)
+
+        self.__price = sorted(self.__price[:100], key=lambda s: s[9], reverse=True)
+
+    def output(self, path):
+        mainWs = openpyxl.Workbook()
+        codeWs = openpyxl.Workbook()
+        wsM = mainWs.active
+        wsC = codeWs.active
+        wsC.title = self.__date
+
+        wsM.append([
+            '股票代號',
+            '股票名稱',
+            f'{self.__date}\n開盤價',
+            f'{self.__date}\n收盤價',
+            f'{self.__date}\n最高價',
+            f'{self.__date}\n最低價',
+            f'{self.__date}\n漲幅(%)',
+            f'{self.__date}\n振幅(%)',
+            f'{self.__date}\n成交量',
+            f'{self.__date}\n最大漲跌(%)'
+        ])
+
+        for p in self.__price:
+            wsC.append([f'{p[0]}.TW'])
+            wsM.append(p)
+
+        mainWs.save(os.path.join(path, f'{self.__date}.xlsx'))
+        codeWs.save(os.path.join(path, f'{self.__date}-code.xlsx'))
