@@ -2,7 +2,6 @@ import logging
 import math
 import os
 import time
-from datetime import datetime
 import openpyxl
 import requests
 from bs4 import BeautifulSoup
@@ -15,7 +14,7 @@ def pullInfo(input, output):
     xlsx = openpyxl.load_workbook(input)
     sheet = xlsx.active
 
-    for code in sheet.iter_rows():
+    for i, code in enumerate(sheet.iter_rows()):
         industryName = ''
         product = []
 
@@ -42,9 +41,11 @@ def pullInfo(input, output):
                             product.append(name[:ii] + '-' + str(r))
                         break
 
-        for column in range(0, sheet.max_row):
-            newSheet.append([code, industryName, ','.join(product)])
+        newSheet.append([code, industryName, ','.join(product)])
 
-        time.sleep(0.1)
+        time.sleep(0.5)
+
+        if i % 100 == 0:
+            wb.save(os.path.join(output, "yahoo-info.xlsx"))
 
     wb.save(os.path.join(output, "yahoo-info.xlsx"))
