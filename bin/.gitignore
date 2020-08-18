@@ -2,5 +2,6 @@ crawler.bat
 xq.day.image.bat
 xq.history.image.bat
 execl.bat
-execl.year.json.bat
-execl.day.json.bat
+execl.cmoney.year.json.bat
+execl.cmoney.day.json.bat
+execl.cmoney.weak.day.json.bat
