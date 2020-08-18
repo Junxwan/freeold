@@ -2,8 +2,23 @@ import codecs
 import json
 import logging
 import os
-
 import openpyxl
+
+
+def files(path):
+    paths = []
+
+    if os.path.isfile(path):
+        paths.append(path)
+
+    if os.path.isdir(path):
+        for f in os.listdir(path):
+            fullPath = os.path.join(path, f)
+
+            if os.path.splitext(fullPath)[-1] == '.xlsx':
+                paths.append(fullPath)
+
+    return paths
 
 
 # 個股基本資料
@@ -95,19 +110,7 @@ class year():
     __data = []
 
     def __init__(self, path):
-        paths = []
-
-        if os.path.isfile(path):
-            paths.append(path)
-
-        if os.path.isdir(path):
-            for f in os.listdir(path):
-                fullPath = os.path.join(path, f)
-
-                if os.path.splitext(fullPath)[-1] == '.xlsx':
-                    paths.append(fullPath)
-
-        for path in paths:
+        for path in files(path):
             logging.info('read: ' + path + ' ...')
             xlsx = openpyxl.load_workbook(path)
             sheet = xlsx.active
