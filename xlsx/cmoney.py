@@ -178,14 +178,19 @@ class weakDay():
     __price = []
 
     def __init__(self, path):
-        xlsx = openpyxl.load_workbook(path)
-        sheet = xlsx.active
+        for path in files(path):
+            xlsx = openpyxl.load_workbook(path)
+            sheet = xlsx.active
 
-        header = sheet.cell(1, 3).value
-        self.__date = f'{header[:4]}-{header[4:6]}-{header[6:8]}'
-        self.__read(sheet)
+            header = sheet.cell(1, 3).value
+            self.__price.append({
+                'date': f'{header[:4]}-{header[4:6]}-{header[6:8]}',
+                'value': self.__read(sheet),
+            })
 
     def __read(self, sheet):
+        price = []
+
         for rows in sheet.iter_rows(2):
             if (rows[0].value == None) | (rows[0].value == ''):
                 continue
@@ -212,33 +217,35 @@ class weakDay():
                 p.append(v.value)
 
             p.append(diff)
-            self.__price.append(p)
+            price.append(p)
 
-        self.__price = sorted(self.__price[:100], key=lambda s: s[9], reverse=True)
+        return sorted(price[:100], key=lambda s: s[9], reverse=True)
 
     def output(self, path):
-        mainWs = openpyxl.Workbook()
-        codeWs = openpyxl.Workbook()
-        wsM = mainWs.active
-        wsC = codeWs.active
-        wsC.title = self.__date
+        for price in self.__price:
+            date = price['date']
+            mainWs = openpyxl.Workbook()
+            codeWs = openpyxl.Workbook()
+            wsM = mainWs.active
+            wsC = codeWs.active
+            wsC.title = date
 
-        wsM.append([
-            '股票代號',
-            '股票名稱',
-            f'{self.__date}\n開盤價',
-            f'{self.__date}\n收盤價',
-            f'{self.__date}\n最高價',
-            f'{self.__date}\n最低價',
-            f'{self.__date}\n漲幅(%)',
-            f'{self.__date}\n振幅(%)',
-            f'{self.__date}\n成交量',
-            f'{self.__date}\n最大漲跌(%)'
-        ])
+            wsM.append([
+                '股票代號',
+                '股票名稱',
+                f'{date}\n開盤價',
+                f'{date}\n收盤價',
+                f'{date}\n最高價',
+                f'{date}\n最低價',
+                f'{date}\n漲幅(%)',
+                f'{date}\n振幅(%)',
+                f'{date}\n成交量',
+                f'{date}\n最大漲跌(%)'
+            ])
 
-        for p in self.__price:
-            wsC.append([f'{p[0]}.TW'])
-            wsM.append(p)
+            for p in price['value']:
+                wsC.append([f'{p[0]}.TW'])
+                wsM.append(p)
 
-        mainWs.save(os.path.join(path, f'{self.__date}.xlsx'))
-        codeWs.save(os.path.join(path, f'{self.__date}-code.xlsx'))
+            mainWs.save(os.path.join(path, f'{date}.xlsx'))
+            codeWs.save(os.path.join(path, f'{date}-code.xlsx'))
