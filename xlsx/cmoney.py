@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import openpyxl
+import csv
 
 
 def files(path):
@@ -174,6 +175,7 @@ class year():
 # 最大漲跌%3以上
 # 最多100檔
 # 收黑k
+# 開盤價10元以上
 class weakDay():
     __price = []
 
@@ -198,6 +200,10 @@ class weakDay():
             if (rows[8].value == None) | (rows[8].value == ''):
                 continue
 
+            # 股價小於10
+            if rows[2].value < 10:
+                continue
+
             # 成交小於1000張
             if rows[8].value <= 1000:
                 continue
@@ -205,11 +211,11 @@ class weakDay():
             diff = round(((rows[4].value / rows[5].value) - 1) * 100, 2)
 
             # 最大漲跌小於3
-            if diff < 3:
+            if diff <= 3:
                 continue
 
             # 收黑
-            if rows[2].value <= rows[3].value:
+            if rows[6].value >= 0:
                 continue
 
             p = []
@@ -219,16 +225,14 @@ class weakDay():
             p.append(diff)
             price.append(p)
 
-        return sorted(price[:100], key=lambda s: s[9], reverse=True)
+        return sorted(price, key=lambda s: s[9], reverse=True)[:110]
 
     def output(self, path):
         for price in self.__price:
+            codes = []
             date = price['date']
-            mainWs = openpyxl.Workbook()
-            codeWs = openpyxl.Workbook()
-            wsM = mainWs.active
-            wsC = codeWs.active
-            wsC.title = date
+            ws = openpyxl.Workbook()
+            wsM = ws.active
 
             wsM.append([
                 '股票代號',
@@ -244,8 +248,18 @@ class weakDay():
             ])
 
             for p in price['value']:
-                wsC.append([f'{p[0]}.TW'])
+                codes.append([f'{p[0]}.TW'])
                 wsM.append(p)
 
-            mainWs.save(os.path.join(path, f'{date}.xlsx'))
-            codeWs.save(os.path.join(path, f'{date}-code.xlsx'))
+            xlsxPath = os.path.join(path, f'{date}.xlsx')
+            csvPath = os.path.join(path, f'{date}-code.csv')
+            ws.save(xlsxPath)
+
+            with open(csvPath, 'w+', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+
+                for code in codes:
+                    writer.writerow(code)
+
+            logging.info(xlsxPath)
+            logging.info(csvPath)
