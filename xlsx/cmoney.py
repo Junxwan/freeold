@@ -74,15 +74,14 @@ class day():
         self.__date = row[:4] + '-' + row[4:6] + '-' + row[6:8]
 
         for c in self.__column:
-            self.__data[c] = []
+            self.__data[c] = {}
 
         for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
             for index, row in enumerate(rows[2:]):
-                self.__data[self.__column[index]].append({
-                    'code': rows[0].value,
+                self.__data[self.__column[index]][rows[0].value] = {
                     'name': rows[1].value,
                     'value': row.value,
-                })
+                }
 
     def output(self, path):
         for name, dName in self.__path.items():
@@ -90,9 +89,6 @@ class day():
             os.makedirs(dir, exist_ok=True)
 
             filePath = os.path.join(dir, self.__date) + ".json"
-
-            if os.path.exists(filePath):
-                continue
 
             f = codecs.open(filePath, 'w+', 'utf-8')
             f.write(json.dumps({
@@ -127,16 +123,15 @@ class year():
                         price[row.value[:6]] = {}
 
                     if price[row.value[:6]].get(date) == None:
-                        price[row.value[:6]][date] = []
+                        price[row.value[:6]][date] = {}
 
             for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
                 for index, row in enumerate(rows[2:]):
                     date = dates[index]
-                    price[date[:4] + date[5:7]][date].append({
-                        'code': rows[0].value,
+                    price[date[:4] + date[5:7]][date][rows[0].value] = {
                         'name': rows[1].value,
                         'value': row.value,
-                    })
+                    }
 
             self.__data.append({
                 'path': path,
