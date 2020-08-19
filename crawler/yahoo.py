@@ -37,7 +37,7 @@ def pullInfo(input, output):
                 for ii, s in enumerate(name):
                     if s.isdigit():
                         r = math.floor(float(name[ii:-1]))
-                        if r >= 1:
+                        if (r >= 1) & (name[:ii] != '其他'):
                             product.append(name[:ii] + '-' + str(r))
                         break
 
