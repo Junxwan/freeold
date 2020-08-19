@@ -11,6 +11,7 @@ def run(total, dir, image):
     pageTotal = image.total()
     now = time.time()
     count = total / pageTotal
+    index = 0
 
     if os.path.exists(dir) == False:
         os.mkdir(dir)
@@ -31,7 +32,8 @@ def run(total, dir, image):
 
             # 截圖並且將自選股移動至下一頁(每20筆一頁)
             for c in range(start, pageTotal):
-                image.run(str(c + (pageTotal * i)), c, dir)
+                index += 1
+                image.run(str(index), c, dir)
 
             pyautogui.click(2150, 255 + ((pageTotal - 1) * 43))
             pyautogui.press('numlock')
