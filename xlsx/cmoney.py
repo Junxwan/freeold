@@ -78,9 +78,16 @@ class day():
 
         for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
             for index, row in enumerate(rows[2:]):
+                if (rows[0].value == None) | (rows[1].value == None):
+                    continue
+
+                value = row.value
+                if value == '':
+                    value = 0
+
                 self.__data[self.__column[index]][rows[0].value] = {
                     'name': rows[1].value,
-                    'value': row.value,
+                    'value': value,
                 }
 
     def output(self, path):
@@ -128,9 +135,17 @@ class year():
             for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
                 for index, row in enumerate(rows[2:]):
                     date = dates[index]
+
+                    if (rows[0].value == None) | (rows[1].value == None):
+                        continue
+
+                    value = row.value
+                    if value == '':
+                        value = 0
+
                     price[date[:4] + date[5:7]][date][rows[0].value] = {
                         'name': rows[1].value,
-                        'value': row.value,
+                        'value': value,
                     }
 
             self.__data.append({
