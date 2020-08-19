@@ -3,10 +3,10 @@ import logging
 import os
 from datetime import datetime
 
-from xlsx import cmoney
+from stock import weak
 
 filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log',
-                        datetime.now().strftime("%Y-%m-%d-xlsx.log"))
+                        datetime.now().strftime("%Y-%m-%d-stock.log"))
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -15,16 +15,10 @@ logging.basicConfig(level=logging.INFO,
 logging.getLogger().addHandler(logging.StreamHandler())
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    '-output',
-    help='output path',
-    required=True,
-    type=str
-)
 
 parser.add_argument(
-    '-input',
-    help='input xlsx path',
+    '-model',
+    help='model',
     required=True,
     type=str
 )
@@ -32,13 +26,20 @@ parser.add_argument(
 parser.add_argument(
     '-date',
     help='date',
-    required=False,
+    required=True,
     type=str
 )
 
 parser.add_argument(
-    '-model',
-    help='xlsx model',
+    '-dataDir',
+    help='data dir',
+    required=True,
+    type=str
+)
+
+parser.add_argument(
+    '-output',
+    help='output path',
     required=True,
     type=str
 )
@@ -48,10 +49,7 @@ args = parser.parse_args()
 logging.info('=================== ' + args.model + ' =================== ')
 
 switch = {
-    'cmoney-year-json': cmoney.year,
-    'cmoney-day-json': cmoney.day,
-    'cmoney-stock-json': cmoney.stock,
-    'cmoney-weak-day': cmoney.weakDay,
+    'weak': weak.run
 }
 
-switch[args.model](args.input).output(args.output)
+switch[args.model](args.date, args.dataDir, args.output)

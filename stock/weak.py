@@ -1,10 +1,8 @@
 import csv
 import logging
 import os
-
 import openpyxl
-
-from xlsx import data
+from . import data
 
 
 def run(date, dir, outputPath):
@@ -90,7 +88,3 @@ def output(prices, date, path):
 
     logging.info(xlsxPath)
     logging.info(csvPath)
-
-
-run('2020-08-19', 'C:\\Users\\hugh8\\Desktop\\research\\data\\json',
-    'C:\\Users\\hugh8\\Desktop\\research\\weakDay\\202008')
