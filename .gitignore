@@ -1,7 +1,8 @@
 venv
+build
+dist
+main.spec
 \.idea/
 *.xlsx
 *.log
 *.pyc
-
-code.xlsx
