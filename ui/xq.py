@@ -35,8 +35,7 @@ class imageDay(image):
         image.__init__(self, master, w, h)
 
     def run(self):
-        xq.run(self.total, self.output, day())
-        self.showSuccess()
+        xq.run(self.total.get(), self.output.get(), day())
 
 
 # xq 自動擷取歷史走勢與技術分析圖參數
@@ -75,5 +74,4 @@ class historyDay(image):
             if date.day in weeks[index]:
                 dayY = index + 1
 
-        xq.run(self.total, self.output, history(prevDay=prevDay, prevMonth=prevMonth, dayX=dayX, dayY=dayY))
-        self.showSuccess()
+        xq.run(self.total.get(), self.output.get(), history(prevDay=prevDay, prevMonth=prevMonth, dayX=dayX, dayY=dayY))
