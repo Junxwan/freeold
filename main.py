@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 import pyautogui
-from ui import cmoney, xq, stock, log
+from ui import cmoney, xq, stock, log, other
 
 
 class app(tk.Tk):
@@ -59,7 +59,10 @@ class app(tk.Tk):
         btn.place(x=self.w * 6.5, y=5)
 
         btn = tk.Button(self.btnFrame, text='個股', command=lambda: self.switchBtn(self.stockButtonGroup))
-        btn.place(x=5, y=self.h * 6)
+        btn.place(x=self.w * 13.5, y=5)
+
+        btn = tk.Button(self.btnFrame, text='其他', command=lambda: self.switchBtn(self.otherButtonGroup))
+        btn.place(x=self.w * 17.5, y=5)
 
         self.btnGroupFrame = tk.Frame(self.btnFrame, width=int(self.width * 0.25), bg='#eeeeee',
                                       height=int(self.topHeight * 0.7))
@@ -132,6 +135,13 @@ class app(tk.Tk):
         btn.place(x=5, y=5)
 
         self.setLog('stock')
+
+    # 其他功能按鈕組群
+    def otherButtonGroup(self):
+        btn = tk.Button(self.btnGroupFrame, text='個股資料轉json', command=lambda: self.switchArg(other.stockInfo))
+        btn.place(x=5, y=5)
+
+        self.setLog('other')
 
     # 切換 按鈕群組 layout內容
     def switchBtn(self, pack):
