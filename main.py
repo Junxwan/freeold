@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+import pyautogui
 from ui import cmoney, xq, stock, log
 
 
@@ -9,6 +10,8 @@ class app(tk.Tk):
 
         self.width = width
         self.height = height
+        self.w = width / 100
+        self.h = height / 100
 
         self.title(title)
         self.geometry(f'{width}x{height}')
@@ -42,7 +45,7 @@ class app(tk.Tk):
 
     # 按鈕 layout
     def buttonLayout(self):
-        self.btnFrame = tk.LabelFrame(self.topFrame, text='功能', width=200, height=self.topHeight)
+        self.btnFrame = tk.LabelFrame(self.topFrame, text='功能', width=int(self.width * 0.25), height=self.topHeight)
         self.btnFrame.pack(side=tk.LEFT)
         self.btnFrame.pack_propagate(0)
 
@@ -50,15 +53,16 @@ class app(tk.Tk):
         btn.place(x=5, y=5)
 
         btn = tk.Button(self.btnFrame, text='xq', command=lambda: self.switchBtn(self.xqButtonGroup))
-        btn.place(x=45, y=5)
+        btn.place(x=self.w * 3.5, y=5)
 
         btn = tk.Button(self.btnFrame, text='cmoney', command=lambda: self.switchBtn(self.cmoneyButtonGroup))
-        btn.place(x=90, y=5)
+        btn.place(x=self.w * 6.5, y=5)
 
         btn = tk.Button(self.btnFrame, text='個股', command=lambda: self.switchBtn(self.stockButtonGroup))
-        btn.place(x=5, y=30)
+        btn.place(x=5, y=self.h * 6)
 
-        self.btnGroupFrame = tk.Frame(self.btnFrame, width=200, bg='#eeeeee', height=int(self.topHeight * 0.7))
+        self.btnGroupFrame = tk.Frame(self.btnFrame, width=int(self.width * 0.25), bg='#eeeeee',
+                                      height=int(self.topHeight * 0.7))
         self.btnGroupFrame.pack(side=tk.BOTTOM)
         self.btnGroupFrame.pack_propagate(0)
 
@@ -68,7 +72,7 @@ class app(tk.Tk):
             self.topFrame,
             text='參數',
             bg='#eeeeee',
-            width=self.width - 200,
+            width=self.width - int(self.width * 0.25),
             height=self.topHeight
         )
 
@@ -79,14 +83,16 @@ class app(tk.Tk):
     def logLayout(self):
         self.scrollbar = tk.Scrollbar(self.bottomFrame)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.listbox = tk.Listbox(self.bottomFrame, bg='#eeeeee', yscrollcommand=self.scrollbar.set, width=64)
+        self.listbox = tk.Listbox(self.bottomFrame, bg='#eeeeee', yscrollcommand=self.scrollbar.set,
+                                  width=100)
 
         self.listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.scrollbar.config(command=self.listbox.yview)
 
     # result layout
     def resultLayout(self):
-        self.resultFrame = tk.Frame(self.bottomFrame, bg='#eeeeee', width=200, height=self.bottomHeight)
+        self.resultFrame = tk.Frame(self.bottomFrame, bg='#eeeeee', width=int(self.width * 0.25),
+                                    height=self.bottomHeight)
         self.resultFrame.pack(side=tk.LEFT, pady=2)
         self.resultFrame.pack_propagate(0)
 
@@ -103,7 +109,7 @@ class app(tk.Tk):
         btn.place(x=5, y=5)
 
         btn = tk.Button(self.btnGroupFrame, text='歷史走勢與技術分析截圖', command=lambda: self.switchArg(xq.historyDay))
-        btn.place(x=5, y=35)
+        btn.place(x=5, y=self.h * 6)
 
         self.setLog('xq')
 
@@ -113,10 +119,10 @@ class app(tk.Tk):
         btn.place(x=5, y=5)
 
         btn = tk.Button(self.btnGroupFrame, text='年轉json', command=lambda: self.switchArg(cmoney.yearToJson))
-        btn.place(x=5, y=35)
+        btn.place(x=5, y=self.h * 6)
 
         btn = tk.Button(self.btnGroupFrame, text='個股轉json', command=lambda: self.switchArg(cmoney.stockToJson))
-        btn.place(x=5, y=65)
+        btn.place(x=5, y=self.h * 12)
 
         self.setLog('cmoney')
 
@@ -145,11 +151,13 @@ class app(tk.Tk):
         for f in self.argFrame.winfo_children():
             f.destroy()
 
-        frame(self.argFrame)
+        frame(self.argFrame, self.w, self.h)
 
     def setLog(self, name):
         log.init(os.path.dirname(os.path.abspath(__file__)), name, self.listbox)
 
 
-app = app()
+size = pyautogui.size()
+
+app = app(int(size.width / 2), int(size.height / 2))
 app.run()

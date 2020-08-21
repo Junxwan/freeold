@@ -8,7 +8,9 @@ from . import ui
 
 # 抓取tick
 class tick(ui.process):
-    def __init__(self, master):
+    def __init__(self, master, w, h):
+        ui.process.__init__(self, master, w, h)
+
         self.ck = ''
         self.session = ''
         self.code = tk.StringVar()
@@ -16,24 +18,37 @@ class tick(ui.process):
         self.date = tk.StringVar()
 
         tk.Label(master, text='CK:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.ck, font=ui.FONT).place(x=130, y=10)
+        tk.Entry(master, textvariable=self.ck, font=ui.FONT).place(x=self.ex, y=10)
 
-        tk.Label(master, text='Session:', font=ui.FONT).place(x=10, y=50)
-        tk.Entry(master, textvariable=self.session, font=ui.FONT).place(x=130, y=50)
+        tk.Label(master, text='Session:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.session, font=ui.FONT).place(x=self.ex, y=self.ey)
 
-        tk.Label(master, text='日期或檔案:', font=ui.FONT).place(x=10, y=90)
-        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=130, y=90)
-        tk.Button(master, text='選擇xlsx', font=ui.FONT, command=lambda: self.date.set(ui.openFile().name)).place(x=350,
-                                                                                                                y=90)
+        tk.Label(master, text='日期或檔案:', font=ui.FONT).place(x=10, y=self.ey * 2)
+        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
+        tk.Button(
+            master,
+            text='選擇xlsx',
+            font=ui.BTN_FONT,
+            command=lambda: self.date.set(ui.openFile().name)
+        ).place(x=w * 50, y=h * 18)
 
-        tk.Label(master, text='個股清單:', font=ui.FONT).place(x=10, y=130)
-        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=130, y=130)
-        tk.Button(master, text='選擇xlsx', font=ui.FONT, command=lambda: self.code.set(ui.openFile().name)).place(x=350,
-                                                                                                                y=130)
+        tk.Label(master, text='個股清單:', font=ui.FONT).place(x=10, y=self.ey * 3)
+        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=self.ey * 3)
+        tk.Button(
+            master,
+            text='選擇xlsx',
+            font=ui.BTN_FONT,
+            command=lambda: self.code.set(ui.openFile().name)
+        ).place(x=w * 50, y=h * 28)
 
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=170)
-        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=130, y=170)
-        tk.Button(master, text='選擇目錄', font=ui.FONT, command=lambda: self.output.set(ui.openDir())).place(x=350, y=170)
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey * 4)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey * 4)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=h * 38)
 
         self.addRunBtn(master)
 
@@ -57,18 +72,29 @@ class tick(ui.process):
 
 
 class toJson(ui.process):
-    def __init__(self, master):
+    def __init__(self, master, w, h):
+        ui.process.__init__(self, master, w, h)
+
         self.input = tk.StringVar()
         self.output = tk.StringVar()
 
         tk.Label(master, text='xlsx:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.input, width=35, font=ui.FONT).place(x=100, y=10)
-        tk.Button(master, text=self.openInputText(), font=ui.FONT, command=self.openInput).place(
-            x=470, y=10)
+        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text=self.openInputText(),
+            font=ui.BTN_FONT,
+            command=self.openInput
+        ).place(x=self.w * 50, y=10)
 
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=50)
-        tk.Entry(master, textvariable=self.output, width=35, font=ui.FONT).place(x=100, y=50)
-        tk.Button(master, text='選擇目錄', font=ui.FONT, command=self.openOutPut).place(x=470, y=50)
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=self.openOutPut
+        ).place(x=self.w * 50, y=self.h * 8)
 
         self.addRunBtn(master)
 

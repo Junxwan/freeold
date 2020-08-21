@@ -4,7 +4,7 @@ from tkinter import messagebox
 import tkinter as tk
 
 FONT = ('Helvetica', 18, "bold")
-
+BTN_FONT = ('Helvetica', 15, "bold")
 SMALL_FONT = ('Helvetica', 13, "bold")
 
 
@@ -22,8 +22,15 @@ def openDir():
 
 
 class process():
+    def __init__(self, master, w, h):
+        self.master = master
+        self.w = w
+        self.h = h
+        self.ex = w * 15
+        self.ey = h * 10
+
     def addRunBtn(self, master):
-        tk.Button(master, text='執行', font=FONT, command=self.start).place(x=500, y=250)
+        tk.Button(master, text='執行', font=FONT, command=self.start).place(x=self.w * 65, y=self.h * 45)
 
     def run(self):
         pass

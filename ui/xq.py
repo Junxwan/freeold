@@ -8,24 +8,31 @@ from xq.imageHistory import image as history
 
 
 class image(ui.process):
-    def __init__(self, master):
+    def __init__(self, master, w, h):
+        ui.process.__init__(self, master, w, h)
+
         self.total = tk.IntVar()
         self.output = tk.StringVar()
 
         tk.Label(master, text='總數:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.total, font=ui.FONT).place(x=70, y=10)
+        tk.Entry(master, textvariable=self.total, font=ui.FONT).place(x=self.ex, y=10)
 
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=50)
-        tk.Entry(master, textvariable=self.output, width=35, font=ui.FONT).place(x=70, y=50)
-        tk.Button(master, text='選擇目錄', font=ui.FONT, command=lambda: self.output.set(ui.openDir())).place(x=470, y=50)
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=self.w * 50, y=self.h * 8)
 
         self.addRunBtn(master)
 
 
 # xq 自動擷取當日走勢與技術分析圖參數
 class imageDay(image):
-    def __init__(self, master):
-        image.__init__(self, master)
+    def __init__(self, master, w, h):
+        image.__init__(self, master, w, h)
 
     def run(self):
         xq.run(self.total, self.output, day())
@@ -34,14 +41,14 @@ class imageDay(image):
 
 # xq 自動擷取歷史走勢與技術分析圖參數
 class historyDay(image):
-    def __init__(self, master):
-        image.__init__(self, master)
+    def __init__(self, master, w, h):
+        image.__init__(self, master, w, h)
 
         self.date = tk.StringVar()
         self.date.set(datetime.now().date())
 
-        tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=90)
-        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=70, y=90)
+        tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=self.ey * 2)
+        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
 
     def run(self):
         date = datetime.fromisoformat(self.date.get())
