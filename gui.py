@@ -1,5 +1,6 @@
+import os
 import tkinter as tk
-from ui import cmoney, xq, stock
+from ui import cmoney, xq, stock, log
 
 
 class app(tk.Tk):
@@ -80,9 +81,6 @@ class app(tk.Tk):
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.listbox = tk.Listbox(self.bottomFrame, bg='#eeeeee', yscrollcommand=self.scrollbar.set, width=64)
 
-        for i in range(100):
-            self.listbox.insert(tk.END, str(i))
-
         self.listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.scrollbar.config(command=self.listbox.yview)
 
@@ -97,6 +95,8 @@ class app(tk.Tk):
         btn = tk.Button(self.btnGroupFrame, text='tick', command=lambda: self.switchArg(cmoney.tick))
         btn.place(x=5, y=5)
 
+        self.setLog('data')
+
     # xq功能按鈕組群
     def xqButtonGroup(self):
         btn = tk.Button(self.btnGroupFrame, text='當日走勢與技術分析截圖', command=lambda: self.switchArg(xq.imageDay))
@@ -104,6 +104,8 @@ class app(tk.Tk):
 
         btn = tk.Button(self.btnGroupFrame, text='歷史走勢與技術分析截圖', command=lambda: self.switchArg(xq.historyDay))
         btn.place(x=5, y=35)
+
+        self.setLog('xq')
 
     # cmoney功能按鈕組群
     def cmoneyButtonGroup(self):
@@ -116,13 +118,19 @@ class app(tk.Tk):
         btn = tk.Button(self.btnGroupFrame, text='個股轉json', command=lambda: self.switchArg(cmoney.stockToJson))
         btn.place(x=5, y=65)
 
+        self.setLog('cmoney')
+
     # 選股功能按鈕組群
     def stockButtonGroup(self):
         btn = tk.Button(self.btnGroupFrame, text='每日弱勢股', command=lambda: self.switchArg(stock.weakDay))
         btn.place(x=5, y=5)
 
+        self.setLog('stock')
+
     # 切換 按鈕群組 layout內容
     def switchBtn(self, pack):
+        self.listbox.delete(0, tk.END)
+
         for f in self.btnGroupFrame.winfo_children():
             f.destroy()
 
@@ -132,10 +140,15 @@ class app(tk.Tk):
 
     # 切換 參數 layout內容
     def switchArg(self, frame):
+        self.listbox.delete(0, tk.END)
+
         for f in self.argFrame.winfo_children():
             f.destroy()
 
         frame(self.argFrame)
+
+    def setLog(self, name):
+        log.init(os.path.dirname(os.path.abspath(__file__)), name, self.listbox)
 
 
 app = app()

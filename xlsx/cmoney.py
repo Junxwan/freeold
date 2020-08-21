@@ -154,6 +154,7 @@ class year():
             })
 
     def output(self, path):
+        total = 0
         for data in self.__data:
             for name, month in data['price'].items():
                 dir = os.path.join(path, name)
@@ -177,7 +178,10 @@ class year():
                     }, ensure_ascii=False))
                     f.close()
 
+                    total += 1
                     logging.info('date: ' + date)
+
+        return total
 
 
 # 每日弱勢股
