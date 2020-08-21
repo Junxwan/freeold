@@ -68,14 +68,9 @@ def pullTick(date, ck, session, file, dir):
             logging.info('code: ' + code + ' date: ' + date + ' save failure - ' + str(count))
 
     logging.info(
-        'total:' + str(codes.__len__()) +
-        ' result: ' + str(ok + failure + exists + emy.__len__()),
-        ' ok: ' + str(ok) +
-        ' failure: ' + str(failure) +
-        ' exists: ' + str(exists) +
-        ' empty: ' + str(emy.__len__()),
+        f"total: {codes.__len__()} result: {ok + failure + exists + emy.__len__()} ok: {ok} failure: {failure} exists: {exists}"
     )
-    logging.info('empty: ' + emy.__str__())
+    logging.info(f"empty: {emy.__len__()} {emy.__str__()}")
     logging.info('======================= end ' + date + ' =======================')
 
 
