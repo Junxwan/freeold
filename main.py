@@ -117,6 +117,9 @@ class app(tk.Tk):
         btn = tk.Button(self.btnGroupFrame, text='大盤截圖', command=lambda: self.switchArg(xq.marketImage))
         btn.place(x=5, y=self.h * 12)
 
+        btn = tk.Button(self.btnGroupFrame, text='歷史大盤截圖', command=lambda: self.switchArg(xq.marketImageHistory))
+        btn.place(x=5, y=self.h * 18)
+
         self.setLog('xq')
 
     # cmoney功能按鈕組群
