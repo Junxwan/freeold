@@ -11,8 +11,8 @@ class tick(ui.process):
     def __init__(self, master, w, h):
         ui.process.__init__(self, master, w, h)
 
-        self.ck = ''
-        self.session = ''
+        self.ck = tk.StringVar()
+        self.session = tk.StringVar()
         self.code = tk.StringVar()
         self.output = tk.StringVar()
         self.date = tk.StringVar()
@@ -66,7 +66,7 @@ class tick(ui.process):
             dates.append(date)
 
         for date in dates:
-            crawler.pullTick(date, self.ck, self.session, self.code, self.output)
+            crawler.pullTick(date, self.ck.get(), self.session.get(), self.code.get(), self.output.get())
 
         self.showSuccess()
 
