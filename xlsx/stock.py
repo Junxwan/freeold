@@ -31,7 +31,7 @@ class info():
                 concept = rows[8].value.split(',')
 
             if rows[11].value == '1':
-                on = 'tws'
+                on = 'tse'
             else:
                 on = 'otc'
 
