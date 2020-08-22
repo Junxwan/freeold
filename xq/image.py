@@ -8,34 +8,46 @@ from stock import data
 
 pyautogui.FAILSAFE = True
 
+prevDays = {}
+
 
 def calendarXY(date, dir):
+    if date in prevDays:
+        return prevDays[date]
+    else:
+        prevDays[date] = []
+
     prevDay = data.stock(dir).afterDates(date).__len__()
 
-    date = datetime.fromisoformat(date)
+    dateT = datetime.fromisoformat(date)
     nM = datetime.now().month
     nY = datetime.now().year
 
     prevMonth = 0
     dayX = 1
-    dayY = date.isocalendar()[1] % 6
+    dayY = dateT.isocalendar()[1] % 6
 
-    if nY != date.year:
-        prevMonth += ((nY - date.year) * 12)
+    if nY != dateT.year:
+        prevMonth += ((nY - dateT.year) * 12)
 
-    if nM != date.month:
-        prevMonth += abs(nM - date.month)
+    if nM != dateT.month:
+        prevMonth += abs(nM - dateT.month)
 
-    if date.isocalendar()[2] != 7:
-        dayX = date.isocalendar()[2] + 1
+    if dateT.isocalendar()[2] != 7:
+        dayX = dateT.isocalendar()[2] + 1
 
-    weeks = calendar.Calendar(calendar.SUNDAY).monthdayscalendar(date.year, date.month)
+    weeks = calendar.Calendar(calendar.SUNDAY).monthdayscalendar(dateT.year, dateT.month)
 
     for index in range(weeks.__len__()):
-        if date.day in weeks[index]:
+        if dateT.day in weeks[index]:
             dayY = index + 1
 
-    return [prevDay, prevMonth, dayX, dayY]
+    d = [prevDay, prevMonth, dayX, dayY]
+
+    for v in d:
+        prevDays[date].append(v)
+
+    return d
 
 
 class stock():
@@ -122,10 +134,7 @@ class stockHistory(stock):
         # 1. 點擊技術分析
         # 2. 往前移動幾日
         # 3. 截取技術分析圖
-        pyautogui.click(470, 130)
-        time.sleep(0.5)
-        pyautogui.click(800, 1010, self.prevDay)
-        time.sleep(0.05 * self.prevDay)
+        self.moveK()
         pyautogui.screenshot(os.path.join(dir, 'A-' + name + '.png'), region=(75, 150, 1865, 890))
 
         # 1. 點擊走勢圖
@@ -133,6 +142,16 @@ class stockHistory(stock):
         # 3. 往前幾月
         # 4. 點擊日期
         # 3. 截取走勢圖
+        self.moveTrend()
+        pyautogui.screenshot(os.path.join(dir, 'B-' + name + '.png'), region=(75, 150, 1865, 890))
+
+    def moveK(self):
+        pyautogui.click(470, 130)
+        time.sleep(0.5)
+        pyautogui.click(800, 1010, self.prevDay)
+        time.sleep(0.05 * self.prevDay)
+
+    def moveTrend(self):
         pyautogui.click(180, 130)
         time.sleep(0.5)
         pyautogui.click(90, 220)
@@ -140,7 +159,6 @@ class stockHistory(stock):
         time.sleep(0.5)
         pyautogui.click(42 + (53 * self.dayX), 306 + (29 * self.dayY))
         time.sleep(2)
-        pyautogui.screenshot(os.path.join(dir, 'B-' + name + '.png'), region=(75, 150, 1865, 890))
 
     def total(self):
         return 18
@@ -166,10 +184,7 @@ class market():
         time.sleep(0.5)
 
     def K(self, name, dir, prevDay):
-        pyautogui.click(500, 130)
-        time.sleep(0.5)
-        pyautogui.click(1140, 1950, prevDay)
-        time.sleep(0.05 * prevDay)
+        self.moveK(prevDay)
         self.screenshotImage(dir, f'{name}-1')
 
     def trend(self, name, dir):
@@ -181,6 +196,12 @@ class market():
 
     def screenshotImage(self, dir, name):
         pyautogui.screenshot(os.path.join(dir, f'{name}.png'), region=(72, 112, 3750, 1860))
+
+    def moveK(self, prevDay):
+        pyautogui.click(500, 130)
+        time.sleep(0.5)
+        pyautogui.click(1140, 1950, prevDay)
+        time.sleep(0.05 * prevDay)
 
     def calendar(self):
         pass
@@ -214,6 +235,9 @@ class marketHistory(market):
 
     def run(self, output):
         self.screenshot(output, prevDay=self.prevDay)
+
+    def moveToK(self):
+        self.moveK(self.prevDay)
 
     def calendar(self):
         pyautogui.click(90, 220)

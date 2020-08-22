@@ -8,6 +8,7 @@ class app(tk.Tk):
     def __init__(self, width=800, height=500, title='股票'):
         tk.Tk.__init__(self)
 
+        self.isTop = False
         self.width = width
         self.height = height
         self.w = width / 100
@@ -99,6 +100,9 @@ class app(tk.Tk):
         self.resultFrame.pack(side=tk.LEFT, pady=2)
         self.resultFrame.pack_propagate(0)
 
+        btn = tk.Button(self.resultFrame, text='置頂', command=lambda: self.setWinTop())
+        btn.place(x=5, y=5)
+
     # 抓取資料功能按鈕組群
     def dataButonGroup(self):
         btn = tk.Button(self.btnGroupFrame, text='tick', command=lambda: self.switchArg(cmoney.tick))
@@ -119,6 +123,9 @@ class app(tk.Tk):
 
         btn = tk.Button(self.btnGroupFrame, text='歷史大盤截圖', command=lambda: self.switchArg(xq.marketImageHistory))
         btn.place(x=5, y=self.h * 18)
+
+        btn = tk.Button(self.btnGroupFrame, text='定位', command=lambda: self.switchArg(xq.move))
+        btn.place(x=5, y=self.h * 24)
 
         self.setLog('xq')
 
@@ -167,7 +174,16 @@ class app(tk.Tk):
         for f in self.argFrame.winfo_children():
             f.destroy()
 
-        frame(self.argFrame, self.w, self.h)
+        frame(self, self.argFrame, self.w, self.h)
+
+    # 視窗置頂
+    def setWinTop(self):
+        if self.isTop == False:
+            self.isTop = True
+        else:
+            self.isTop = False
+
+        self.wm_attributes('-topmost', self.isTop)
 
     def setLog(self, name):
         log.init(os.path.dirname(os.path.abspath(__file__)), name, self.listbox)

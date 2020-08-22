@@ -8,7 +8,7 @@ from . import ui
 
 # 抓取tick
 class tick(ui.process):
-    def __init__(self, master, w, h):
+    def __init__(self, root, master, w, h):
         ui.process.__init__(self, master, w, h)
 
         self.ck = tk.StringVar()
@@ -72,7 +72,7 @@ class tick(ui.process):
 
 
 class toJson(ui.process):
-    def __init__(self, master, w, h):
+    def __init__(self, root, master, w, h):
         ui.process.__init__(self, master, w, h)
 
         self.input = tk.StringVar()

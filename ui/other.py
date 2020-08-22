@@ -4,7 +4,7 @@ from xlsx import stock
 
 
 class stockInfo(ui.process):
-    def __init__(self, master, w, h):
+    def __init__(self, root, master, w, h):
         ui.process.__init__(self, master, w, h)
 
         self.input = tk.StringVar()

@@ -7,7 +7,7 @@ from stock import weak
 
 # 每日弱勢股
 class weakDay(ui.process):
-    def __init__(self, master, w, h):
+    def __init__(self, root, master, w, h):
         ui.process.__init__(self, master, w, h)
 
         self.date = tk.StringVar()
