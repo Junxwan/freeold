@@ -147,13 +147,13 @@ class stockHistory(stock):
 
 
 MARKET_NAME = {
-    'otc': 'OTC.TW',
-    'tse': 'TSE.TW',
+    '3otc': 'OTC.TW',
+    '2tse': 'TSE.TW',
 }
 
 FUTURES_NAME = {
-    'fitx': 'FITX',
-    'fitxn': 'FITXN',
+    '1fitx': 'FITX',
+    '1fitxn': 'FITXN',
 }
 
 
@@ -176,6 +176,7 @@ class market():
         pyautogui.click(200, 130)
         time.sleep(0.5)
         self.calendar()
+        time.sleep(0.5)
         self.screenshotImage(dir, f'{name}-2')
 
     def screenshotImage(self, dir, name):
