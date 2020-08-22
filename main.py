@@ -108,11 +108,14 @@ class app(tk.Tk):
 
     # xq功能按鈕組群
     def xqButtonGroup(self):
-        btn = tk.Button(self.btnGroupFrame, text='當日走勢與技術分析截圖', command=lambda: self.switchArg(xq.imageDay))
+        btn = tk.Button(self.btnGroupFrame, text='當日走勢與技術分析截圖', command=lambda: self.switchArg(xq.stockImageDay))
         btn.place(x=5, y=5)
 
-        btn = tk.Button(self.btnGroupFrame, text='歷史走勢與技術分析截圖', command=lambda: self.switchArg(xq.historyDay))
+        btn = tk.Button(self.btnGroupFrame, text='歷史走勢與技術分析截圖', command=lambda: self.switchArg(xq.stockImageHistory))
         btn.place(x=5, y=self.h * 6)
+
+        btn = tk.Button(self.btnGroupFrame, text='大盤截圖', command=lambda: self.switchArg(xq.marketImage))
+        btn.place(x=5, y=self.h * 12)
 
         self.setLog('xq')
 

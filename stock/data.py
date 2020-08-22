@@ -3,6 +3,8 @@ import json
 import os
 
 # 開盤價
+from datetime import datetime
+
 OPEN = 'open'
 
 # 收盤價
@@ -103,27 +105,65 @@ class stock:
 
         return data
 
+    # 開市日
+    def dates(self, year, month=None):
+        dates = []
+        path = os.path.join(self._dir, f'price/{OPEN}')
 
-# 開市日
-def dates(self, year, month=None):
-    dates = []
-    path = os.path.join(self._dir, f'price/{OPEN}')
+        for d in sorted(os.listdir(path), reverse=True):
+            fullPath = os.path.join(path, d)
 
-    for d in os.listdir(path):
-        fullPath = os.path.join(path, d)
+            if os.path.isdir(fullPath):
+                for f in sorted(os.listdir(fullPath), reverse=True):
+                    n = os.path.splitext(f)
 
-        if os.path.isdir(fullPath):
-            for f in os.listdir(fullPath):
-                n = os.path.splitext(f)
+                    if n[-1] != '.json':
+                        continue
 
-                if n[-1] != '.json':
-                    continue
+                    if n[0][:4] != year:
+                        continue
 
-                if n[0][:4] != year:
-                    continue
+                    if (month != None) & (n[0][5:7] != month):
+                        continue
 
-                if (month != None) & (n[0][5:7] != month):
-                    continue
+                    dates.append(n[0])
+        return dates
 
-                dates.append(n[0])
-    return dates
+    def afterDates(self, date):
+        dates = []
+
+        for ym in diffMonth(date):
+            for t in self.dates(ym[:4], ym[4:]):
+                if int(date.replace('-', '')) >= int(t.replace('-', '')):
+                    break
+
+                dates.append(t)
+
+        return dates
+
+
+def diffMonth(date):
+    nowDate = datetime.now()
+    date = datetime.fromisoformat(date)
+
+    l = []
+    for year in range(date.year, nowDate.year + 1):
+        max = 13
+        min = 1
+
+        if year == nowDate.year:
+            max = nowDate.month + 1
+
+            if date.year == nowDate.year:
+                min = date.month
+            else:
+                min = 1
+
+        elif year == date.year:
+            min = date.month
+            max = 13
+
+        for m in range(min, max):
+            l.append(f"{year}{m:02}")
+
+    return sorted(l, reverse=True)

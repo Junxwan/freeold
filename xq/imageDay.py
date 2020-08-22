@@ -1,10 +1,10 @@
 import os
 import time
 import pyautogui
-from . import item
+from . import image
 
 
-class image(item.image):
+class image(image.image):
 
     def screenshot(self, name, dir):
         # 1. 點擊技術分析

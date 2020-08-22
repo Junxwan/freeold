@@ -1,10 +1,10 @@
 import os
 import time
 import pyautogui
-from . import item
+from . import image
 
 
-class image(item.image):
+class image(image.image):
     def __init__(self, prevDay=0, prevMonth=0, dayX=1, dayY=1):
         self.__prevDay = prevDay
         self.__prevMonth = prevMonth
