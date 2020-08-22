@@ -7,7 +7,7 @@ import pyautogui
 pyautogui.FAILSAFE = True
 
 
-class stock():
+class image():
     def start(self, total, dir):
         pageTotal = self.total()
         now = time.time()
@@ -63,7 +63,7 @@ class stock():
         return 0
 
 
-class day(stock):
+class day(image):
     def screenshot(self, name, dir):
         # 1. 點擊技術分析
         # 2. 等待
@@ -83,7 +83,7 @@ class day(stock):
         return 20
 
 
-class history(stock):
+class history(image):
     def __init__(self, prevDay=0, prevMonth=0, dayX=1, dayY=1):
         self.__prevDay = prevDay
         self.__prevMonth = prevMonth
