@@ -8,7 +8,7 @@ from . import ui
 
 # 抓取tick
 class tick(ui.process):
-    def __init__(self, root, master, w, h):
+    def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.ck = tk.StringVar()
@@ -16,6 +16,11 @@ class tick(ui.process):
         self.code = tk.StringVar()
         self.output = tk.StringVar()
         self.date = tk.StringVar()
+
+        if config != None:
+            self.code.set(config['code'])
+            self.output.set(config['tick'])
+            self.date.set(config['open'])
 
         tk.Label(master, text='CK:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.ck, font=ui.FONT).place(x=self.ex, y=10)
@@ -72,11 +77,14 @@ class tick(ui.process):
 
 
 class toJson(ui.process):
-    def __init__(self, root, master, w, h):
+    def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.input = tk.StringVar()
         self.output = tk.StringVar()
+
+        if config != None:
+            self.output.set(config['data'])
 
         tk.Label(master, text='xlsx:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)

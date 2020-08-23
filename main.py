@@ -1,3 +1,4 @@
+import json
 import os
 import tkinter as tk
 import pyautogui
@@ -8,6 +9,8 @@ class app(tk.Tk):
     def __init__(self, width=800, height=500, title='股票'):
         tk.Tk.__init__(self)
 
+        self.currentPath = os.path.dirname(os.path.abspath(__file__))
+        self.config = self.readConfig()
         self.isTop = False
         self.width = width
         self.height = height
@@ -22,6 +25,21 @@ class app(tk.Tk):
     # 執行
     def run(self):
         self.mainloop()
+
+    def readConfig(self):
+        config = os.path.join(self.currentPath, 'config.json')
+
+        if os.path.exists(config):
+            return json.load(open(config, encoding='utf-8'))
+
+        return {
+            'data': '',
+            'output': '',
+            'code': '',
+            'tick': '',
+            'open': '',
+            'weak': '',
+        }
 
     # 主layout
     def mainLayout(self):
@@ -174,7 +192,7 @@ class app(tk.Tk):
         for f in self.argFrame.winfo_children():
             f.destroy()
 
-        frame(self, self.argFrame, self.w, self.h)
+        frame(self, self.argFrame, self.w, self.h, self.config)
 
     # 視窗置頂
     def setWinTop(self):
@@ -186,7 +204,7 @@ class app(tk.Tk):
         self.wm_attributes('-topmost', self.isTop)
 
     def setLog(self, name):
-        log.init(os.path.dirname(os.path.abspath(__file__)), name, self.listbox)
+        log.init(self.currentPath, name, self.listbox)
 
 
 size = pyautogui.size()

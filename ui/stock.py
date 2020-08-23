@@ -7,7 +7,7 @@ from stock import weak
 
 # 每日弱勢股
 class weakDay(ui.process):
-    def __init__(self, root, master, w, h):
+    def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.date = tk.StringVar()
@@ -15,6 +15,10 @@ class weakDay(ui.process):
         self.output = tk.StringVar()
 
         self.date.set(datetime.now().date())
+
+        if config != None:
+            self.dir.set(config['data'])
+            self.output.set(config['weak'])
 
         tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=10)

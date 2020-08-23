@@ -6,3 +6,5 @@ main.spec
 *.xlsx
 *.log
 *.pyc
+
+config.json

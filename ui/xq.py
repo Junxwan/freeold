@@ -4,11 +4,14 @@ from xq import image as xq
 
 
 class stockImage(ui.process):
-    def __init__(self, root, master, w, h):
+    def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.total = tk.IntVar()
         self.output = tk.StringVar()
+
+        if config != None:
+            self.output.set(config['output'])
 
         tk.Label(master, text='總數:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.total, font=ui.FONT).place(x=self.ex, y=10)
@@ -27,8 +30,8 @@ class stockImage(ui.process):
 
 # xq 自動擷取當日走勢與技術分析圖參數
 class stockImageDay(stockImage):
-    def __init__(self, root, master, w, h):
-        stockImage.__init__(self, root, master, w, h)
+    def __init__(self, root, master, w, h, config=None):
+        stockImage.__init__(self, root, master, w, h, config)
 
     def run(self):
         xq.stockNow().start(self.total.get(), self.output.get())
@@ -36,11 +39,14 @@ class stockImageDay(stockImage):
 
 # xq 自動擷取歷史走勢與技術分析圖參數
 class stockImageHistory(stockImage):
-    def __init__(self, root, master, w, h):
-        stockImage.__init__(self, root, master, w, h)
+    def __init__(self, root, master, w, h, config=None):
+        stockImage.__init__(self, root, master, w, h, config)
 
         self.date = tk.StringVar()
         self.dir = tk.StringVar()
+
+        if config != None:
+            self.dir.set(config['data'])
 
         tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=self.ey * 2)
         tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
@@ -64,10 +70,13 @@ class stockImageHistory(stockImage):
 
 # xq 大盤圖參數
 class marketImage(ui.process):
-    def __init__(self, root, master, w, h):
+    def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.output = tk.StringVar()
+
+        if config != None:
+            self.output.set(config['output'])
 
         tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=10)
@@ -86,12 +95,16 @@ class marketImage(ui.process):
 
 # xq 歷史大盤圖參數
 class marketImageHistory(ui.process):
-    def __init__(self, root, master, w, h):
+    def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.dir = tk.StringVar()
         self.date = tk.StringVar()
         self.output = tk.StringVar()
+
+        if config != None:
+            self.dir.set(config['data'])
+            self.output.set(config['output'])
 
         tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=10)
@@ -122,7 +135,7 @@ class marketImageHistory(ui.process):
 
 
 class move(ui.process):
-    def __init__(self, root, master, w, h):
+    def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.dir = tk.StringVar()
@@ -130,6 +143,9 @@ class move(ui.process):
         self.allDate = tk.StringVar()
         self.historyTrendDate = tk.StringVar()
         self.historyKDate = tk.StringVar()
+
+        if config != None:
+            self.dir.set(config['data'])
 
         tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.dir, font=ui.FONT).place(x=self.ex * 1.5, y=10)
