@@ -5,53 +5,33 @@ import pyautogui
 from ui import cmoney, xq, stock, log, other
 
 
-class app(tk.Tk):
-    def __init__(self, width=800, height=500, title='股票'):
-        tk.Tk.__init__(self)
-
-        self.currentPath = os.path.dirname(os.path.abspath(__file__))
-        self.config = self.readConfig()
+class data():
+    def __init__(self, root, config=None, path=None):
+        self.root = root
+        self.config = config
+        self.size = pyautogui.size()
+        self.width = int(self.size.width / 2)
+        self.height = int(self.size.height / 2)
+        self.w = self.width / 100
+        self.h = self.height / 100
         self.isTop = False
-        self.width = width
-        self.height = height
-        self.w = width / 100
-        self.h = height / 100
+        self.currentPath = path
 
-        self.title(title)
-        self.geometry(f'{width}x{height}')
+        root.geometry(f'{self.width}x{self.height}')
         self.mainLayout()
         self.frameLayout()
-
-    # 執行
-    def run(self):
-        self.mainloop()
-
-    def readConfig(self):
-        config = os.path.join(self.currentPath, 'config.json')
-
-        if os.path.exists(config):
-            return json.load(open(config, encoding='utf-8'))
-
-        return {
-            'data': '',
-            'output': '',
-            'code': '',
-            'tick': '',
-            'open': '',
-            'weak': '',
-        }
 
     # 主layout
     def mainLayout(self):
         self.topHeight = int(self.height * 0.6)
 
-        self.topFrame = tk.Frame(self, width=self.width, height=self.topHeight)
+        self.topFrame = tk.Frame(self.root, width=self.width, height=self.topHeight)
         self.topFrame.pack(side=tk.TOP, padx=5)
         self.topFrame.pack_propagate(0)
 
         self.bottomHeight = int(self.height * 0.4)
 
-        self.bottomFrame = tk.Frame(self, width=self.width, height=self.bottomHeight)
+        self.bottomFrame = tk.Frame(self.root, width=self.width, height=self.bottomHeight)
         self.bottomFrame.pack(side=tk.BOTTOM, padx=5)
         self.bottomFrame.pack_propagate(0)
 
@@ -160,7 +140,7 @@ class app(tk.Tk):
 
         self.setLog('cmoney')
 
-    # 選股功能按鈕組群
+    # 選股功能按鈕組
     def stockButtonGroup(self):
         btn = tk.Button(self.btnGroupFrame, text='每日弱勢股', command=lambda: self.switchArg(stock.weakDay))
         btn.place(x=5, y=5)
@@ -192,7 +172,7 @@ class app(tk.Tk):
         for f in self.argFrame.winfo_children():
             f.destroy()
 
-        frame(self, self.argFrame, self.w, self.h, self.config)
+        frame(self.root, self.argFrame, self.w, self.h, self.config)
 
     # 視窗置頂
     def setWinTop(self):
@@ -201,13 +181,81 @@ class app(tk.Tk):
         else:
             self.isTop = False
 
-        self.wm_attributes('-topmost', self.isTop)
+        self.root.wm_attributes('-topmost', self.isTop)
 
     def setLog(self, name):
         log.init(self.currentPath, name, self.listbox)
 
 
-size = pyautogui.size()
+class image():
+    def __init__(self, root):
+        self.root = root
+        self.size = pyautogui.size()
+        self.width = int(self.size.width * 0.95)
+        self.height = int(self.size.height * 0.8)
 
-app = app(int(size.width / 2), int(size.height / 2))
-app.run()
+        root.geometry(f'{self.width}x{self.height}')
+
+        self.mainLayout()
+
+    def mainLayout(self):
+        self.leftHeight = int(self.height * 0.75)
+
+        self.leftFrame = tk.Frame(self.root, width=self.width, height=self.leftHeight, bg='grey')
+        self.leftFrame.pack(side=tk.TOP, padx=5)
+        self.leftFrame.pack_propagate(0)
+
+        self.rightHeight = int(self.height * 0.25)
+
+        self.rightFrame = tk.Frame(self.root, width=self.width, height=self.rightHeight, bg='black')
+        self.rightFrame.pack(side=tk.BOTTOM, padx=5)
+        self.rightFrame.pack_propagate(0)
+
+
+class app(tk.Tk):
+    def __init__(self):
+        tk.Tk.__init__(self)
+        self.currentPath = os.path.dirname(os.path.abspath(__file__))
+        self.configs = self.readConfig()
+        self.title('股票')
+
+    def readConfig(self):
+        config = os.path.join(self.currentPath, 'config.json')
+
+        if os.path.exists(config):
+            return json.load(open(config, encoding='utf-8'))
+
+        return {
+            'data': '',
+            'output': '',
+            'code': '',
+            'tick': '',
+            'open': '',
+            'weak': '',
+        }
+
+    def menu(self):
+        m = tk.Menu(self)
+        fileMenu = tk.Menu(m, tearoff=0)
+        fileMenu.add_command(label='資料', command=lambda: self.runDate())
+        fileMenu.add_command(label='圖', command=lambda: self.runImage())
+
+        m.add_cascade(label="看盤", menu=fileMenu)
+        self.config(menu=m)
+
+    def run(self, ui):
+        for f in self.winfo_children():
+            f.destroy()
+
+        self.menu()
+        ui()
+        self.mainloop()
+
+    def runDate(self):
+        self.run(lambda: data(self, config=self.configs, path=self.currentPath))
+
+    def runImage(self):
+        self.run(lambda: image(self))
+
+
+app().runImage()
