@@ -51,18 +51,17 @@ def calendarXY(date, dir):
 
 
 class stock():
-    def start(self, total, dir):
+    def start(self, total, output):
         pageTotal = self.total()
         now = time.time()
         count = total / pageTotal
         index = 0
 
-        if os.path.exists(dir) == False:
-            os.mkdir(dir)
+        output = self.mkdir(output)
 
         if total < pageTotal:
             for i in range(0, total):
-                self.run(str(i), i, dir)
+                self.run(str(i), i, output)
         else:
             max = math.ceil(count)
 
@@ -77,7 +76,7 @@ class stock():
                 # 截圖並且將自選股移動至下一頁(每20筆一頁)
                 for c in range(start, pageTotal):
                     index += 1
-                    self.run(str(index), c, dir)
+                    self.run(str(index), c, output)
 
                 pyautogui.click(2150, 255 + ((pageTotal - 1) * 43))
                 pyautogui.press('numlock')
@@ -92,6 +91,12 @@ class stock():
             title='結果',
             button='OK'
         )
+
+    def mkdir(self, dir):
+        if os.path.exists(dir) == False:
+            os.mkdir(dir)
+
+        return dir
 
     def screenshot(self, name, dir):
         pass
@@ -128,6 +133,7 @@ class stockNow(stock):
 
 class stockHistory(stock):
     def __init__(self, date, dir):
+        self.date = date
         self.prevDay, self.prevMonth, self.dayX, self.dayY = calendarXY(date, dir)
 
     def screenshot(self, name, dir):
@@ -144,6 +150,14 @@ class stockHistory(stock):
         # 3. 截取走勢圖
         self.moveTrend()
         pyautogui.screenshot(os.path.join(dir, 'B-' + name + '.png'), region=(75, 150, 1865, 890))
+
+    def mkdir(self, dir):
+        dir = os.path.join(dir, self.date)
+
+        if os.path.exists(dir) == False:
+            os.mkdir(dir)
+
+        return dir
 
     def moveK(self):
         pyautogui.click(470, 130)
