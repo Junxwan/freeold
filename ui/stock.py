@@ -17,7 +17,7 @@ class weakDay(ui.process):
         self.date.set(datetime.now().date())
 
         if config != None:
-            self.dir.set(config['data'])
+            self.dir.set(config['json'])
             self.output.set(config['weak'])
 
         tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=10)

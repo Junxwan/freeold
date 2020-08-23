@@ -84,7 +84,7 @@ class toJson(ui.process):
         self.output = tk.StringVar()
 
         if config != None:
-            self.output.set(config['data'])
+            self.output.set(config['json'])
 
         tk.Label(master, text='xlsx:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)

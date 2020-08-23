@@ -1,4 +1,9 @@
+import os
 import tkinter as tk
+from datetime import datetime
+
+import openpyxl
+
 from . import ui
 from xq import image as xq
 
@@ -7,25 +12,37 @@ class stockImage(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
-        self.total = tk.IntVar()
-        self.output = tk.StringVar()
+        self.code = tk.StringVar()
+        self.config = config
 
-        if config != None:
-            self.output.set(config['output'])
-
-        tk.Label(master, text='總數:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.total, font=ui.FONT).place(x=self.ex, y=10)
-
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Label(master, text='代碼:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=10)
         tk.Button(
             master,
-            text='選擇目錄',
+            text='選擇檔案',
             font=ui.BTN_FONT,
-            command=lambda: self.output.set(ui.openDir())
-        ).place(x=self.w * 50, y=self.h * 8)
+            command=lambda: self.code.set(ui.openFile().name)
+        ).place(x=self.w * 50, y=10)
 
         self.addRunBtn(master)
+
+    def outputPath(self):
+        return os.path.join(
+            os.path.dirname(self.code.get()), 'image', os.path.basename(self.code.get()).split('.')[0]
+        )
+
+    def getCodes(self):
+        codes = []
+        xlsx = openpyxl.load_workbook(self.code.get())
+        sheet = xlsx.active
+
+        for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
+            if rows[0].value == None:
+                continue
+
+            codes.append(rows[1].value)
+
+        return codes
 
 
 # xq 自動擷取當日走勢與技術分析圖參數
@@ -34,7 +51,7 @@ class stockImageDay(stockImage):
         stockImage.__init__(self, root, master, w, h, config)
 
     def run(self):
-        xq.stockNow().start(self.total.get(), self.output.get())
+        xq.stockNow().start(self.getCodes(), self.outputPath())
 
 
 # xq 自動擷取歷史走勢與技術分析圖參數
@@ -42,29 +59,26 @@ class stockImageHistory(stockImage):
     def __init__(self, root, master, w, h, config=None):
         stockImage.__init__(self, root, master, w, h, config)
 
-        self.date = tk.StringVar()
         self.dir = tk.StringVar()
+        self.date = tk.StringVar()
 
         if config != None:
-            self.dir.set(config['data'])
+            self.dir.set(config['json'])
 
-        tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=self.ey * 2)
-        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
-
-        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=self.ey * 3)
-        tk.Entry(master, textvariable=self.dir, font=ui.FONT).place(x=self.ex, y=self.ey * 3)
+        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.dir, font=ui.FONT).place(x=self.ex, y=self.ey)
         tk.Button(
             master,
             text='選擇目錄',
             font=ui.BTN_FONT,
             command=lambda:
             self.dir.set(ui.openDir())
-        ).place(x=self.w * 50, y=self.h * 28)
+        ).place(x=self.w * 50, y=self.h * 8)
 
     def run(self):
-        xq.stockHistory(self.date.get(), self.dir.get()).start(
-            self.total.get(),
-            self.output.get()
+        xq.stockHistory(os.path.basename(self.code.get()).split('.')[0], self.dir.get()).start(
+            self.getCodes(),
+            self.outputPath()
         )
 
 
@@ -103,7 +117,7 @@ class marketImageHistory(ui.process):
         self.output = tk.StringVar()
 
         if config != None:
-            self.dir.set(config['data'])
+            self.dir.set(config['json'])
             self.output.set(config['output'])
 
         tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=10)
@@ -145,7 +159,7 @@ class move(ui.process):
         self.historyKDate = tk.StringVar()
 
         if config != None:
-            self.dir.set(config['data'])
+            self.dir.set(config['json'])
 
         tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.dir, font=ui.FONT).place(x=self.ex * 1.5, y=10)

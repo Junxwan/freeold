@@ -227,11 +227,12 @@ class app(tk.Tk):
 
         return {
             'data': '',
+            'json': '',
+            'tick': '',
+            'weak': '',
             'output': '',
             'code': '',
-            'tick': '',
             'open': '',
-            'weak': '',
         }
 
     def menu(self):
@@ -258,4 +259,5 @@ class app(tk.Tk):
         self.run(lambda: image(self))
 
 
-app().runImage()
+# app().runImage()
+app().runDate()
