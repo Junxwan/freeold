@@ -27,8 +27,8 @@ class stockImage(ui.process):
 
 # xq 自動擷取當日走勢與技術分析圖參數
 class stockImageDay(stockImage):
-    def __init__(self, master, w, h):
-        stockImage.__init__(self, master, w, h)
+    def __init__(self, root, master, w, h):
+        stockImage.__init__(self, root, master, w, h)
 
     def run(self):
         xq.stockNow().start(self.total.get(), self.output.get())
@@ -37,7 +37,7 @@ class stockImageDay(stockImage):
 # xq 自動擷取歷史走勢與技術分析圖參數
 class stockImageHistory(stockImage):
     def __init__(self, root, master, w, h):
-        stockImage.__init__(self, master, w, h)
+        stockImage.__init__(self, root, master, w, h)
 
         self.date = tk.StringVar()
         self.dir = tk.StringVar()
