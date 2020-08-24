@@ -40,7 +40,7 @@ class stockImage(ui.process):
             if rows[0].value == None:
                 continue
 
-            codes.append(rows[1].value)
+            codes.append(rows[0].value)
 
         return codes
 

@@ -54,7 +54,7 @@ def list(date, stock):
         if open[0] <= close[0]:
             continue
 
-        price.append([name, code, open[0], close[0], max[0], min[0], increase[0], amplitude[0], volume[0], diff])
+        price.append([code, name, open[0], close[0], max[0], min[0], increase[0], amplitude[0], volume[0], diff])
 
     return sorted(price, key=lambda s: s[9], reverse=True)[:110]
 
