@@ -86,7 +86,7 @@ def output(prices, date, path):
     with open(csvPath, 'w+', newline='') as csvfile:
         writer = csv.writer(csvfile)
 
-        for code in [f'{c[1]}.TW' for c in prices]:
+        for code in [f'{c[0]}.TW' for c in prices]:
             writer.writerow([code])
 
     logging.info(xlsxPath)
