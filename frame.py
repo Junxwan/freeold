@@ -205,8 +205,8 @@ class image():
     def __init__(self, root, config=None):
         self.root = root
         self.size = pyautogui.size()
-        self.width = int(self.size.width * 0.95)
-        self.height = int(self.size.height * 0.8)
+        self.width = self.size.width
+        self.height = self.size.height
         self.w = self.width / 100
         self.h = self.height / 100
         self.config = config
@@ -242,7 +242,7 @@ class image():
         self.stockFrame.pack(side=tk.LEFT, padx=5)
         self.stockFrame.pack_propagate(0)
 
-        self.inputFrame = tk.Frame(self.functionFrame, width=int(self.width / 3), height=self.bottomHeight, bg='black')
+        self.inputFrame = tk.Frame(self.functionFrame, width=int(self.width / 3), height=self.bottomHeight)
         self.inputFrame.pack(side=tk.LEFT, padx=5)
         self.inputFrame.pack_propagate(0)
 
@@ -260,6 +260,8 @@ class image():
             yscrollcommand=self.groupScrollbar.set
         )
 
+        self.groupListbox.bind('<KeyRelease-Up>', self.groupListEvent)
+        self.groupListbox.bind('<KeyRelease-Down>', self.groupListEvent)
         self.groupListbox.bind('<Button-1>', self.groupListEvent)
         self.groupListbox.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.groupScrollbar.config(command=self.groupListbox.yview)

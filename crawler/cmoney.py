@@ -175,7 +175,7 @@ class api():
 
         # 將原始tick name重新命名
         for t in tData:
-            if t[0] < 1500000000000:
+            if t[0] < 1300000000000:
                 return None
 
             context.append({
