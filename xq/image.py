@@ -59,7 +59,7 @@ class stock():
         count = total / pageTotal
         index = 0
 
-        for p in [output, os.path.join(output, 'K'), os.path.join(output, 'Trend')]:
+        for p in [output, os.path.join(output, ui.K), os.path.join(output, ui.TREND)]:
             if os.path.exists(p) == False:
                 os.makedirs(p)
 
