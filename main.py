@@ -51,5 +51,5 @@ class app(tk.Tk):
         self.run(lambda: frame.image(self, config=self.configs))
 
 
-app().runImage()
-# app().runDate()
+# app().runImage()
+app().runDate()

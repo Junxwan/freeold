@@ -117,7 +117,7 @@ class data():
 
     # 抓取資料功能按鈕組群
     def dataButonGroup(self):
-        btn = tk.Button(self.btnGroupFrame, text='tick', command=lambda: self.switchArg(cmoney.tick))
+        btn = tk.Button(self.btnGroupFrame, text='tick', command=lambda: self.switchArg(cmoney.stock))
         btn.place(x=5, y=5)
 
         btn = tk.Button(self.btnGroupFrame, text='市場', command=lambda: self.switchArg(cmoney.market))

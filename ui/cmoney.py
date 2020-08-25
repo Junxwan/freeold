@@ -1,3 +1,4 @@
+import logging
 import os
 import tkinter as tk
 import openpyxl
@@ -6,77 +7,7 @@ from xlsx import cmoney as xlsx
 from . import ui
 
 
-# 抓取tick
 class tick(ui.process):
-    def __init__(self, root, master, w, h, config=None):
-        ui.process.__init__(self, master, w, h)
-
-        self.ck = tk.StringVar()
-        self.session = tk.StringVar()
-        self.code = tk.StringVar()
-        self.output = tk.StringVar()
-        self.date = tk.StringVar()
-
-        if config != None:
-            self.code.set(config['code'])
-            self.output.set(config['tick'])
-            self.date.set(config['open'])
-
-        tk.Label(master, text='CK:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.ck, font=ui.FONT).place(x=self.ex, y=10)
-
-        tk.Label(master, text='Session:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.session, font=ui.FONT).place(x=self.ex, y=self.ey)
-
-        tk.Label(master, text='日期或檔案:', font=ui.FONT).place(x=10, y=self.ey * 2)
-        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
-        tk.Button(
-            master,
-            text='選擇xlsx',
-            font=ui.BTN_FONT,
-            command=lambda: self.date.set(ui.openFile().name)
-        ).place(x=w * 50, y=h * 18)
-
-        tk.Label(master, text='個股清單:', font=ui.FONT).place(x=10, y=self.ey * 3)
-        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=self.ey * 3)
-        tk.Button(
-            master,
-            text='選擇xlsx',
-            font=ui.BTN_FONT,
-            command=lambda: self.code.set(ui.openFile().name)
-        ).place(x=w * 50, y=h * 28)
-
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey * 4)
-        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey * 4)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda: self.output.set(ui.openDir())
-        ).place(x=w * 50, y=h * 38)
-
-        self.addRunBtn(master)
-
-    def run(self):
-        dates = []
-        date = self.date.get()
-        if os.path.isfile(self.date.get()):
-            xlsx = openpyxl.load_workbook(date)
-            for cell in xlsx.active:
-                if cell[0].value == None:
-                    continue
-
-                dates.append(str(cell[0].value)[:10])
-        else:
-            dates.append(date)
-
-        for date in dates:
-            crawler.pullTick(date, self.ck.get(), self.session.get(), self.code.get(), self.output.get())
-
-        self.showSuccess()
-
-
-class market(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
@@ -129,9 +60,56 @@ class market(ui.process):
             dates.append(date)
 
         for date in dates:
-            crawler.pullMarket(date, self.ck.get(), self.session.get(), self.output.get())
+            self.call(date)
 
         self.showSuccess()
+
+    def call(self, date):
+        pass
+
+
+# 抓取tick
+class stock(tick):
+    def __init__(self, root, master, w, h, config=None):
+        tick.__init__(self, root, master, w, h, config=config)
+
+        self.code = tk.StringVar()
+        self.crawler = None
+
+        if config != None:
+            self.code.set(config['code'])
+
+        tk.Label(master, text='個股清單:', font=ui.FONT).place(x=10, y=self.ey * 4)
+        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=self.ey * 4)
+        tk.Button(
+            master,
+            text='選擇xlsx',
+            font=ui.BTN_FONT,
+            command=lambda: self.code.set(ui.openFile().name)
+        ).place(x=w * 50, y=h * 38)
+
+    def call(self, date):
+        logging.info('======================= start ' + date + ' =======================')
+
+        if self.crawler == None:
+            self.crawler = crawler.stock(self.ck.get(), self.session.get(), self.code.get(), self.output.get())
+
+        self.crawler.get(date)
+
+        logging.info('======================= end ' + date + ' =======================')
+
+
+class market(tick):
+    def __init__(self, root, master, w, h, config=None):
+        tick.__init__(self, root, master, w, h, config=config)
+
+        self.crawler = None
+
+    def call(self, date):
+        if self.crawler == None:
+            self.crawler = crawler.market(self.ck.get(), self.session.get(), self.output.get())
+
+        self.crawler.get(date)
 
 
 class toJson(ui.process):
