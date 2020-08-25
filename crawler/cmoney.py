@@ -113,6 +113,11 @@ class market(tick):
         t = str(date).replace('-', '')
 
         for code, dir in self.code.items():
+            dir = os.path.join(dir, date.replace('-', '')[:6])
+
+            if os.path.exists(dir) == False:
+                os.mkdir(dir)
+
             filePath = os.path.join(dir, date) + '.json'
 
             if os.path.exists(filePath):
@@ -121,7 +126,7 @@ class market(tick):
 
             tick = self.api.tick(code, t)
 
-            time.sleep(0.5)
+            time.sleep(1)
 
             if tick == None:
                 logging.info(f'code: {code} date: {date} empty')

@@ -332,8 +332,6 @@ class image():
             if f[-1] == '.xlsx':
                 self.groupListbox.insert(tk.END, f[0])
 
-        self.groupListbox.see(tk.END)
-
     def setModel(self, name, isDisplay):
         for w in self.viewFrame.winfo_children():
             w.destroy()
@@ -367,7 +365,7 @@ class image():
         sheet = ws.active
 
         for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
-            self.stockListbox.insert(tk.END, f'{rows[1].value} - {rows[0].value}')
+            self.stockListbox.insert(tk.END, f'{rows[0].value} - {rows[1].value}')
 
         imageDir = os.path.join(self.path.get(), 'image', self.groupListbox.get(tk.ACTIVE))
 
