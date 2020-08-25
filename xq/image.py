@@ -5,6 +5,7 @@ import time
 import pyautogui
 from datetime import datetime
 from stock import data
+from ui import ui
 
 pyautogui.FAILSAFE = True
 
@@ -111,6 +112,18 @@ class stock():
     def screenshot(self, name, dir):
         pass
 
+    def screenshotK(self, path, name):
+        self.screenshotImage(path, ui.K, name)
+
+    def screenshotTrend(self, path, name):
+        self.screenshotImage(path, ui.TREND, name)
+
+    def screenshotImage(self, path, dir, name):
+        pyautogui.screenshot(os.path.join(path, dir, name + '.png'), region=self.imageRegion())
+
+    def imageRegion(self):
+        return ()
+
     def run(self, name, offset, dir):
         pyautogui.click(2150, 270 + (offset * 43))
         time.sleep(0.5)
@@ -122,20 +135,23 @@ class stock():
 
 
 class stockNow(stock):
-    def screenshot(self, name, dir):
+    def screenshot(self, name, path):
         # 1. 點擊技術分析
         # 2. 等待
         # 3. 截取技術分析圖
         pyautogui.click(470, 130)
         time.sleep(1)
-        pyautogui.screenshot(os.path.join(dir, 'K', name + '.png'), region=(75, 150, 1865, 970))
+        self.screenshotK(path, name)
 
         # 1. 點擊走勢圖
         # 2. 等待
         # 3. 截取走勢圖
         pyautogui.click(180, 130)
         time.sleep(1)
-        pyautogui.screenshot(os.path.join(dir, 'Trend', name + '.png'), region=(75, 150, 1865, 970))
+        self.screenshotTrend(path, name)
+
+    def imageRegion(self):
+        return (75, 150, 1865, 970)
 
     def total(self):
         return 20
@@ -146,12 +162,12 @@ class stockHistory(stock):
         self.date = date
         self.prevDay, self.prevMonth, self.dayX, self.dayY = calendarXY(date, dir)
 
-    def screenshot(self, name, dir):
+    def screenshot(self, name, path):
         # 1. 點擊技術分析
         # 2. 往前移動幾日
         # 3. 截取技術分析圖
         self.moveK()
-        pyautogui.screenshot(os.path.join(dir, 'K', name + '.png'), region=(75, 150, 1865, 890))
+        self.screenshotK(path, name)
 
         # 1. 點擊走勢圖
         # 2. 點擊日期menu
@@ -159,7 +175,10 @@ class stockHistory(stock):
         # 4. 點擊日期
         # 3. 截取走勢圖
         self.moveTrend()
-        pyautogui.screenshot(os.path.join(dir, 'Trend', name + '.png'), region=(75, 150, 1865, 890))
+        self.screenshotTrend(path, name)
+
+    def imageRegion(self):
+        return (75, 150, 1865, 890)
 
     def moveK(self):
         pyautogui.click(470, 130)
@@ -181,13 +200,13 @@ class stockHistory(stock):
 
 
 MARKET_NAME = {
-    '3otc': 'OTC.TW',
-    '2tse': 'TSE.TW',
+    'otc': 'OTC.TW',
+    'tse': 'TSE.TW',
 }
 
 FUTURES_NAME = {
-    '1fitx': 'FITX',
-    '1fitxn': 'FITXN',
+    'fitx': 'FITX',
+    'fitxn': 'FITXN',
 }
 
 
@@ -201,17 +220,17 @@ class market():
 
     def K(self, name, dir, prevDay):
         self.moveK(prevDay)
-        self.screenshotImage(dir, f'{name}-1')
+        self.screenshotImage(dir, name)
 
     def trend(self, name, dir):
         pyautogui.click(200, 130)
         time.sleep(0.5)
         self.calendar()
         time.sleep(0.5)
-        self.screenshotImage(dir, f'{name}-2')
+        self.screenshotImage(dir, name)
 
-    def screenshotImage(self, dir, name):
-        pyautogui.screenshot(os.path.join(dir, f'{name}.png'), region=(72, 112, 3750, 1860))
+    def screenshotImage(self, path, name):
+        pyautogui.screenshot(os.path.join(path, f'{name}.png'), region=(72, 112, 3750, 1860))
 
     def moveK(self, prevDay):
         pyautogui.click(500, 130)
@@ -223,14 +242,21 @@ class market():
         pass
 
     def screenshot(self, output, prevDay=0):
+        kDir = os.path.join(output, ui.K)
+        trendDir = os.path.join(output, ui.TREND)
+
+        for dir in [kDir, trendDir]:
+            if os.path.exists(dir) == False:
+                os.mkdir(dir)
+
         for n, c in MARKET_NAME.items():
             self.input(c)
-            self.trend(n, output)
-            self.K(n, output, prevDay)
+            self.trend(n, trendDir)
+            self.K(n, kDir, prevDay)
 
         for n, c in FUTURES_NAME.items():
             self.input(c)
-            self.trend(n, output)
+            self.trend(n, trendDir)
 
     def run(self, dir):
         pass
