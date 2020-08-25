@@ -6,9 +6,6 @@ import pyautogui
 from ui import cmoney, xq, stock, log, other, ui
 from PIL import Image, ImageTk
 
-ONE_MODEL = 1
-TWO_MODEL = 2
-
 
 class data():
     def __init__(self, root, config=None, path=None):
@@ -212,7 +209,6 @@ class image():
         self.height = int(self.size.height * 0.8)
         self.w = self.width / 100
         self.h = self.height / 100
-        self.model = TWO_MODEL
         self.config = config
         self.stock = {}
         self.img = {}
