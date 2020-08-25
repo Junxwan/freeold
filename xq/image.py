@@ -58,8 +58,9 @@ class stock():
         count = total / pageTotal
         index = 0
 
-        if os.path.exists(output) == False:
-            os.makedirs(output)
+        for p in [output, os.path.join(output, 'K'), os.path.join(output, 'Trend')]:
+            if os.path.exists(p) == False:
+                os.makedirs(p)
 
         if total < pageTotal:
             for i in range(0, total):
@@ -173,7 +174,7 @@ class stockHistory(stock):
         pyautogui.click(100, 260, self.prevMonth)
         time.sleep(0.5)
         pyautogui.click(42 + (53 * self.dayX), 306 + (29 * self.dayY))
-        time.sleep(2)
+        time.sleep(1)
 
     def total(self):
         return 18
