@@ -39,8 +39,13 @@ def pullTick(date, ck, session, file, dir):
 
     t = str(date).replace('-', '')
 
+    dir = os.path.join(dir, date.replace('-', '')[:6], date)
+
+    if os.path.exists(dir) == False:
+        os.makedirs(dir)
+
     for code in codes:
-        _, path = fileInfo(date, code, dir)
+        path = os.path.join(dir, str(code)) + ".json"
 
         count += 1
 
@@ -51,7 +56,7 @@ def pullTick(date, ck, session, file, dir):
 
         tData = c.tick(code, t)
 
-        time.sleep(2)
+        time.sleep(1.5)
 
         if tData == None:
             logging.info('code: ' + code + ' date: ' + date + ' empty - ' + str(count))
@@ -60,7 +65,7 @@ def pullTick(date, ck, session, file, dir):
 
         date = datetime.fromtimestamp(tData[0]['time']).date().__str__()
 
-        if save(tData, code, date, dir):
+        if save(tData, code, date, path):
             ok += 1
             logging.info('code: ' + code + ' date: ' + date + ' save tick - ' + str(count))
         else:
@@ -74,17 +79,47 @@ def pullTick(date, ck, session, file, dir):
     logging.info('======================= end ' + date + ' =======================')
 
 
+def pullMarket(date, ck, session, dir):
+    tseDir = os.path.join(dir, 'tse', date.replace('-', '')[:6])
+    otcDir = os.path.join(dir, 'otc', date.replace('-', '')[:6])
+
+    api = cmoney.new(ck, session)
+
+    for p in [tseDir, otcDir]:
+        if os.path.exists(p) == False:
+            os.makedirs(p)
+
+    t = str(date).replace('-', '')
+
+    d = {
+        tseDir: 'TWA00',
+        otcDir: 'TWC00',
+    }
+
+    for dir, code in d.items():
+        path = os.path.join(dir, date) + '.json'
+
+        if os.path.exists(path):
+            logging.info(f'code: {code} date: {date} exists')
+            continue
+
+        tick = api.tick(code, t)
+
+        time.sleep(0.5)
+
+        if tick == None:
+            logging.info(f'code: {code} date: {date} empty')
+            continue
+
+        date = datetime.fromtimestamp(tick[0]['time']).date().__str__()
+
+        save(tick, code, date, path)
+
+        logging.info(f'code: {code} date: {date} save tick')
+
+
 # 抓取並保存某個股某日tick
-def save(context, code, date, dir):
-    # 檢查檔案路徑並把資料寫入檔案中
-    dir, path = fileInfo(date, code, dir)
-
-    if os.path.exists(dir) == False:
-        os.mkdir(dir)
-
-    if os.path.exists(path):
-        return True
-
+def save(context, code, date, path):
     f = open(path, 'w+')
     f.write(json.dumps({
         'code': code,
@@ -97,7 +132,7 @@ def save(context, code, date, dir):
 
 
 def fileInfo(date, code, dir):
-    dir = os.path.join(dir, date)
+    dir = os.path.join(dir, date.replace('-', '')[:6], date)
     path = os.path.join(dir, str(code)) + ".json"
 
     return dir, path

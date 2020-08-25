@@ -120,6 +120,9 @@ class data():
         btn = tk.Button(self.btnGroupFrame, text='tick', command=lambda: self.switchArg(cmoney.tick))
         btn.place(x=5, y=5)
 
+        btn = tk.Button(self.btnGroupFrame, text='市場', command=lambda: self.switchArg(cmoney.market))
+        btn.place(x=5, y=self.h * 6)
+
         self.setLog('data')
 
     # xq功能按鈕組群
