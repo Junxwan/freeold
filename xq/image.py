@@ -127,14 +127,14 @@ class stockNow(stock):
         # 3. 截取技術分析圖
         pyautogui.click(470, 130)
         time.sleep(1)
-        pyautogui.screenshot(os.path.join(dir, 'K-' + name + '.png'), region=(75, 150, 1865, 970))
+        pyautogui.screenshot(os.path.join(dir, 'K', name + '.png'), region=(75, 150, 1865, 970))
 
         # 1. 點擊走勢圖
         # 2. 等待
         # 3. 截取走勢圖
         pyautogui.click(180, 130)
         time.sleep(1)
-        pyautogui.screenshot(os.path.join(dir, 'Trend-' + name + '.png'), region=(75, 150, 1865, 970))
+        pyautogui.screenshot(os.path.join(dir, 'Trend', name + '.png'), region=(75, 150, 1865, 970))
 
     def total(self):
         return 20
@@ -150,7 +150,7 @@ class stockHistory(stock):
         # 2. 往前移動幾日
         # 3. 截取技術分析圖
         self.moveK()
-        pyautogui.screenshot(os.path.join(dir, 'K-' + name + '.png'), region=(75, 150, 1865, 890))
+        pyautogui.screenshot(os.path.join(dir, 'K', name + '.png'), region=(75, 150, 1865, 890))
 
         # 1. 點擊走勢圖
         # 2. 點擊日期menu
@@ -158,7 +158,7 @@ class stockHistory(stock):
         # 4. 點擊日期
         # 3. 截取走勢圖
         self.moveTrend()
-        pyautogui.screenshot(os.path.join(dir, 'Trend-' + name + '.png'), region=(75, 150, 1865, 890))
+        pyautogui.screenshot(os.path.join(dir, 'Trend', name + '.png'), region=(75, 150, 1865, 890))
 
     def moveK(self):
         pyautogui.click(470, 130)

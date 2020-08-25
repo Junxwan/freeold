@@ -6,6 +6,7 @@ import tkinter as tk
 FONT = ('Helvetica', 18, "bold")
 BTN_FONT = ('Helvetica', 15, "bold")
 SMALL_FONT = ('Helvetica', 13, "bold")
+BIG_FONT = ('Helvetica', 24, "bold")
 
 
 def openFile():

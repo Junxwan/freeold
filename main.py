@@ -1,8 +1,15 @@
+import glob
 import json
 import os
 import tkinter as tk
+
+import openpyxl
 import pyautogui
-from ui import cmoney, xq, stock, log, other
+from ui import cmoney, xq, stock, log, other, ui
+from PIL import Image, ImageTk
+
+ONE_MODEL = 1
+TWO_MODEL = 2
 
 
 class data():
@@ -52,16 +59,16 @@ class data():
         btn.place(x=5, y=5)
 
         btn = tk.Button(self.btnFrame, text='xq', command=lambda: self.switchBtn(self.xqButtonGroup))
-        btn.place(x=self.w * 3.5, y=5)
+        btn.place(x=self.w * 5, y=5)
 
         btn = tk.Button(self.btnFrame, text='cmoney', command=lambda: self.switchBtn(self.cmoneyButtonGroup))
-        btn.place(x=self.w * 6.5, y=5)
+        btn.place(x=self.w * 10, y=5)
 
         btn = tk.Button(self.btnFrame, text='個股', command=lambda: self.switchBtn(self.stockButtonGroup))
-        btn.place(x=self.w * 13.5, y=5)
+        btn.place(x=self.w * 18, y=5)
 
         btn = tk.Button(self.btnFrame, text='其他', command=lambda: self.switchBtn(self.otherButtonGroup))
-        btn.place(x=self.w * 17.5, y=5)
+        btn.place(x=5, y=self.h * 6)
 
         self.btnGroupFrame = tk.Frame(self.btnFrame, width=int(self.width * 0.25), bg='#eeeeee',
                                       height=int(self.topHeight * 0.7))
@@ -83,10 +90,19 @@ class data():
 
     # log layout
     def logLayout(self):
+        width = {
+            1920: 77,
+            3840: 100,
+        }
+
         self.scrollbar = tk.Scrollbar(self.bottomFrame)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.listbox = tk.Listbox(self.bottomFrame, bg='#eeeeee', yscrollcommand=self.scrollbar.set,
-                                  width=100)
+        self.listbox = tk.Listbox(
+            self.bottomFrame,
+            bg='#eeeeee',
+            yscrollcommand=self.scrollbar.set,
+            width=width[self.size.width]
+        )
 
         self.listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.scrollbar.config(command=self.listbox.yview)
@@ -188,33 +204,187 @@ class data():
 
 
 class image():
-    def __init__(self, root):
+    def __init__(self, root, config=None):
         self.root = root
         self.size = pyautogui.size()
         self.width = int(self.size.width * 0.95)
         self.height = int(self.size.height * 0.8)
+        self.w = self.width / 100
+        self.h = self.height / 100
+        self.model = TWO_MODEL
+        self.config = config
+        self.stocks = {}
 
         root.geometry(f'{self.width}x{self.height}')
 
         self.mainLayout()
+        self.functionLayout()
+        self.modelFrameLayout()
+        self.buttnoGroupLayout()
 
     def mainLayout(self):
-        self.leftHeight = int(self.height * 0.75)
+        self.topHeight = int(self.height * 0.75)
 
-        self.leftFrame = tk.Frame(self.root, width=self.width, height=self.leftHeight, bg='grey')
-        self.leftFrame.pack(side=tk.TOP, padx=5)
-        self.leftFrame.pack_propagate(0)
+        self.viewFrame = tk.Frame(self.root, width=self.width, height=self.topHeight, bg='grey')
+        self.viewFrame.pack(side=tk.TOP)
+        self.viewFrame.pack_propagate(0)
 
-        self.rightHeight = int(self.height * 0.25)
+        self.bottomHeight = int(self.height * 0.25)
 
-        self.rightFrame = tk.Frame(self.root, width=self.width, height=self.rightHeight, bg='black')
-        self.rightFrame.pack(side=tk.BOTTOM, padx=5)
-        self.rightFrame.pack_propagate(0)
+        self.functionFrame = tk.Frame(self.root, width=self.width, height=self.bottomHeight, bg='black')
+        self.functionFrame.pack(side=tk.BOTTOM)
+        self.functionFrame.pack_propagate(0)
+
+    def functionLayout(self):
+        self.modelFrame = tk.Frame(self.functionFrame, width=int((self.width / 3) / 2), height=self.bottomHeight)
+        self.modelFrame.pack(side=tk.LEFT, padx=5)
+        self.modelFrame.pack_propagate(0)
+
+        self.stockFrame = tk.Frame(self.functionFrame, width=int((self.width / 3) / 2), height=self.bottomHeight)
+        self.stockFrame.pack(side=tk.LEFT, padx=5)
+        self.stockFrame.pack_propagate(0)
+
+        self.inputFrame = tk.Frame(self.functionFrame, width=int(self.width / 3), height=self.bottomHeight, bg='black')
+        self.inputFrame.pack(side=tk.LEFT, padx=5)
+        self.inputFrame.pack_propagate(0)
+
+        self.groupListFrame = tk.Frame(self.functionFrame, width=int((self.width / 3) * 0.4), height=self.bottomHeight)
+        self.groupListFrame.pack(side=tk.LEFT, padx=5)
+        self.groupListFrame.pack_propagate(0)
+
+        self.groupScrollbar = tk.Scrollbar(self.groupListFrame)
+        self.groupScrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.groupListbox = tk.Listbox(
+            self.groupListFrame,
+            bg='#eeeeee',
+            font=ui.BIG_FONT,
+            selectbackground="orange",
+            yscrollcommand=self.groupScrollbar.set
+        )
+
+        self.groupListbox.bind('<Button-1>', self.groupListEvent)
+        self.groupListbox.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.groupScrollbar.config(command=self.groupListbox.yview)
+
+        self.stockListFrame = tk.Frame(self.functionFrame, width=int((self.width / 3) * 0.6), height=self.bottomHeight)
+        self.stockListFrame.pack(side=tk.LEFT, padx=5)
+        self.stockListFrame.pack_propagate(0)
+
+        self.stockScrollbar = tk.Scrollbar(self.stockListFrame)
+        self.stockScrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.stockListbox = tk.Listbox(
+            self.stockListFrame,
+            bg='#eeeeee',
+            font=ui.BIG_FONT,
+            selectbackground="orange",
+            yscrollcommand=self.stockScrollbar.set,
+            width=50
+        )
+
+        self.stockListbox.bind('<Button-1>', self.stockListEvent)
+        self.stockListbox.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.stockScrollbar.config(command=self.groupListbox.yview)
+
+    def modelFrameLayout(self):
+        self.kModel = tk.BooleanVar()
+        self.trendModel = tk.BooleanVar()
+
+        tk.Checkbutton(self.modelFrame, text='K', font=ui.FONT, var=self.kModel).place(x=5, y=5)
+        tk.Checkbutton(self.modelFrame, text='走勢', font=ui.FONT, var=self.trendModel).place(x=5, y=self.w * 2)
+
+        self.img = []
+
+        self.img1 = tk.Label(self.viewFrame)
+        self.img2 = tk.Label(self.viewFrame)
+
+    def buttnoGroupLayout(self):
+        self.path = tk.StringVar()
+        self.dir = tk.StringVar()
+
+        tk.Button(
+            self.stockFrame,
+            text='選擇目錄',
+            font=ui.FONT,
+            command=self.openGroupList
+        ).place(x=5, y=5)
+
+        tk.Label(self.stockFrame, textvariable=self.path, font=ui.FONT).place(x=5, y=self.w * 2)
+        tk.Label(self.stockFrame, textvariable=self.dir, font=ui.FONT).place(x=5, y=self.w * 4)
+
+    def openGroupList(self):
+        self.groupListbox.delete(0, tk.END)
+
+        path = ui.openDir()
+        self.dir.set(os.path.split(path)[1])
+        self.path.set(path)
+
+        for f in os.listdir(path):
+            f = os.path.splitext(f)
+
+            if f[-1] == '.xlsx':
+                self.groupListbox.insert(tk.END, f[0])
+
+        self.groupListbox.see(tk.END)
+
+    def groupListEvent(self, event):
+        self.stockListbox.delete(0, tk.END)
+        self.stocks.clear()
+
+        path = os.path.join(self.path.get(), str(self.groupListbox.get(tk.ACTIVE))) + '.xlsx'
+        ws = openpyxl.load_workbook(path)
+        sheet = ws.active
+
+        for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
+            self.stockListbox.insert(tk.END, f'{rows[1].value} - {rows[0].value}')
+
+        imageDir = os.path.join(self.path.get(), 'image', self.groupListbox.get(tk.ACTIVE))
+
+        for d in os.listdir(imageDir):
+            for f in glob.glob(os.path.join(imageDir, d, '*.png')):
+                code = os.path.basename(f).split('.')[0]
+
+                if code in self.stocks:
+                    self.stocks[code][d] = f
+                else:
+                    self.stocks[code] = {
+                        d: f,
+                    }
+
+        self.stockListbox.see(tk.END)
+
+    def stockListEvent(self, event):
+        name = self.stockListbox.get(tk.ACTIVE)
+        code = name.split('-')[0].strip()
+
+        if code in self.stocks:
+            pass
+
+    def switchModel(self, m):
+        for w in self.viewFrame.winfo_children():
+            w.destroy()
+        m()
+
+    def oneModel(self):
+        photo = ImageTk.PhotoImage(Image.new('RGB', (int(self.width * 0.6), self.topHeight), color='grey'))
+        self.img1 = tk.Label(self.viewFrame, image=photo)
+        self.img1.image = photo
+        self.img1.pack(padx=5, pady=5)
+
+    def twoModel(self):
+        photo1 = ImageTk.PhotoImage(Image.new('RGB', (int(self.width / 2), self.topHeight), color='grey'))
+        photo2 = ImageTk.PhotoImage(Image.new('RGB', (int(self.width / 2), self.topHeight), color='grey'))
+        self.img1 = tk.Label(self.viewFrame, image=photo1)
+        self.img2 = tk.Label(self.viewFrame, image=photo2)
+        self.img1.image = photo1
+        self.img2.image = photo2
+
+        self.img1.pack(side=tk.LEFT, padx=5, pady=5)
+        self.img2.pack(side=tk.RIGHT, padx=5, pady=5)
 
 
 class app(tk.Tk):
     def __init__(self):
-        tk.Tk.__init__(self)
+        super(app, self).__init__()
         self.currentPath = os.path.dirname(os.path.abspath(__file__))
         self.configs = self.readConfig()
         self.title('股票')
@@ -241,7 +411,7 @@ class app(tk.Tk):
         fileMenu.add_command(label='資料', command=lambda: self.runDate())
         fileMenu.add_command(label='圖', command=lambda: self.runImage())
 
-        m.add_cascade(label="看盤", menu=fileMenu)
+        m.add_cascade(label="功能", menu=fileMenu)
         self.config(menu=m)
 
     def run(self, ui):
@@ -256,8 +426,8 @@ class app(tk.Tk):
         self.run(lambda: data(self, config=self.configs, path=self.currentPath))
 
     def runImage(self):
-        self.run(lambda: image(self))
+        self.run(lambda: image(self, config=self.configs))
 
 
-# app().runImage()
-app().runDate()
+app().runImage()
+# app().runDate()
