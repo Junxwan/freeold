@@ -285,7 +285,7 @@ class image():
         self.stockListbox.bind('<KeyRelease-Down>', self.stockListEvent)
         self.stockListbox.bind('<Button-1>', self.stockListEvent)
         self.stockListbox.pack(side=tk.RIGHT, fill=tk.BOTH)
-        self.stockScrollbar.config(command=self.groupListbox.yview)
+        self.stockScrollbar.config(command=self.stockListbox.yview)
 
     def modelFrameLayout(self):
         self.kModel = tk.BooleanVar()
