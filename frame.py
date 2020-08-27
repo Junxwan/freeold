@@ -3,6 +3,10 @@ import os
 import tkinter as tk
 import openpyxl
 import pyautogui
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backend_bases import key_press_handler
 from ui import cmoney, xq, stock, log, other, ui
 from PIL import Image, ImageTk
 
@@ -403,3 +407,32 @@ class image():
 
     def sizes(self):
         return [(int(self.width * 0.6), self.topHeight), (int(self.width / 2), self.topHeight)]
+
+
+class watch():
+    def __init__(self, root, config=None):
+        self.root = root
+        self.size = pyautogui.size()
+        self.width = self.size.width
+        self.height = self.size.height
+        self.config = config
+
+        root.geometry(f'{self.width}x{self.height}')
+
+        fig = plt.figure(figsize=(5, 4), dpi=100)
+        t = np.arange(0, 3, .01)
+        fig.add_subplot(111).plot(t, 2 * np.sin(2 * np.pi * t))
+
+        self.canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        self.toolbar = NavigationToolbar2Tk(self.canvas, root)
+        self.toolbar.update()
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        self.canvas.mpl_connect("key_press_event", self.on_key_press)
+
+    def on_key_press(self, event):
+        print("you pressed {}".format(event.key))
+        key_press_handler(event, self.canvas, self.toolbar)

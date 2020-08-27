@@ -32,6 +32,7 @@ class app(tk.Tk):
         fileMenu = tk.Menu(m, tearoff=0)
         fileMenu.add_command(label='資料', command=lambda: self.runDate())
         fileMenu.add_command(label='圖', command=lambda: self.runImage())
+        fileMenu.add_command(label='看盤', command=lambda: self.runWatch())
 
         m.add_cascade(label="功能", menu=fileMenu)
         self.config(menu=m)
@@ -49,6 +50,9 @@ class app(tk.Tk):
 
     def runImage(self):
         self.run(lambda: frame.image(self, config=self.configs))
+
+    def runWatch(self):
+        self.run(lambda: frame.watch(self, config=self.configs))
 
 
 app().runDate()
