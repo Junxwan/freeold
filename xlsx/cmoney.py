@@ -55,9 +55,9 @@ class stock():
 
 # 每日個股行情
 class day():
-    __data = {}
-    __column = [dt.OPEN, dt.CLOSE, dt.HIGH, dt.LOW, dt.INCREASE, dt.AMPLITUDE, dt.VOLUME]
-    __path = {
+    data = {}
+    column = [dt.OPEN, dt.CLOSE, dt.HIGH, dt.LOW, dt.INCREASE, dt.AMPLITUDE, dt.VOLUME]
+    dirs = {
         dt.OPEN: 'price',
         dt.CLOSE: 'price',
         dt.HIGH: 'price',
@@ -69,47 +69,28 @@ class day():
 
     def __init__(self, file):
         logging.info('read: ' + file + ' ...')
-        xlsx = openpyxl.load_workbook(file)
-        sheet = xlsx.active
 
-        row = sheet.cell(1, 3).value
-        self.__m = row[:6]
-        self.__date = row[:4] + '-' + row[4:6] + '-' + row[6:8]
+        self.date = os.path.basename(file).split('.')[0]
 
-        for c in self.__column:
-            self.__data[c] = {}
+        for i, rows in pd.read_excel(file).iterrows():
+            for ii, value in enumerate(rows[2:]):
+                d = rows.index[ii + 2]
+                date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
-        for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
-            for index, row in enumerate(rows[2:]):
-                if (rows[0].value == None) | (rows[1].value == None):
-                    continue
+                if self.column[ii] not in self.data:
+                    self.data[self.column[ii]] = []
 
-                value = row.value
-                if value == '':
-                    value = 0
-
-                self.__data[self.__column[index]][rows[0].value] = {
-                    'name': rows[1].value,
-                    'value': value,
-                }
+                self.data[self.column[ii]].append({
+                    'date': date,
+                    'code': rows[0],
+                    'value': value
+                })
 
     def output(self, path):
-        for name, dName in self.__path.items():
-            dir = os.path.join(path, dName, name, self.__m)
-            os.makedirs(dir, exist_ok=True)
+        for name, value in self.data.items():
+            os.path.join(path, self.dirs[name], name, )
 
-            filePath = os.path.join(dir, self.__date) + ".json"
-
-            f = codecs.open(filePath, 'w+', 'utf-8')
-            f.write(json.dumps({
-                'date': self.__date,
-                'value': self.__data[name],
-            }, ensure_ascii=False))
-            f.close()
-
-            logging.info('save ' + name + ' ' + filePath)
-
-        logging.info('total: ' + str(self.__path.__len__()))
+        logging.info('total: ' + str(self.dirs.__len__()))
 
 
 # 每年個股行情

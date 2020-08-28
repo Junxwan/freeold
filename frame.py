@@ -4,6 +4,8 @@ import tkinter as tk
 import openpyxl
 import pyautogui
 import matplotlib.pyplot as plt
+import mplfinance as mpf
+import pandas as pd
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.backend_bases import key_press_handler
@@ -419,20 +421,20 @@ class watch():
 
         root.geometry(f'{self.width}x{self.height}')
 
-        fig = plt.figure(figsize=(5, 4), dpi=100)
-        t = np.arange(0, 3, .01)
-        fig.add_subplot(111).plot(t, 2 * np.sin(2 * np.pi * t))
+        idf = pd.read_csv('/private/var/www/other/free/test.csv')
+
+        fig = mpf.figure(style='charles')
+        ax1 = fig.add_subplot(111)
+        mpf.plot(idf, ax=ax1,type='candle')
 
         self.canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         self.toolbar = NavigationToolbar2Tk(self.canvas, root)
         self.toolbar.update()
+
+        self.canvas.mpl_connect("key_press_event", lambda event: print(f"you pressed {event.key}"))
+        self.canvas.mpl_connect("key_press_event", key_press_handler)
+
+        self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-
-        self.canvas.mpl_connect("key_press_event", self.on_key_press)
-
-    def on_key_press(self, event):
-        print("you pressed {}".format(event.key))
-        key_press_handler(event, self.canvas, self.toolbar)

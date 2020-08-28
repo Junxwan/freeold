@@ -60,6 +60,8 @@ class stock:
             m = f'{date[:4]}{date[5:7]}'
 
             for dir, path in self._dirs.items():
+                pd.read_json(os.path.join(path, m, f'{date}.json'), encoding='utf-8')
+
                 file = open(os.path.join(path, m, f'{date}.json'), encoding='utf-8')
                 data = json.load(file)
 
