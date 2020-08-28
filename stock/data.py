@@ -11,10 +11,10 @@ OPEN = 'open'
 CLOSE = 'close'
 
 # 最高價
-MAX = 'max'
+HIGH = 'high'
 
 # 最低價
-MIN = 'min'
+LOW = 'low'
 
 # 漲幅
 INCREASE = 'increase'
@@ -27,7 +27,7 @@ VOLUME = 'volume'
 
 # 個股行情資料
 DATA_DIR = {
-    'price': [OPEN, CLOSE, MAX, MIN, INCREASE, AMPLITUDE],
+    'price': [OPEN, CLOSE, HIGH, LOW, INCREASE, AMPLITUDE],
     'volume': [VOLUME],
 }
 

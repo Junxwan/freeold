@@ -31,7 +31,7 @@ def list(date, stock):
         name = code['name']
         code = code['code']
 
-        open, close, max, min, increase, amplitude, volume = stock.code(code, date, keyName=True)
+        open, close, high, low, increase, amplitude, volume = stock.code(code, date, keyName=True)
 
         # 股價小於10
         if open[0] <= 10:
@@ -41,7 +41,7 @@ def list(date, stock):
         if volume[0] <= 1000:
             continue
 
-        diff = round(((max[0] / min[0]) - 1) * 100, 2)
+        diff = round(((high[0] / low[0]) - 1) * 100, 2)
 
         # 最大漲跌小於3
         if diff <= 3:
@@ -54,7 +54,7 @@ def list(date, stock):
         if open[0] <= close[0]:
             continue
 
-        price.append([code, name, open[0], close[0], max[0], min[0], increase[0], amplitude[0], volume[0], diff])
+        price.append([code, name, open[0], close[0], high[0], low[0], increase[0], amplitude[0], volume[0], diff])
 
     return sorted(price, key=lambda s: s[9], reverse=True)[:110]
 

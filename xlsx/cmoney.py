@@ -4,6 +4,7 @@ import logging
 import os
 import openpyxl
 import csv
+from stock import data as dt
 
 
 def files(path):
@@ -53,15 +54,15 @@ class stock():
 # 每日個股行情
 class day():
     __data = {}
-    __column = ['open', 'close', 'max', 'min', 'increase', 'amplitude', 'volume']
+    __column = [dt.OPEN, dt.CLOSE, dt.HIGH, dt.LOW, dt.INCREASE, dt.AMPLITUDE, dt.VOLUME]
     __path = {
-        'open': 'price',
-        'close': 'price',
-        'max': 'price',
-        'min': 'price',
-        'increase': 'price',
-        'amplitude': 'price',
-        'volume': 'volume',
+        dt.OPEN: 'price',
+        dt.CLOSE: 'price',
+        dt.HIGH: 'price',
+        dt.LOW: 'price',
+        dt.INCREASE: 'price',
+        dt.AMPLITUDE: 'price',
+        dt.VOLUME: 'volume',
     }
 
     def __init__(self, file):
