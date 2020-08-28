@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import pandas as pd
 
 # 開盤價
 from datetime import datetime
@@ -140,6 +141,50 @@ class stock:
                 dates.append(t)
 
         return dates
+
+
+class stocks():
+    data = pd.DataFrame()
+    dirs = {}
+
+    def __init__(self, dir):
+        self.dir = dir
+
+        for name, dirs in DATA_DIR.items():
+            for d in dirs:
+                self.dirs[d] = os.path.join(dir, name, d)
+
+    def date(self, date):
+        for dir, path in self.dirs.items():
+            p = pd.read_json(os.path.join(path, self._m(date), f'{date}.json'), encoding='utf-8')
+
+    def _m(self, date):
+        return f'{date[:4]}{date[5:7]}'
+
+    # 開市日
+    def dates(self, year, month=None):
+        dates = []
+        path = os.path.join(self.dir, f'price/{OPEN}')
+
+        for d in sorted(os.listdir(path), reverse=True):
+            fullPath = os.path.join(path, d)
+
+            if os.path.isdir(fullPath):
+                for f in sorted(os.listdir(fullPath), reverse=True):
+                    n = os.path.splitext(f)
+
+                    if n[-1] != '.json':
+                        continue
+
+                    if n[0][:4] != year:
+                        continue
+
+                    if (month != None) & (n[0][5:7] != month):
+                        continue
+
+                    dates.append(n[0])
+
+        return pd.DataFrame(data=dates, columns={'date'})
 
 
 def diffMonth(date):

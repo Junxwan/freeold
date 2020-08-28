@@ -1,9 +1,11 @@
 import codecs
+import glob
 import json
 import logging
 import os
 import openpyxl
 import csv
+import pandas as pd
 from stock import data as dt
 
 
@@ -112,75 +114,63 @@ class day():
 
 # 每年個股行情
 class year():
-    __data = []
+    data = {}
 
     def __init__(self, path):
-        for path in files(path):
-            logging.info('read: ' + path + ' ...')
-            xlsx = openpyxl.load_workbook(path)
-            sheet = xlsx.active
-            dates = []
-            price = {}
+        self.path = path
 
-            for rows in sheet.iter_rows(0, 1, 0, sheet.max_column):
-                for row in rows[2:]:
-                    date = row.value[:4] + '-' + row.value[4:6] + '-' + row.value[6:8]
-                    dates.append(date)
+        dirs = []
 
-                    if price.get(row.value[:6]) == None:
-                        price[row.value[:6]] = {}
+        if os.path.isdir(path):
+            dirs = [x[0] for x in os.walk(path)]
+        elif os.path.isfile(path):
+            dirs = [os.path.dirname(path)]
 
-                    if price[row.value[:6]].get(date) == None:
-                        price[row.value[:6]][date] = {}
+        for dir in dirs:
+            for file in glob.glob(dir + '/*.xlsx'):
+                logging.info('read: ' + file + ' ...')
 
-            for rows in sheet.iter_rows(2, 0, 0, sheet.max_column):
-                for index, row in enumerate(rows[2:]):
-                    date = dates[index]
+                for i, rows in pd.read_excel(file).iterrows():
+                    for ii, value in enumerate(rows[2:]):
+                        d = rows.index[ii + 2]
+                        date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
-                    if (rows[0].value == None) | (rows[1].value == None):
-                        continue
+                        if dir not in self.data:
+                            self.data[dir] = {}
 
-                    value = row.value
-                    if value == '':
-                        value = 0
+                        if date not in self.data[dir]:
+                            self.data[dir][date] = []
 
-                    price[date[:4] + date[5:7]][date][rows[0].value] = {
-                        'name': rows[1].value,
-                        'value': value,
-                    }
-
-            self.__data.append({
-                'path': path,
-                'price': price,
-            })
+                        self.data[dir][date].append({
+                            'date': date,
+                            'code': rows[0],
+                            'value': value
+                        })
 
     def output(self, path):
         total = 0
-        for data in self.__data:
-            for name, month in data['price'].items():
-                dir = os.path.join(path, name)
 
-                if os.path.exists(dir) == False:
-                    os.mkdir(dir)
+        for input, item in self.data.items():
+            dir = os.path.join(
+                path,
+                input.replace(self.path, '')[1:]
+            )
 
-                logging.info('source xlsx: ' + data['path'])
-                logging.info('output path: ' + dir)
+            for date, value in item.items():
+                fileDir = os.path.join(dir, date[:4] + date[5:7])
 
-                for date, value in month.items():
-                    file = os.path.join(dir, date) + ".json"
+                if os.path.exists(fileDir) == False:
+                    os.makedirs(fileDir)
 
-                    if os.path.exists(file):
-                        continue
+                file = os.path.join(fileDir, date) + '.json'
 
-                    f = codecs.open(file, 'w+', 'utf-8')
-                    f.write(json.dumps({
-                        'date': date,
-                        'value': value,
-                    }, ensure_ascii=False))
-                    f.close()
+                logging.info('file: ' + file)
 
-                    total += 1
-                    logging.info('date: ' + date)
+                f = codecs.open(file, 'w+', 'utf-8')
+                f.write(json.dumps(value, ensure_ascii=False))
+                f.close()
+
+                total += 1
 
         return total
 
