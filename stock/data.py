@@ -156,45 +156,19 @@ class stocks():
     def __init__(self, dir):
         self.dir = dir
 
-        for name, dirs in DATA_DIR.items():
-            for d in dirs:
-                self.dirs[d] = os.path.join(dir, name, d)
-
-    def date(self, date):
-        for dir, path in self.dirs.items():
-            p = pd.read_json(os.path.join(path, self._m(date), f'{date}.json'), encoding='utf-8')
-
     def month(self, m):
-        dates = [
-            os.path.basename(k).split('.')[0]
-            for k in glob.glob(os.path.join(list(self.dirs.values())[0], m, '*.json'))
-        ]
+        for p in glob.glob(os.path.join(self.dir, '*', f'{m}.xlsx')):
+            code = os.path.basename(os.path.dirname(p))
 
-        dates.sort(key=lambda date: datetime.strptime(date, '%Y-%m-%d'), reverse=True)
+            d = pd.read_excel(p).to_numpy().tolist()
 
-        for date in dates:
-            d = {}
-            for dir, path in self.dirs.items():
-                for i, v in pd.read_json(os.path.join(path, m, f'{date}.json')).iterrows():
-                    code = v['code']
+            if code not in self.data:
+                self.data[code] = d
+            else:
+                self.data[code] = self.data[code].append(d)
 
-                    if code not in d:
-                        d[code] = [date]
-
-                    d[code].append(v['value'])
-
-            for c, v in d.items():
-                if c not in self.data:
-                    self.data[c] = pd.DataFrame(v, columns=COLUMNS)
-
-                else:
-                    self.data[c].append(pd.DataFrame(v, columns=COLUMNS))
-
-                pass
-
-
-def _m(self, date):
-    return f'{date[:4]}{date[5:7]}'
+    def _m(self, date):
+        return f'{date[:4]}{date[5:7]}'
 
 
 # 開市日
