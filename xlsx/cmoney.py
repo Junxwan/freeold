@@ -74,6 +74,9 @@ class day():
 
         for i, rows in pd.read_excel(file).iterrows():
             for ii, value in enumerate(rows[2:]):
+                if pd.isna(value):
+                    continue
+
                 d = rows.index[ii + 2]
                 date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
@@ -88,7 +91,18 @@ class day():
 
     def output(self, path):
         for name, value in self.data.items():
-            os.path.join(path, self.dirs[name], name, )
+            dir = os.path.join(path, self.dirs[name], name, self.date[:4] + self.date[5:7])
+
+            if os.path.exists(dir) == False:
+                os.makedirs(dir)
+
+            file = os.path.join(dir, self.date) + '.json'
+
+            f = codecs.open(file, 'w+', 'utf-8')
+            f.write(json.dumps(value, ensure_ascii=False))
+            f.close()
+
+            logging.info('file: ' + file)
 
         logging.info('total: ' + str(self.dirs.__len__()))
 
@@ -108,11 +122,14 @@ class year():
             dirs = [os.path.dirname(path)]
 
         for dir in dirs:
-            for file in glob.glob(dir + '/*.xlsx'):
+            for file in glob.glob(os.path.join(os.path.abspath(dir), '*.xlsx')):
                 logging.info('read: ' + file + ' ...')
 
                 for i, rows in pd.read_excel(file).iterrows():
                     for ii, value in enumerate(rows[2:]):
+                        if pd.isna(value):
+                            continue
+
                         d = rows.index[ii + 2]
                         date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
