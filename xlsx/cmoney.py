@@ -78,99 +78,129 @@ class day():
                     continue
 
                 d = rows.index[ii + 2]
-                date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
                 if self.column[ii] not in self.data:
                     self.data[self.column[ii]] = []
 
                 self.data[self.column[ii]].append({
-                    'date': date,
+                    'date': d[:8],
                     'code': rows[0],
                     'value': value
                 })
 
     def output(self, path):
-        for name, value in self.data.items():
-            dir = os.path.join(path, self.dirs[name], name, self.date[:4] + self.date[5:7])
+        data = {}
+        m = f'{self.date[:4]}{self.date[5:7]}'
+        columns = dt.COLUMNS.copy()
+        columns.insert(0, 'date')
+
+        for name, item in self.data.items():
+            for value in item:
+                code = value['code']
+                if code not in data:
+                    data[code] = [self.date]
+
+                data[code].append(value['value'])
+
+        for code, value in data.items():
+            code = str(code)
+
+            dir = os.path.join(path, code)
 
             if os.path.exists(dir) == False:
                 os.makedirs(dir)
 
-            file = os.path.join(dir, self.date) + '.json'
+            f = os.path.join(dir, f'{m}.xlsx')
 
-            f = codecs.open(file, 'w+', 'utf-8')
-            f.write(json.dumps(value, ensure_ascii=False))
-            f.close()
+            insert = pd.DataFrame([value], columns=columns)
 
-            logging.info('file: ' + file)
+            if os.path.exists(f) == False:
+                p = insert
+            else:
+                p = pd.read_excel(f).append(insert)
+                p['date'] = pd.to_datetime(p['date'])
+                p.sort_values(by=['date'], ascending=False, inplace=True)
+
+            p['date'] = p['date'].dt.strftime('%Y-%m-%d')
+            p.to_excel(f, sheet_name=code, index=False)
+
+            logging.info(f'save file: {f}')
 
         logging.info('total: ' + str(self.dirs.__len__()))
 
 
 # 每年個股行情
 class year():
+    columns = dt.COLUMNS
     data = {}
 
     def __init__(self, path):
+        self.data = {}
         self.path = path
+        years = [os.path.basename(f).split('.')[0] for f in glob.glob(os.path.join(path, dt.OPEN, '*.xlsx'))]
 
-        dirs = []
+        for year in years:
+            for column in self.columns:
+                file = os.path.join(path, column, f'{year}.xlsx')
 
-        if os.path.isdir(path):
-            dirs = [x[0] for x in os.walk(path)]
-        elif os.path.isfile(path):
-            dirs = [os.path.dirname(path)]
-
-        for dir in dirs:
-            for file in glob.glob(os.path.join(os.path.abspath(dir), '*.xlsx')):
-                logging.info('read: ' + file + ' ...')
+                logging.info(f'read: {file}...')
 
                 for i, rows in pd.read_excel(file).iterrows():
                     for ii, value in enumerate(rows[2:]):
                         if pd.isna(value):
                             continue
 
+                        code = rows[0]
                         d = rows.index[ii + 2]
                         date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
-                        if dir not in self.data:
-                            self.data[dir] = {}
+                        if code not in self.data:
+                            self.data[code] = {}
 
-                        if date not in self.data[dir]:
-                            self.data[dir][date] = []
+                        if date not in self.data[code]:
+                            self.data[code][date] = []
 
-                        self.data[dir][date].append({
-                            'date': date,
-                            'code': rows[0],
-                            'value': value
-                        })
+                        self.data[code][date].append(value)
 
     def output(self, path):
-        total = 0
+        data = {}
 
-        for input, item in self.data.items():
-            dir = os.path.join(
-                path,
-                input.replace(self.path, '')[1:]
-            )
+        for code, item in self.data.items():
+            dir = os.path.join(path, str(code))
+
+            if os.path.exists(dir) == False:
+                os.mkdir(dir)
 
             for date, value in item.items():
-                fileDir = os.path.join(dir, date[:4] + date[5:7])
+                m = f'{date[:4]}{date[5:7]}'
 
-                if os.path.exists(fileDir) == False:
-                    os.makedirs(fileDir)
+                if m not in data:
+                    data[m] = {}
 
-                file = os.path.join(fileDir, date) + '.json'
+                value.insert(0, date)
 
-                logging.info('file: ' + file)
+                if code not in data[m]:
+                    data[m][code] = []
 
-                f = codecs.open(file, 'w+', 'utf-8')
-                f.write(json.dumps(value, ensure_ascii=False))
-                f.close()
+                data[m][code].append(value)
 
-                total += 1
+        columns = self.columns.copy()
+        columns.insert(0, 'date')
 
-        return total
+        logging.info('save start')
+
+        for date, item in data.items():
+            for code, value in item.items():
+                code = str(code)
+                pd.DataFrame(value, columns=columns).to_excel(
+                    os.path.join(path, code, f'{date}.xlsx'),
+                    sheet_name=code,
+                    index=False
+                )
+
+                logging.info(f'save {date} code: {code}')
+
+        logging.info('save end')
 
 
 # 每日弱勢股

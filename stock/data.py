@@ -1,7 +1,9 @@
 import copy
 import json
 import os
+import glob
 import pandas as pd
+import numpy as np
 
 # 開盤價
 from datetime import datetime
@@ -31,6 +33,8 @@ DATA_DIR = {
     'price': [OPEN, CLOSE, HIGH, LOW, INCREASE, AMPLITUDE],
     'volume': [VOLUME],
 }
+
+COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, AMPLITUDE, VOLUME]
 
 # 個股基本資料
 INFO_FILE_NAME = 'stock.json'
@@ -146,7 +150,7 @@ class stock:
 
 
 class stocks():
-    data = pd.DataFrame()
+    data = {}
     dirs = {}
 
     def __init__(self, dir):
@@ -160,33 +164,63 @@ class stocks():
         for dir, path in self.dirs.items():
             p = pd.read_json(os.path.join(path, self._m(date), f'{date}.json'), encoding='utf-8')
 
-    def _m(self, date):
-        return f'{date[:4]}{date[5:7]}'
+    def month(self, m):
+        dates = [
+            os.path.basename(k).split('.')[0]
+            for k in glob.glob(os.path.join(list(self.dirs.values())[0], m, '*.json'))
+        ]
 
-    # 開市日
-    def dates(self, year, month=None):
-        dates = []
-        path = os.path.join(self.dir, f'price/{OPEN}')
+        dates.sort(key=lambda date: datetime.strptime(date, '%Y-%m-%d'), reverse=True)
 
-        for d in sorted(os.listdir(path), reverse=True):
-            fullPath = os.path.join(path, d)
+        for date in dates:
+            d = {}
+            for dir, path in self.dirs.items():
+                for i, v in pd.read_json(os.path.join(path, m, f'{date}.json')).iterrows():
+                    code = v['code']
 
-            if os.path.isdir(fullPath):
-                for f in sorted(os.listdir(fullPath), reverse=True):
-                    n = os.path.splitext(f)
+                    if code not in d:
+                        d[code] = [date]
 
-                    if n[-1] != '.json':
-                        continue
+                    d[code].append(v['value'])
 
-                    if n[0][:4] != year:
-                        continue
+            for c, v in d.items():
+                if c not in self.data:
+                    self.data[c] = pd.DataFrame(v, columns=COLUMNS)
 
-                    if (month != None) & (n[0][5:7] != month):
-                        continue
+                else:
+                    self.data[c].append(pd.DataFrame(v, columns=COLUMNS))
 
-                    dates.append(n[0])
+                pass
 
-        return pd.DataFrame(data=dates, columns={'date'})
+
+def _m(self, date):
+    return f'{date[:4]}{date[5:7]}'
+
+
+# 開市日
+def dates(self, year, month=None):
+    dates = []
+    path = os.path.join(self.dir, f'price/{OPEN}')
+
+    for d in sorted(os.listdir(path), reverse=True):
+        fullPath = os.path.join(path, d)
+
+        if os.path.isdir(fullPath):
+            for f in sorted(os.listdir(fullPath), reverse=True):
+                n = os.path.splitext(f)
+
+                if n[-1] != '.json':
+                    continue
+
+                if n[0][:4] != year:
+                    continue
+
+                if (month != None) & (n[0][5:7] != month):
+                    continue
+
+                dates.append(n[0])
+
+    return pd.DataFrame(data=dates, columns={'date'})
 
 
 def diffMonth(date):

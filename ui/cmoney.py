@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 import tkinter as tk
 import openpyxl
 from crawler import cmoney as crawler
@@ -120,7 +121,7 @@ class toJson(ui.process):
         self.output = tk.StringVar()
 
         if config != None:
-            self.output.set(config['json'])
+            self.output.set(config['data'])
 
         tk.Label(master, text='xlsx:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
@@ -182,7 +183,11 @@ class yearToJson(toJson):
         self.output.set(ui.openDir())
 
     def run(self):
-        self.showMessageBox(f"total {xlsx.year(self.input.get()).output(self.output.get())}")
+        now = time.time()
+        xlsx.year(self.input.get()).output(self.output.get())
+        self.showMessageBox(
+            f'完成，時間:{str(int((time.time() - now) / 60))}分'
+        )
 
 
 # 個股基本資料轉json參數

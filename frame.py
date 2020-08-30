@@ -3,10 +3,8 @@ import os
 import tkinter as tk
 import openpyxl
 import pyautogui
-import matplotlib.pyplot as plt
 import mplfinance as mpf
 import pandas as pd
-import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.backend_bases import key_press_handler
 from ui import cmoney, xq, stock, log, other, ui

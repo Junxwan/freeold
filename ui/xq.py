@@ -1,9 +1,6 @@
 import os
 import tkinter as tk
-from datetime import datetime
-
 import openpyxl
-
 from . import ui
 from xq import image as xq
 
