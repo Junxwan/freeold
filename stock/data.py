@@ -151,21 +151,18 @@ class stock:
 
 class stocks():
     data = {}
-    dirs = {}
 
     def __init__(self, dir):
         self.dir = dir
 
     def month(self, m):
-        for p in glob.glob(os.path.join(self.dir, '*', f'{m}.xlsx')):
-            code = os.path.basename(os.path.dirname(p))
+        data = pd.read_json(os.path.join(self.dir, f'{m}.json'))
 
-            d = pd.read_excel(p).to_numpy().tolist()
-
+        for code in data.columns:
             if code not in self.data:
-                self.data[code] = d
+                self.data[code] = data[code]
             else:
-                self.data[code] = self.data[code].append(d)
+                self.data[code] += data[code]
 
     def _m(self, date):
         return f'{date[:4]}{date[5:7]}'
