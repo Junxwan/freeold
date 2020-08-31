@@ -57,15 +57,6 @@ class stock():
 class day():
     data = {}
     column = [dt.OPEN, dt.CLOSE, dt.HIGH, dt.LOW, dt.INCREASE, dt.AMPLITUDE, dt.VOLUME]
-    dirs = {
-        dt.OPEN: 'price',
-        dt.CLOSE: 'price',
-        dt.HIGH: 'price',
-        dt.LOW: 'price',
-        dt.INCREASE: 'price',
-        dt.AMPLITUDE: 'price',
-        dt.VOLUME: 'volume',
-    }
 
     def __init__(self, file):
         logging.info('read: ' + file + ' ...')
@@ -126,20 +117,22 @@ class day():
 
             logging.info(f'save file: {f}')
 
-        logging.info('total: ' + str(self.dirs.__len__()))
-
 
 # 每年個股行情
 class year():
     columns = dt.COLUMNS
-    data = {}
 
     def __init__(self, path):
         self.data = {}
         self.path = path
         years = [os.path.basename(f).split('.')[0] for f in glob.glob(os.path.join(path, dt.OPEN, '*.xlsx'))]
+        columns = self.columns.copy()
+        columns.insert(0, 'date')
 
         for year in years:
+            self.data[year] = {}
+            dates = {}
+            data = {}
             for column in self.columns:
                 file = os.path.join(path, column, f'{year}.xlsx')
 
@@ -152,53 +145,40 @@ class year():
 
                         code = rows[0]
                         d = rows.index[ii + 2]
+                        m = d[:6]
                         date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
-                        if code not in self.data:
-                            self.data[code] = {}
+                        if m not in dates:
+                            dates[m] = {}
 
-                        if date not in self.data[code]:
-                            self.data[code][date] = []
+                        dates[m][date] = 0
 
-                        self.data[code][date].append(value)
+                        if m not in data:
+                            data[m] = {}
+
+                        if code not in data[m]:
+                            data[m][code] = {c: [] for c in columns}
+
+                        data[m][code][column].append(value)
+
+            for m, item in data.items():
+                for c, v in item.items():
+                    data[m][c]['date'] = [c for c in dates[m].keys()]
+
+            self.data[year] = data
 
     def output(self, path):
-        data = {}
-
-        for code, item in self.data.items():
-            dir = os.path.join(path, str(code))
-
-            if os.path.exists(dir) == False:
-                os.mkdir(dir)
-
-            for date, value in item.items():
-                m = f'{date[:4]}{date[5:7]}'
-
-                if m not in data:
-                    data[m] = {}
-
-                value.insert(0, date)
-
-                if code not in data[m]:
-                    data[m][code] = []
-
-                data[m][code].append(value)
-
-        columns = self.columns.copy()
-        columns.insert(0, 'date')
-
         logging.info('save start')
 
-        for date, item in data.items():
-            for code, value in item.items():
-                code = str(code)
-                pd.DataFrame(value, columns=columns).to_excel(
-                    os.path.join(path, code, f'{date}.xlsx'),
-                    sheet_name=code,
-                    index=False
-                )
+        for year, item in self.data.items():
+            for m, v in item.items():
+                filePath = os.path.join(path, m) + ".json"
 
-                logging.info(f'save {date} code: {code}')
+                f = codecs.open(filePath, 'w+', 'utf-8')
+                f.write(json.dumps(v, ensure_ascii=False))
+                f.close()
+
+                logging.info(f'save {m}')
 
         logging.info('save end')
 
