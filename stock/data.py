@@ -150,48 +150,38 @@ class stock:
 
 
 class stocks():
-    data = {}
+    data = None
+    m = {}
 
     def __init__(self, dir):
         self.dir = dir
 
+    def year(self, year):
+        for path in sorted(glob.glob(os.path.join(self.dir, f'{year}*.json')), reverse=True):
+            self.read(os.path.basename(path).split('.')[0])
+
     def month(self, m):
-        data = pd.read_json(os.path.join(self.dir, f'{m}.json'))
+        self.read(m)
+        for v in self.data:
+            pass
 
-        for code in data.columns:
-            if code not in self.data:
-                self.data[code] = data[code]
+    def date(self, date, fun):
+        self.read(self.getM(date))
+
+        for c, v in self.data.items():
+            v.to_frame().query('open > 0')
+
+    def read(self, m):
+        if m not in self.m:
+            data = pd.read_json(os.path.join(self.dir, f'{m}.json'))
+
+            if self.data == None:
+                self.data = data
             else:
-                self.data[code] += data[code]
+                pass
 
-    def _m(self, date):
+    def getM(self, date):
         return f'{date[:4]}{date[5:7]}'
-
-
-# 開市日
-def dates(self, year, month=None):
-    dates = []
-    path = os.path.join(self.dir, f'price/{OPEN}')
-
-    for d in sorted(os.listdir(path), reverse=True):
-        fullPath = os.path.join(path, d)
-
-        if os.path.isdir(fullPath):
-            for f in sorted(os.listdir(fullPath), reverse=True):
-                n = os.path.splitext(f)
-
-                if n[-1] != '.json':
-                    continue
-
-                if n[0][:4] != year:
-                    continue
-
-                if (month != None) & (n[0][5:7] != month):
-                    continue
-
-                dates.append(n[0])
-
-    return pd.DataFrame(data=dates, columns={'date'})
 
 
 def diffMonth(date):

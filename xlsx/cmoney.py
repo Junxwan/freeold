@@ -120,7 +120,7 @@ class day():
 
 # 每年個股行情
 class year():
-    columns = dt.COLUMNS
+    columns = [dt.OPEN]
 
     def __init__(self, path):
         self.data = {}
@@ -171,11 +171,16 @@ class year():
         logging.info('save start')
 
         for year, item in self.data.items():
-            for m, v in item.items():
+            for m, codes in item.items():
                 filePath = os.path.join(path, m) + ".json"
+                data = {}
+
+                for code, columns in codes.items():
+                    for name, v in columns.items():
+                        data[f"('{code}', '{name}')"] = {i: v for i, v in enumerate(v)}
 
                 f = codecs.open(filePath, 'w+', 'utf-8')
-                f.write(json.dumps(v, ensure_ascii=False))
+                f.write(json.dumps(data, ensure_ascii=False))
                 f.close()
 
                 logging.info(f'save {m}')
