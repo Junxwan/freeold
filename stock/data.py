@@ -4,12 +4,12 @@ import os
 import glob
 import pandas as pd
 import numpy as np
-
-# 開盤價
 from datetime import datetime
 
+# 日期
 DATE = 'date'
 
+# 開盤價
 OPEN = 'open'
 
 # 收盤價
@@ -76,19 +76,6 @@ class stock:
 
         return self._data[date]
 
-    # 某月資料
-    def month(self, month):
-        dates = []
-        path = os.path.join(self._dirs[OPEN], month)
-
-        for f in os.listdir(path):
-            n = os.path.splitext(f)
-            if n[-1] == '.json':
-                self.day(n[0])
-                dates.append(n[0])
-
-        return [{k: self._data[k]} for k in dates][0]
-
     def codes(self, date):
         return [{'code': k, 'name': v['name']} for k, v in self.day(date)[OPEN].items()]
 
@@ -113,42 +100,6 @@ class stock:
             return [data[k] for k in data.keys()]
 
         return data
-
-    # 開市日
-    def dates(self, year, month=None):
-        dates = []
-        path = os.path.join(self._dir, f'price/{OPEN}')
-
-        for d in sorted(os.listdir(path), reverse=True):
-            fullPath = os.path.join(path, d)
-
-            if os.path.isdir(fullPath):
-                for f in sorted(os.listdir(fullPath), reverse=True):
-                    n = os.path.splitext(f)
-
-                    if n[-1] != '.json':
-                        continue
-
-                    if n[0][:4] != year:
-                        continue
-
-                    if (month != None) & (n[0][5:7] != month):
-                        continue
-
-                    dates.append(n[0])
-        return dates
-
-    def afterDates(self, date):
-        dates = []
-
-        for ym in diffMonth(date):
-            for t in self.dates(ym[:4], ym[4:]):
-                if int(date.replace('-', '')) >= int(t.replace('-', '')):
-                    break
-
-                dates.append(t)
-
-        return dates
 
 
 class stocks():
@@ -226,29 +177,35 @@ class stocks():
     def qDate(self):
         return self.data.loc[2330].loc[DATE]
 
+    def run(self, fun, start, end=None, output=None, codes=None):
+        result = {}
+        self.readAll()
 
-def diffMonth(date):
-    nowDate = datetime.now()
-    date = datetime.fromisoformat(date)
-
-    l = []
-    for year in range(date.year, nowDate.year + 1):
-        max = 13
-        min = 1
-
-        if year == nowDate.year:
-            max = nowDate.month + 1
-
-            if date.year == nowDate.year:
-                min = date.month
+        if start.__len__() == 4:
+            if end == None:
+                data = self.year(start)
+            elif end.__len__() == 4:
+                data = self.query(f"{start}-01-01", f"{end}-12-31")
             else:
-                min = 1
+                data = self.query(f"{start}-01-01", end)
+        elif end == None:
+            data = self.date(start)
+        elif end.__len__() == 4:
+            data = self.query(start, f"{end}-12-31")
+        else:
+            data = self.query(start, end)
 
-        elif year == date.year:
-            min = date.month
-            max = 13
+        if codes == None:
+            codes = data.index.levels[0]
 
-        for m in range(min, max):
-            l.append(f"{year}{m:02}")
+        for code in codes:
+            value = data.loc[code]
+            max = value.shape[1]
 
-    return sorted(l, reverse=True)
+            for i in value.columns:
+                v = value.iloc[:, i:max]
+                date = v.loc['date'][0]
+                data = fun(code, date, v, i, value.loc)
+
+                if output != None:
+                    result[date] = data
