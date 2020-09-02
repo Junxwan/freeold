@@ -8,6 +8,8 @@ import numpy as np
 # 開盤價
 from datetime import datetime
 
+DATE = 'date'
+
 OPEN = 'open'
 
 # 收盤價
@@ -150,35 +152,42 @@ class stock:
 
 
 class stocks():
-    data = None
+    data = pd.DataFrame()
     m = {}
 
     def __init__(self, dir):
         self.dir = dir
 
     def year(self, year):
-        for path in sorted(glob.glob(os.path.join(self.dir, f'{year}*.json')), reverse=True):
+        for path in sorted(glob.glob(os.path.join(self.dir, f'{year}*.csv')), reverse=True):
             self.read(os.path.basename(path).split('.')[0])
 
     def month(self, m):
         self.read(m)
-        for v in self.data:
-            pass
+        q = self.queryDate()
+        r = q[(f"{m[:4]}-{m[4:6]}-01" <= q) & (f"{m[:4]}-{m[4:6]}-31" >= q)].index
 
-    def date(self, date, fun):
+        self.data[r[0]:r[-1]]
+        self.data.loc['33']
+        pass
+
+    def date(self, date):
         self.read(self.getM(date))
-
-        for c, v in self.data.items():
-            v.to_frame().query('open > 0')
+        q = self.queryDate()
+        return self.data[q[q == date].index[0]]
 
     def read(self, m):
         if m not in self.m:
-            data = pd.read_json(os.path.join(self.dir, f'{m}.json'))
+            data = pd.read_csv(os.path.join(self.dir, f'{m}.csv'), index_col=[0, 1], header=[0])
 
-            if self.data == None:
+            if self.data.empty:
                 self.data = data
             else:
-                pass
+                data.columns = np.arange(self.data.columns.size, self.data.columns.size + data.columns.size)
+                self.data = pd.merge(self.data, data, on=['code', 'name'], how='inner')
+
+    def queryDate(self):
+        return self.data.loc[2330].loc['date']
 
     def getM(self, date):
         return f'{date[:4]}{date[5:7]}'

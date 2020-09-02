@@ -6,6 +6,7 @@ import os
 import openpyxl
 import csv
 import pandas as pd
+import numpy as np
 from stock import data as dt
 
 
@@ -120,25 +121,24 @@ class day():
 
 # 每年個股行情
 class year():
-    columns = [dt.OPEN]
+    dataColumns = dt.COLUMNS
+    columns = dataColumns.copy()
 
     def __init__(self, path):
         self.data = {}
         self.path = path
+        self.columns.insert(0, dt.DATE)
         years = [os.path.basename(f).split('.')[0] for f in glob.glob(os.path.join(path, dt.OPEN, '*.xlsx'))]
-        columns = self.columns.copy()
-        columns.insert(0, 'date')
 
         for year in years:
             self.data[year] = {}
-            dates = {}
             data = {}
-            for column in self.columns:
-                file = os.path.join(path, column, f'{year}.xlsx')
+            for column in self.dataColumns:
+                file = pd.read_excel(os.path.join(path, column, f'{year}.xlsx'))
 
                 logging.info(f'read: {file}...')
 
-                for i, rows in pd.read_excel(file).iterrows():
+                for i, rows in file.iterrows():
                     for ii, value in enumerate(rows[2:]):
                         if pd.isna(value):
                             continue
@@ -148,22 +148,17 @@ class year():
                         m = d[:6]
                         date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
-                        if m not in dates:
-                            dates[m] = {}
-
-                        dates[m][date] = 0
-
                         if m not in data:
                             data[m] = {}
 
-                        if code not in data[m]:
-                            data[m][code] = {c: [] for c in columns}
+                        if date not in data[m]:
+                            data[m][date] = {}
 
-                        data[m][code][column].append(value)
+                        if code not in data[m][date]:
+                            data[m][date][code] = {c: 0 for c in self.columns}
+                            data[m][date][code][dt.DATE] = date
 
-            for m, item in data.items():
-                for c, v in item.items():
-                    data[m][c]['date'] = [c for c in dates[m].keys()]
+                        data[m][date][code][column] = value
 
             self.data[year] = data
 
@@ -171,17 +166,27 @@ class year():
         logging.info('save start')
 
         for year, item in self.data.items():
-            for m, codes in item.items():
-                filePath = os.path.join(path, m) + ".json"
+
+            for m, dates in item.items():
+                i = 0
                 data = {}
+                filePath = os.path.join(path, m) + ".csv"
+                ck = list(dates[list(dates.keys())[-1]].keys())
+                index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
 
-                for code, columns in codes.items():
-                    for name, v in columns.items():
-                        data[f"('{code}', '{name}')"] = {i: v for i, v in enumerate(v)}
+                for date, codes in dates.items():
+                    values = []
 
-                f = codecs.open(filePath, 'w+', 'utf-8')
-                f.write(json.dumps(data, ensure_ascii=False))
-                f.close()
+                    for c in ck:
+                        if c not in codes:
+                            [values.append(np.nan) for n in self.columns]
+                        else:
+                            [values.append(v) for n, v in codes[c].items()]
+
+                    data[i] = values
+                    i += 1
+
+                pd.DataFrame(data, index=index).to_csv(filePath)
 
                 logging.info(f'save {m}')
 
