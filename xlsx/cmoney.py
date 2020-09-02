@@ -3,6 +3,8 @@ import glob
 import json
 import logging
 import os
+from datetime import datetime
+
 import openpyxl
 import csv
 import pandas as pd
@@ -129,66 +131,65 @@ class year():
         self.path = path
         self.columns.insert(0, dt.DATE)
         years = [os.path.basename(f).split('.')[0] for f in glob.glob(os.path.join(path, dt.OPEN, '*.xlsx'))]
+        last = years[-1]
 
         for year in years:
-            self.data[year] = {}
-            data = {}
             for column in self.dataColumns:
-                file = pd.read_excel(os.path.join(path, column, f'{year}.xlsx'))
+                file = os.path.join(path, column, f'{year}.xlsx')
 
                 logging.info(f'read: {file}...')
 
-                for i, rows in file.iterrows():
+                for i, rows in pd.read_excel(file).iterrows():
                     for ii, value in enumerate(rows[2:]):
                         if pd.isna(value):
                             continue
 
                         code = rows[0]
                         d = rows.index[ii + 2]
-                        m = d[:6]
                         date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
-                        if m not in data:
-                            data[m] = {}
+                        if year == last:
+                            m = d[:6]
+                        else:
+                            m = year
 
-                        if date not in data[m]:
-                            data[m][date] = {}
+                        if m not in self.data:
+                            self.data[m] = {}
 
-                        if code not in data[m][date]:
-                            data[m][date][code] = {c: 0 for c in self.columns}
-                            data[m][date][code][dt.DATE] = date
+                        if date not in self.data[m]:
+                            self.data[m][date] = {}
 
-                        data[m][date][code][column] = value
+                        if code not in self.data[m][date]:
+                            self.data[m][date][code] = {c: 0 for c in self.columns}
+                            self.data[m][date][code][dt.DATE] = date
 
-            self.data[year] = data
+                        self.data[m][date][code][column] = value
 
     def output(self, path):
         logging.info('save start')
 
-        for year, item in self.data.items():
+        for name, dates in self.data.items():
+            i = 0
+            data = {}
+            filePath = os.path.join(path, name) + ".csv"
+            ck = list(dates[list(dates.keys())[-1]].keys())
+            index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
 
-            for m, dates in item.items():
-                i = 0
-                data = {}
-                filePath = os.path.join(path, m) + ".csv"
-                ck = list(dates[list(dates.keys())[-1]].keys())
-                index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
+            for date, codes in dates.items():
+                values = []
 
-                for date, codes in dates.items():
-                    values = []
+                for c in ck:
+                    if c not in codes:
+                        [values.append(np.nan) for n in self.columns]
+                    else:
+                        [values.append(v) for n, v in codes[c].items()]
 
-                    for c in ck:
-                        if c not in codes:
-                            [values.append(np.nan) for n in self.columns]
-                        else:
-                            [values.append(v) for n, v in codes[c].items()]
+                data[i] = values
+                i += 1
 
-                    data[i] = values
-                    i += 1
+            pd.DataFrame(data, index=index).to_csv(filePath)
 
-                pd.DataFrame(data, index=index).to_csv(filePath)
-
-                logging.info(f'save {m}')
+            logging.info(f'save {name}')
 
         logging.info('save end')
 

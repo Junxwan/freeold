@@ -153,7 +153,7 @@ class stock:
 
 class stocks():
     data = pd.DataFrame()
-    m = {}
+    dk = {}
 
     def __init__(self, dir):
         self.dir = dir
@@ -162,35 +162,56 @@ class stocks():
         for path in sorted(glob.glob(os.path.join(self.dir, f'{year}*.csv')), reverse=True):
             self.read(os.path.basename(path).split('.')[0])
 
-    def month(self, m):
-        self.read(m)
-        q = self.queryDate()
-        r = q[(f"{m[:4]}-{m[4:6]}-01" <= q) & (f"{m[:4]}-{m[4:6]}-31" >= q)].index
+        return self.query(f"{year}-01-01", f"{year}-12-31")
 
-        self.data[r[0]:r[-1]]
-        self.data.loc['33']
-        pass
+    def month(self, m):
+        if m[:4] != datetime.now().year:
+            self.read(m[:4])
+        else:
+            self.read(m)
+
+        return self.query(f"{m[:4]}-{m[4:6]}-01", f"{m[:4]}-{m[4:6]}-31")
 
     def date(self, date):
-        self.read(self.getM(date))
-        q = self.queryDate()
-        return self.data[q[q == date].index[0]]
+        if date[:4] != datetime.now().year:
+            self.read(date[:4])
+        else:
+            self.read(f'{date[:4]}{date[5:7]}')
 
-    def read(self, m):
-        if m not in self.m:
-            data = pd.read_csv(os.path.join(self.dir, f'{m}.csv'), index_col=[0, 1], header=[0])
+        return self.query(date)
+
+    def readAll(self):
+        for path in sorted(glob.glob(os.path.join(self.dir, '*.csv')), reverse=True):
+            self.read(os.path.basename(path).split('.')[0])
+
+    def read(self, dk):
+        if dk not in self.dk:
+            data = pd.read_csv(os.path.join(self.dir, f'{dk}.csv'), index_col=[0, 1], header=[0])
 
             if self.data.empty:
                 self.data = data
+                self.data.columns = np.arange(0, data.columns.size)
             else:
                 data.columns = np.arange(self.data.columns.size, self.data.columns.size + data.columns.size)
                 self.data = pd.merge(self.data, data, on=['code', 'name'], how='inner')
 
-    def queryDate(self):
-        return self.data.loc[2330].loc['date']
+            self.dk[dk] = True
 
-    def getM(self, date):
-        return f'{date[:4]}{date[5:7]}'
+    def query(self, start, end=None):
+        q = self.data.loc[2330].loc['date']
+
+        if end == None:
+            r = q[start == q]
+            if r.empty:
+                return None
+            return self.data.iloc[:, r.index[0]]
+
+        r = q[(start <= q) & (end >= q)]
+
+        if r.empty:
+            return None
+
+        return self.data.iloc[:, int(r.index[0]):(r.index[-1])]
 
 
 def diffMonth(date):
