@@ -181,7 +181,7 @@ class stocks():
         return self.query(date)
 
     def readAll(self):
-        for path in sorted(glob.glob(os.path.join(self.dir, '*.csv')), reverse=True):
+        for path in sorted(glob.glob(os.path.join(self.dir, '20*.csv')), reverse=True):
             self.read(os.path.basename(path).split('.')[0])
 
     def read(self, dk):
@@ -198,7 +198,7 @@ class stocks():
             self.dk[dk] = True
 
     def query(self, start, end=None):
-        q = self.data.loc[2330].loc['date']
+        q = self.qDate()
 
         if end == None:
             r = q[start == q]
@@ -212,6 +212,19 @@ class stocks():
             return None
 
         return self.data.iloc[:, int(r.index[0]):(r.index[-1])]
+
+    def dates(self):
+        self.readAll()
+        return self.qDate().to_numpy().tolist()
+
+    def afterDates(self, date):
+        self.readAll()
+        q = self.qDate()
+        r = q[q <= date]
+        return self.data.iloc[0, int(r.index[0]):(r.index[-1])].to_numpy().tolist()
+
+    def qDate(self):
+        return self.data.loc[2330].loc[DATE]
 
 
 def diffMonth(date):
