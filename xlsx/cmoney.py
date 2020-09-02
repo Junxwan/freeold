@@ -3,8 +3,6 @@ import glob
 import json
 import logging
 import os
-from datetime import datetime
-
 import openpyxl
 import csv
 import pandas as pd
@@ -58,12 +56,13 @@ class stock():
 
 # 每日個股行情
 class day():
-    data = {}
-    column = [dt.OPEN, dt.CLOSE, dt.HIGH, dt.LOW, dt.INCREASE, dt.AMPLITUDE, dt.VOLUME]
+    data = pd.DataFrame()
+    columns = dt.COLUMNS.copy()
 
     def __init__(self, file):
         logging.info('read: ' + file + ' ...')
 
+        self.columns.insert(0, dt.DATE)
         self.date = os.path.basename(file).split('.')[0]
 
         for i, rows in pd.read_excel(file).iterrows():
@@ -72,53 +71,37 @@ class day():
                     continue
 
                 d = rows.index[ii + 2]
+                code = rows[0]
 
-                if self.column[ii] not in self.data:
-                    self.data[self.column[ii]] = []
+                if code not in self.data:
+                    self.data[code] = {c: 0 for c in self.columns}
+                    self.data[code][dt.DATE] = self.date
 
-                self.data[self.column[ii]].append({
-                    'date': d[:8],
-                    'code': rows[0],
-                    'value': value
-                })
+                self.data[code][self.columns[ii + 1]] = value
 
     def output(self, path):
-        data = {}
+        values = []
+        ck = list(self.data.keys())
         m = f'{self.date[:4]}{self.date[5:7]}'
-        columns = dt.COLUMNS.copy()
-        columns.insert(0, 'date')
+        filePath = os.path.join(path, m) + ".csv"
 
-        for name, item in self.data.items():
-            for value in item:
-                code = value['code']
-                if code not in data:
-                    data[code] = [self.date]
-
-                data[code].append(value['value'])
-
-        for code, value in data.items():
-            code = str(code)
-
-            dir = os.path.join(path, code)
-
-            if os.path.exists(dir) == False:
-                os.makedirs(dir)
-
-            f = os.path.join(dir, f'{m}.xlsx')
-
-            insert = pd.DataFrame([value], columns=columns)
-
-            if os.path.exists(f) == False:
-                p = insert
+        for c in ck:
+            if c not in self.data:
+                [values.append(np.nan) for _ in self.columns]
             else:
-                p = pd.read_excel(f).append(insert)
-                p['date'] = pd.to_datetime(p['date'])
-                p.sort_values(by=['date'], ascending=False, inplace=True)
+                [values.append(v) for n, v in self.data[c].items()]
 
-            p['date'] = p['date'].dt.strftime('%Y-%m-%d')
-            p.to_excel(f, sheet_name=code, index=False)
+        index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
+        data = pd.DataFrame({"0": values}, index=index)
 
-            logging.info(f'save file: {f}')
+        if os.path.exists(filePath):
+            d = pd.read_csv(filePath, index_col=[0, 1], header=[0])
+            d.columns = np.arange(data.columns.size, d.columns.size + data.columns.size)
+            data = pd.merge(data, d, on=['code', 'name'], how='inner')
+
+        data.to_csv(filePath)
+
+        logging.info(f'save file: {filePath}')
 
 
 # 每年個股行情
@@ -180,7 +163,7 @@ class year():
 
                 for c in ck:
                     if c not in codes:
-                        [values.append(np.nan) for n in self.columns]
+                        [values.append(np.nan) for _ in self.columns]
                     else:
                         [values.append(v) for n, v in codes[c].items()]
 
