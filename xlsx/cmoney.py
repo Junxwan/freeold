@@ -4,26 +4,9 @@ import json
 import logging
 import os
 import openpyxl
-import csv
 import pandas as pd
 import numpy as np
 from stock import data as dt
-
-
-def files(path):
-    paths = []
-
-    if os.path.isfile(path):
-        paths.append(path)
-
-    if os.path.isdir(path):
-        for f in os.listdir(path):
-            fullPath = os.path.join(path, f)
-
-            if os.path.splitext(fullPath)[-1] == '.xlsx':
-                paths.append(fullPath)
-
-    return paths
 
 
 # 個股基本資料
@@ -70,7 +53,6 @@ class day():
                 if pd.isna(value):
                     continue
 
-                d = rows.index[ii + 2]
                 code = rows[0]
 
                 if code not in self.data:
@@ -175,98 +157,3 @@ class year():
             logging.info(f'save {name}')
 
         logging.info('save end')
-
-
-# 每日弱勢股
-# 成交量1000張以上
-# 最大漲跌%3以上
-# 最多100檔
-# 收黑k
-# 開盤價10元以上
-class weakDay():
-    __price = []
-
-    def __init__(self, path):
-        for path in files(path):
-            xlsx = openpyxl.load_workbook(path)
-            sheet = xlsx.active
-
-            header = sheet.cell(1, 3).value
-            self.__price.append({
-                'date': f'{header[:4]}-{header[4:6]}-{header[6:8]}',
-                'value': self.__read(sheet),
-            })
-
-    def __read(self, sheet):
-        price = []
-
-        for rows in sheet.iter_rows(2):
-            if (rows[0].value == None) | (rows[0].value == ''):
-                continue
-
-            if (rows[8].value == None) | (rows[8].value == ''):
-                continue
-
-            # 股價小於10
-            if rows[2].value < 10:
-                continue
-
-            # 成交小於1000張
-            if rows[8].value <= 1000:
-                continue
-
-            diff = round(((rows[4].value / rows[5].value) - 1) * 100, 2)
-
-            # 最大漲跌小於3
-            if diff <= 3:
-                continue
-
-            # 收黑
-            if rows[6].value >= 0:
-                continue
-
-            p = []
-            for v in rows:
-                p.append(v.value)
-
-            p.append(diff)
-            price.append(p)
-
-        return sorted(price, key=lambda s: s[9], reverse=True)[:110]
-
-    def output(self, path):
-        for price in self.__price:
-            codes = []
-            date = price['date']
-            ws = openpyxl.Workbook()
-            wsM = ws.active
-
-            wsM.append([
-                '股票代號',
-                '股票名稱',
-                f'{date}\n開盤價',
-                f'{date}\n收盤價',
-                f'{date}\n最高價',
-                f'{date}\n最低價',
-                f'{date}\n漲幅(%)',
-                f'{date}\n振幅(%)',
-                f'{date}\n成交量',
-                f'{date}\n最大漲跌(%)'
-            ])
-
-            for p in price['value']:
-                codes.append([f'{p[0]}.TW'])
-                wsM.append(p)
-
-            xlsxPath = os.path.join(path, f'{date}.xlsx')
-            csvPath = os.path.join(path, f'{date}-code.csv')
-            ws.save(xlsxPath)
-
-            with open(csvPath, 'w+', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-
-                for code in codes:
-                    writer.writerow(code)
-
-            logging.info(xlsxPath)
-            logging.info(csvPath)

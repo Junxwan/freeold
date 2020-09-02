@@ -18,7 +18,7 @@ def calendarXY(date, dir):
     else:
         prevDays[date] = []
 
-    prevDay = data.stock(dir).afterDates(date).__len__()
+    prevDay = data.stocks(dir).afterDates(date).__len__()
 
     dateT = datetime.fromisoformat(date)
     nM = datetime.now().month
