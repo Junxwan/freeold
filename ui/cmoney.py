@@ -113,7 +113,7 @@ class market(tick):
         self.crawler.get(date)
 
 
-class toJson(ui.process):
+class toData(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
@@ -121,7 +121,7 @@ class toJson(ui.process):
         self.output = tk.StringVar()
 
         if config != None:
-            self.output.set(config['data'])
+            self.output.set(os.path.join(config['data'], 'csv'))
 
         tk.Label(master, text='xlsx:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
@@ -153,8 +153,8 @@ class toJson(ui.process):
         pass
 
 
-# 個股每日行情轉json參數
-class dayToJson(toJson):
+# 個股每日行情轉檔案
+class dayToData(toData):
     def openInputText(self):
         return '選擇檔案'
 
@@ -171,8 +171,8 @@ class dayToJson(toJson):
         self.showSuccess()
 
 
-# 個股年度行情轉json參數
-class yearToJson(toJson):
+# 個股年度行情轉檔案
+class yearToData(toData):
     def openInputText(self):
         return '選擇目錄'
 
@@ -190,8 +190,8 @@ class yearToJson(toJson):
         )
 
 
-# 個股基本資料轉json參數
-class stockToJson(toJson):
+# 個股基本資料轉檔案
+class stockToData(toData):
     def openInputText(self):
         return '選擇檔案'
 
