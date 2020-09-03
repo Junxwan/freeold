@@ -32,15 +32,36 @@ VOLUME = 'volume'
 COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, AMPLITUDE, VOLUME]
 
 # 個股基本資料
-INFO_FILE_NAME = 'stock.json'
+INFO_FILE_NAME = 'stock'
+
+STOCK_COLUMNS = [
+    'code',
+    'name',
+    'value',
+    'industry',
+    'group',
+    'revenue',
+    'product',
+    'use',
+    'concept',
+    'title',
+    'remarks',
+    'on',
+    'status'
+]
 
 
 class stock():
     data = pd.DataFrame()
+    stock = pd.DataFrame()
     dk = {}
 
     def __init__(self, dir):
         self.dir = dir
+
+        if self.stock.empty:
+            self.stock = pd.read_csv(os.path.join(dir, INFO_FILE_NAME) + '.csv')
+            self.stock.columns = STOCK_COLUMNS
 
     def year(self, year):
         for path in sorted(glob.glob(os.path.join(self.dir, f'{year}*.csv')), reverse=True):
@@ -103,6 +124,9 @@ class stock():
 
         return self.data.iloc[:, int(r.index[0]):(r.index[-1])]
 
+    def code(self, code):
+        return self.stock[self.stock['code'] == code].iloc[0]
+
     def dates(self):
         self.readAll()
         return self.qDate().to_numpy().tolist()
@@ -117,8 +141,7 @@ class stock():
         return self.data.loc[2330].loc[DATE]
 
     def run(self, query, start, end=None, output=None, codes=None):
-        result = {}
-        self.readAll()
+        self.read('202009')
 
         if start.__len__() == 4:
             if (end == None) | (end == ''):
@@ -139,36 +162,30 @@ class stock():
 
         logging.info(f'======= exec {query.name} =======')
 
-        for code in codes:
-            value = data.loc[code]
+        columns = COLUMNS.copy()
+        columns.insert(0, 'code')
+        columns.insert(1, 'name')
 
-            if value.ndim == 1:
-                value = pd.DataFrame(value)
+        if data.ndim == 1:
+            data = pd.DataFrame(data)
 
-            for i, index in enumerate(value.columns):
+        for i, index in enumerate(data.columns):
+            result = []
+            date = data[index].iloc[0]
+
+            for code in codes:
+                value = data.loc[code]
                 v = value.iloc[:, i:]
-                date = v.loc[DATE].iloc[0]
 
                 logging.info(f"exec code: {code} date: {date}")
 
                 if query.exec(v):
-                    if date not in result:
-                        result[date] = {}
+                    d = v[index][1:].tolist()
+                    d.insert(0, code)
+                    d.insert(1, self.code(code)['name'])
+                    result.append(d)
 
-                    if code not in result[date]:
-                        result[date][code] = v[index]
-
-        columns = COLUMNS.copy()
-        columns.insert(0, 'code')
-
-        for date, value in result.items():
-            d = []
-            for c, v in value.items():
-                s = v[1:].tolist()
-                s.insert(0, c)
-                d.append(s)
-
-            frame = pd.DataFrame(d, columns=columns)
+            frame = pd.DataFrame(result, columns=columns)
 
             if query.sort != '':
                 frame = frame.sort_values(by=query.sort, ascending=query.asc)
@@ -176,10 +193,7 @@ class stock():
             if query.num > 0:
                 frame = frame[:query.num]
 
-            result[date] = frame
-
-        if (output != None) & (os.path.exists(output) == True):
-            for date, value in result.items():
+            if (output != None) & (os.path.exists(output) == True):
                 dir = os.path.join(output, date[:4] + date[5:7])
 
                 if os.path.exists(dir) == False:
@@ -187,4 +201,4 @@ class stock():
 
                 logging.info(f'======= save {query.name} - {date} =======')
 
-                value.to_csv(os.path.join(dir, date) + '.csv', index=False)
+                frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')

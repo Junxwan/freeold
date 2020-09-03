@@ -6,6 +6,8 @@ from stock import data, builder as sql
 
 
 class select(ui.process):
+    stock = None
+
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
@@ -54,6 +56,8 @@ class select(ui.process):
                 os.path.basename(self.output.get())
             ) + '.json'
         )
-        stock = data.stock(self.dir.get())
-        stock.run(query, self.startDate.get(), end=self.endDate.get(), output=self.output.get())
+        if self.stock == None:
+            self.stock = data.stock(self.dir.get())
+
+        self.stock.run(query, self.startDate.get(), end=self.endDate.get(), output=self.output.get())
         self.showSuccess()
