@@ -79,7 +79,7 @@ class day():
         if os.path.exists(filePath):
             d = pd.read_csv(filePath, index_col=[0, 1], header=[0])
             d.columns = np.arange(data.columns.size, d.columns.size + data.columns.size)
-            data = pd.merge(data, d, on=['code', 'name'], how='inner')
+            data = pd.merge(data, d, on=['code', 'name'], how='left')
 
         data.to_csv(filePath)
 
