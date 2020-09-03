@@ -160,7 +160,7 @@ class data():
 
     # 選股功能按鈕組
     def stockButtonGroup(self):
-        btn = tk.Button(self.btnGroupFrame, text='每日弱勢股', command=lambda: self.switchArg(stock.weakDay))
+        btn = tk.Button(self.btnGroupFrame, text='選股', command=lambda: self.switchArg(stock.select))
         btn.place(x=5, y=5)
 
         self.setLog('stock')

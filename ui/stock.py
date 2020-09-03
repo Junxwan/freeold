@@ -1,50 +1,59 @@
+import os
 import tkinter as tk
 from datetime import datetime
-
 from . import ui
-from stock import weak
+from stock import data, builder as sql
 
 
-# 每日弱勢股
-class weakDay(ui.process):
+class select(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
-        self.date = tk.StringVar()
+        self.startDate = tk.StringVar()
+        self.endDate = tk.StringVar()
         self.dir = tk.StringVar()
         self.output = tk.StringVar()
 
-        self.date.set(datetime.now().date())
+        self.startDate.set(datetime.now().date())
 
         if config != None:
-            self.dir.set(config['json'])
-            self.output.set(config['weak'])
+            self.dir.set(os.path.join(config['data'], 'csv'))
 
-        tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Label(master, text='開始日期:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.startDate, font=ui.FONT).place(x=self.ex, y=10)
 
-        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.dir, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Label(master, text='結束日期:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.endDate, font=ui.FONT).place(x=self.ex, y=self.ey)
+
+        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=self.ey * 2)
+        tk.Entry(master, textvariable=self.dir, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
         tk.Button(
             master,
             text='選擇目錄',
             font=ui.BTN_FONT,
             command=lambda:
             self.dir.set(ui.openDir())
-        ).place(x=self.w * 50, y=self.h * 8)
+        ).place(x=self.w * 50, y=self.h * 18)
 
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey * 2)
-        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey * 3)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey * 3)
         tk.Button(
             master,
             text='選擇目錄',
             font=ui.BTN_FONT,
             command=lambda:
             self.output.set(ui.openDir())
-        ).place(x=self.w * 50, y=self.h * 18)
+        ).place(x=self.w * 50, y=self.h * 28)
 
         self.addRunBtn(master)
 
     def run(self):
-        weak.run(self.date.get(), self.dir.get(), self.output.get())
+        query = sql.query().read(
+            os.path.join(
+                self.output.get(),
+                os.path.basename(self.output.get())
+            ) + '.json'
+        )
+        stock = data.stock(self.dir.get())
+        stock.run(query, self.startDate.get(), end=self.endDate.get(), output=self.output.get())
         self.showSuccess()

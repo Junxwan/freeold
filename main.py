@@ -21,7 +21,6 @@ class app(tk.Tk):
             'data': '',
             'json': '',
             'tick': '',
-            'weak': '',
             'output': '',
             'code': '',
             'open': '',

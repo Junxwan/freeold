@@ -1,5 +1,3 @@
-import copy
-import json
 import logging
 import os
 import glob
@@ -31,79 +29,13 @@ AMPLITUDE = 'amplitude'
 # 成交量
 VOLUME = 'volume'
 
-# 個股行情資料
-DATA_DIR = {
-    'price': [OPEN, CLOSE, HIGH, LOW, INCREASE, AMPLITUDE],
-    'volume': [VOLUME],
-}
-
 COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, AMPLITUDE, VOLUME]
 
 # 個股基本資料
 INFO_FILE_NAME = 'stock.json'
 
 
-# 個股行情資料
-class stock:
-    _data = {}
-    _item = {}
-    _dirs = {}
-    _dir = ''
-
-    def __init__(self, dir):
-        self._dir = dir
-
-        for name, dirs in DATA_DIR.items():
-            for d in dirs:
-                self._dirs[d] = os.path.join(dir, name, d)
-                self._item[d] = []
-
-    # 某天資料
-    def day(self, date):
-        data = self._data.get(date)
-
-        if data == None:
-            self._data[date] = {}
-            m = f'{date[:4]}{date[5:7]}'
-
-            for dir, path in self._dirs.items():
-                pd.read_json(os.path.join(path, m, f'{date}.json'), encoding='utf-8')
-
-                file = open(os.path.join(path, m, f'{date}.json'), encoding='utf-8')
-                data = json.load(file)
-
-                if data['date'] == date:
-                    self._data[date][dir] = data['value']
-
-        return self._data[date]
-
-    def codes(self, date):
-        return [{'code': k, 'name': v['name']} for k, v in self.day(date)[OPEN].items()]
-
-    # 某個股某天數範圍資料
-    def code(self, code, date=None, keyName=False, keys=None):
-        data = copy.deepcopy(self._item)
-
-        if type(date) != list:
-            date = [date]
-
-        for d in date:
-            for name, value in self.day(d).items():
-                data[name].append(value[code]['value'])
-
-        if keys != None:
-            ks = set([k for k in self._item]) - set(keys)
-
-            for k in ks:
-                del data[k]
-
-        if keyName == True:
-            return [data[k] for k in data.keys()]
-
-        return data
-
-
-class stocks():
+class stock():
     data = pd.DataFrame()
     dk = {}
 
@@ -189,13 +121,13 @@ class stocks():
         self.readAll()
 
         if start.__len__() == 4:
-            if end == None:
+            if (end == None) | (end == ''):
                 data = self.year(start)
             elif end.__len__() == 4:
                 data = self.query(f"{start}-01-01", f"{end}-12-31")
             else:
                 data = self.query(f"{start}-01-01", end)
-        elif end == None:
+        elif (end == None) | (end == ''):
             data = self.date(start)
         elif end.__len__() == 4:
             data = self.query(start, f"{end}-12-31")
@@ -208,8 +140,6 @@ class stocks():
         logging.info(f'======= exec {query.name} =======')
 
         for code in codes:
-            logging.info(f'======= exec code: {code} =======')
-
             value = data.loc[code]
 
             if value.ndim == 1:
