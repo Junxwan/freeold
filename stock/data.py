@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import glob
 import pandas as pd
@@ -116,7 +117,7 @@ class stocks():
         return self.query(f"{year}-01-01", f"{year}-12-31")
 
     def month(self, m):
-        if m[:4] != datetime.now().year:
+        if int(m[:4]) != datetime.now().year:
             self.read(m[:4])
         else:
             self.read(m)
@@ -124,7 +125,7 @@ class stocks():
         return self.query(f"{m[:4]}-{m[4:6]}-01", f"{m[:4]}-{m[4:6]}-31")
 
     def date(self, date):
-        if date[:4] != datetime.now().year:
+        if int(date[:4]) != datetime.now().year:
             self.read(date[:4])
         else:
             self.read(f'{date[:4]}{date[5:7]}')
@@ -139,12 +140,18 @@ class stocks():
         if dk not in self.dk:
             data = pd.read_csv(os.path.join(self.dir, f'{dk}.csv'), index_col=[0, 1], header=[0])
 
+            # 將除了DATE以外的index value 字串轉為float
+            pIndex = pd.IndexSlice[:, data.index.levels[1].copy().drop(DATE).tolist()]
+            data.loc[pIndex, :] = data.loc[pIndex, :].astype(float)
+
             if self.data.empty:
                 self.data = data
                 self.data.columns = np.arange(0, data.columns.size)
             else:
                 data.columns = np.arange(self.data.columns.size, self.data.columns.size + data.columns.size)
                 self.data = pd.merge(self.data, data, on=['code', 'name'], how='inner')
+
+            logging.info(f'read price for date: {dk}')
 
             self.dk[dk] = True
 
@@ -177,7 +184,7 @@ class stocks():
     def qDate(self):
         return self.data.loc[2330].loc[DATE]
 
-    def run(self, fun, start, end=None, output=None, codes=None):
+    def run(self, query, start, end=None, output=None, codes=None):
         result = {}
         self.readAll()
 
@@ -198,14 +205,56 @@ class stocks():
         if codes == None:
             codes = data.index.levels[0]
 
+        logging.info(f'======= exec {query.name} =======')
+
         for code in codes:
+            logging.info(f'======= exec code: {code} =======')
+
             value = data.loc[code]
-            max = value.shape[1]
 
-            for i in value.columns:
-                v = value.iloc[:, i:max]
-                date = v.loc['date'][0]
-                data = fun(code, date, v, i, value.loc)
+            if value.ndim == 1:
+                value = pd.DataFrame(value)
 
-                if output != None:
-                    result[date] = data
+            for i, index in enumerate(value.columns):
+                v = value.iloc[:, i:]
+                date = v.loc[DATE].iloc[0]
+
+                logging.info(f"exec code: {code} date: {date}")
+
+                if query.exec(v):
+                    if date not in result:
+                        result[date] = {}
+
+                    if code not in result[date]:
+                        result[date][code] = v[index]
+
+        columns = COLUMNS.copy()
+        columns.insert(0, 'code')
+
+        for date, value in result.items():
+            d = []
+            for c, v in value.items():
+                s = v[1:].tolist()
+                s.insert(0, c)
+                d.append(s)
+
+            frame = pd.DataFrame(d, columns=columns)
+
+            if query.sort != '':
+                frame = frame.sort_values(by=query.sort, ascending=query.asc)
+
+            if query.num > 0:
+                frame = frame[:query.num]
+
+            result[date] = frame
+
+        if (output != None) & (os.path.exists(output) == True):
+            for date, value in result.items():
+                dir = os.path.join(output, date[:4] + date[5:7])
+
+                if os.path.exists(dir) == False:
+                    os.mkdir(dir)
+
+                logging.info(f'======= save {query.name} - {date} =======')
+
+                value.to_csv(os.path.join(dir, date) + '.csv', index=False)
