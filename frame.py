@@ -147,13 +147,13 @@ class data():
 
     # cmoney功能按鈕組群
     def cmoneyButtonGroup(self):
-        btn = tk.Button(self.btnGroupFrame, text='日轉json', command=lambda: self.switchArg(cmoney.dayToJson))
+        btn = tk.Button(self.btnGroupFrame, text='日轉json', command=lambda: self.switchArg(cmoney.dayToData))
         btn.place(x=5, y=5)
 
-        btn = tk.Button(self.btnGroupFrame, text='年轉json', command=lambda: self.switchArg(cmoney.yearToJson))
+        btn = tk.Button(self.btnGroupFrame, text='年轉json', command=lambda: self.switchArg(cmoney.yearToData))
         btn.place(x=5, y=self.h * 6)
 
-        btn = tk.Button(self.btnGroupFrame, text='個股轉json', command=lambda: self.switchArg(cmoney.stockToJson))
+        btn = tk.Button(self.btnGroupFrame, text='個股轉json', command=lambda: self.switchArg(cmoney.stockToData))
         btn.place(x=5, y=self.h * 12)
 
         self.setLog('cmoney')
