@@ -97,6 +97,10 @@ class stock():
             pIndex = pd.IndexSlice[:, data.index.levels[1].copy().drop(DATE).tolist()]
             data.loc[pIndex, :] = data.loc[pIndex, :].astype(float)
 
+            # DATE欄位轉為datetime
+            # dIndex = pd.IndexSlice[:, [DATE]]
+            # data.loc[dIndex, :] = data.loc[dIndex, :].astype('datetime64[ns, Asia/Taipei]')
+
             if self.data.empty:
                 self.data = data
                 self.data.columns = np.arange(0, data.columns.size)
