@@ -3,7 +3,6 @@ import os
 import glob
 import pandas as pd
 import numpy as np
-from datetime import datetime
 
 # 日期
 DATE = 'date'
@@ -54,6 +53,8 @@ STOCK_COLUMNS = [
 class stock():
     data = pd.DataFrame()
     stock = pd.DataFrame()
+    tick = pd.DataFrame()
+    csv = []
     dk = {}
 
     def __init__(self, dir):
@@ -63,31 +64,36 @@ class stock():
             self.stock = pd.read_csv(os.path.join(dir, INFO_FILE_NAME) + '.csv')
             self.stock.columns = STOCK_COLUMNS
 
-    def year(self, year):
-        for path in sorted(glob.glob(os.path.join(self.dir, f'{year}*.csv')), reverse=True):
-            self.read(os.path.basename(path).split('.')[0])
+        self.csv = {
+            os.path.basename(f).split('.')[0]: f
+            for f in sorted(glob.glob(os.path.join(self.dir, '20*.csv')), reverse=True)
+        }
 
+    def year(self, year):
         return self.query(f"{year}-01-01", f"{year}-12-31")
 
     def month(self, m):
-        if int(m[:4]) != datetime.now().year:
-            self.read(m[:4])
-        else:
-            self.read(m)
-
         return self.query(f"{m[:4]}-{m[4:6]}-01", f"{m[:4]}-{m[4:6]}-31")
 
-    def date(self, date):
-        if int(date[:4]) != datetime.now().year:
-            self.read(date[:4])
-        else:
-            self.read(f'{date[:4]}{date[5:7]}')
+    def date(self, start, end=None):
+        if start.__len__() == 4:
+            if (end == None) | (end == ''):
+                return self.year(start)
+            elif end.__len__() == 4:
+                return self.query(f"{start}-01-01", f"{end}-12-31")
+            else:
+                return self.query(f"{start}-01-01", end)
+        elif (end == None) | (end == ''):
+            return self.query(start)
+        elif end.__len__() == 4:
+            return self.query(start, f"{end}-12-31")
 
-        return self.query(date)
+        return self.query(start, end)
 
     def readAll(self):
-        for path in sorted(glob.glob(os.path.join(self.dir, '20*.csv')), reverse=True):
-            self.read(os.path.basename(path).split('.')[0])
+        for dk, path in self.csv.items():
+            if dk not in self.dk:
+                self.read(os.path.basename(path).split('.')[0])
 
     def read(self, dk):
         if dk not in self.dk:
@@ -96,10 +102,6 @@ class stock():
             # 將除了DATE以外的index value 字串轉為float
             pIndex = pd.IndexSlice[:, data.index.levels[1].copy().drop(DATE).tolist()]
             data.loc[pIndex, :] = data.loc[pIndex, :].astype(float)
-
-            # DATE欄位轉為datetime
-            # dIndex = pd.IndexSlice[:, [DATE]]
-            # data.loc[dIndex, :] = data.loc[dIndex, :].astype('datetime64[ns, Asia/Taipei]')
 
             if self.data.empty:
                 self.data = data
@@ -113,18 +115,20 @@ class stock():
             self.dk[dk] = True
 
     def query(self, start, end=None):
+        self.readAll()
+
         q = self.qDate()
 
         if end == None:
             r = q[start == q]
             if r.empty:
-                return None
+                return r
             return self.data.iloc[:, r.index[0]]
 
         r = q[(start <= q) & (end >= q)]
 
         if r.empty:
-            return None
+            return r
 
         return self.data.iloc[:, int(r.index[0]):(r.index[-1])]
 
@@ -145,21 +149,11 @@ class stock():
         return self.data.loc[2330].loc[DATE]
 
     def run(self, query, start, end=None, output=None, codes=None):
-        self.read('202009')
+        data = self.date(start, end)
 
-        if start.__len__() == 4:
-            if (end == None) | (end == ''):
-                data = self.year(start)
-            elif end.__len__() == 4:
-                data = self.query(f"{start}-01-01", f"{end}-12-31")
-            else:
-                data = self.query(f"{start}-01-01", end)
-        elif (end == None) | (end == ''):
-            data = self.date(start)
-        elif end.__len__() == 4:
-            data = self.query(start, f"{end}-12-31")
-        else:
-            data = self.query(start, end)
+        if data.empty:
+            logging.info(f'======= not data for {start} to {end} =======')
+            return
 
         if codes == None:
             codes = data.index.levels[0]

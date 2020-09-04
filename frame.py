@@ -5,13 +5,14 @@ import openpyxl
 import pyautogui
 import mplfinance as mpf
 import pandas as pd
+from stock import data
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.backend_bases import key_press_handler
 from ui import cmoney, xq, stock, log, other, ui
 from PIL import Image, ImageTk
 
 
-class data():
+class main():
     def __init__(self, root, config=None, path=None):
         self.root = root
         self.config = config
@@ -419,20 +420,57 @@ class watch():
 
         root.geometry(f'{self.width}x{self.height}')
 
-        idf = pd.read_csv('/private/var/www/other/free/test.csv')
+        s = data.stock('/private/var/www/other/free/csv')
+        s.read('202008')
+        s.read('202007')
+        s.read('202006')
+
+        e = pd.DataFrame([
+            s.data.loc[2330][i].tolist() for i in s.data.loc[2330]],
+            columns=s.data.loc[2330].index.tolist()
+        )
+        e['date'] = pd.to_datetime(e['date'])
+        e = e.set_index('date').sort_index()
+
+        candle = {
+            'up': '#a02128',
+            'down': '#006340'
+        }
 
         fig = mpf.figure(style='charles')
-        ax1 = fig.add_subplot(111)
-        mpf.plot(idf, ax=ax1,type='candle')
 
-        self.canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
+        # 蠟燭顏色
+        fig.mpfstyle['marketcolors']['candle'] = candle
+        fig.mpfstyle['marketcolors']['edge'] = candle
+        fig.mpfstyle['marketcolors']['edge'] = candle
+        fig.mpfstyle['marketcolors']['wick'] = candle
+        fig.mpfstyle['marketcolors']['ohlc'] = candle
+
+        # 格子線
+        fig.mpfstyle['gridstyle'] = '-'
+
+        # 格子內顏色
+        fig.mpfstyle['facecolor'] = '#fafafa'
+
+        ax1 = fig.add_subplot(111)
+        ax1.set_title('2330')
+        # ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
+
+        mpf.plot(
+            e,
+            ax=ax1,
+            type='candle',
+            datetime_format='%Y-%m-%d',
+            ylabel='',
+        )
+
+        plt.xticks(fontsize=10, rotation=0)
+        # plt.show()
+
+        self.canvas = FigureCanvasTkAgg(fig, root)
         self.canvas.draw()
 
         self.toolbar = NavigationToolbar2Tk(self.canvas, root)
         self.toolbar.update()
 
-        self.canvas.mpl_connect("key_press_event", lambda event: print(f"you pressed {event.key}"))
-        self.canvas.mpl_connect("key_press_event", key_press_handler)
-
         self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)

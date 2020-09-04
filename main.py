@@ -45,7 +45,7 @@ class app(tk.Tk):
         self.mainloop()
 
     def runDate(self):
-        self.run(lambda: frame.data(self, config=self.configs, path=self.currentPath))
+        self.run(lambda: frame.main(self, config=self.configs, path=self.currentPath))
 
     def runImage(self):
         self.run(lambda: frame.image(self, config=self.configs))
@@ -54,4 +54,4 @@ class app(tk.Tk):
         self.run(lambda: frame.watch(self, config=self.configs))
 
 
-app().runDate()
+app().runWatch()
