@@ -1,5 +1,4 @@
 import glob
-import math
 import os
 import tkinter as tk
 import openpyxl
@@ -430,8 +429,12 @@ class watch():
         s.read('202007')
         s.read('202006')
         s.read('202005')
+        s.read('202004')
+        s.read('202003')
+        s.read('202002')
+        s.read('202001')
 
-        code = 2330
+        code = 1101
 
         e = pd.DataFrame([
             s.data.loc[code][i].tolist() for i in s.data.loc[code]],
@@ -440,14 +443,16 @@ class watch():
         e['date'] = pd.to_datetime(e['date'])
         e = e.set_index('date').sort_index()
         i = 0
-        e = e[e.shape[0] - (60 + i):e.shape[0] + i]
+        li = e.shape[0] - (60 + i)
+        ri = e.shape[0] + i
+        datas = e[li:ri]
 
         candle = {
             'up': '#a02128',
-            'down': '#006340'
+            'down': '#FFFFFF'
         }
 
-        fig = mpf.figure(style='charles')
+        fig = mpf.figure(style='charles', figsize=(self.width / 100, self.height / 100))
 
         # 蠟燭顏色
         fig.mpfstyle['marketcolors']['candle'] = candle
@@ -465,28 +470,31 @@ class watch():
         ax1 = fig.add_subplot(111)
         ax1.set_title('2330')
 
+        close = e['close']
+        xdates = np.arange(datas.shape[0])
+
         mpf.plot(
-            e,
+            datas,
             ax=ax1,
             type='candle',
             datetime_format='%Y-%m-%d',
             ylabel='',
         )
 
-        xMax = e.index.get_loc(e['high'].idxmax())
-        yMax = e['high'].max()
+        xMax = datas.index.get_loc(datas['high'].idxmax())
+        yMax = datas['high'].max()
         if int(yMax) == yMax:
             yMax = int(yMax)
 
-        xMin = e.index.get_loc(e['low'].idxmin())
-        yMin = e['low'].min()
+        xMin = datas.index.get_loc(datas['low'].idxmin())
+        yMin = datas['low'].min()
         if int(yMin) == yMin:
             yMin = int(yMin)
 
         priceLoc = PriceLocator(yMax, yMin)
 
-        ax1.xaxis.set_major_locator(DateLocator(e.index))
-        ax1.xaxis.set_major_formatter(DateFormatter())
+        ax1.xaxis.OFFSETTEXTPAD = 0
+        ax1.xaxis.set_major_locator(DateLocator(datas.index))
         ax1.yaxis.set_major_locator(priceLoc)
 
         xOffset = {
@@ -510,11 +518,24 @@ class watch():
         ax1.annotate(
             yMin,
             xy=(xMin, yMin),
-            xytext=(xMin - xOffset[len(str(yMin))], yMin - priceLoc.tick / 2),
+            xytext=(xMin - xOffset[len(str(yMin))], yMin - priceLoc.tick / 1.5),
             color='white',
             size=30,
             arrowprops=dict(arrowstyle="simple")
         )
+
+        ax1.plot(xdates, pd.Series(close).rolling(5).mean().values[li:ri], linewidth=1.8, color='#FF8000')
+        ax1.plot(xdates, pd.Series(close).rolling(10).mean().values[li:ri], linewidth=1.8, color='#00CCCC')
+        ax1.plot(xdates, pd.Series(close).rolling(20).mean().values[li:ri], linewidth=1.8, color='#00CC66')
+        ax1.plot(xdates, pd.Series(close).rolling(60).mean().values[li:ri], linewidth=1.8, color='#FFFF00')
+
+        yt = priceLoc.getTicks()
+        topLx = yt[-1] - (priceLoc.tick / 2)
+
+        ax1.text(-4, topLx, 'SMA5', fontsize=30, color='#FF8000')
+        ax1.text(0, topLx, 'SMA10', fontsize=30, color='#00CCCC')
+        ax1.text(4.5, topLx, 'SMA20', fontsize=30, color='#00CC66')
+        ax1.text(9, topLx, 'SMA60', fontsize=30, color='#FFFF00')
 
         plt.yticks(fontsize=30, rotation=0)
         plt.xticks(fontsize=25, rotation=0)
@@ -528,6 +549,7 @@ class watch():
         self.toolbar.update()
 
         self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.canvas.get_tk_widget().focus_force()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 
@@ -545,24 +567,7 @@ class DateLocator(mticks.Locator):
             if d.month not in monthFirstWorkDay:
                 monthFirstWorkDay[d.month] = i
 
-        date = list(monthFirstWorkDay.values())
-
-        if self.date[date[-1]].month == self.date[-1].month:
-            date[-1] = self.date.size - 1
-
-        return date
-
-
-class DateFormatter(mticks.Formatter):
-    def __call__(self, x, pos=None):
-        if pos == None:
-            return ''
-
-        dates = self.axis.major.locator.date
-        if (x == 0) | (x == (dates.size - 1)):
-            return f'{dates[x].year}-{dates[x].month:02}-{dates[x].day}'
-        else:
-            return f'{dates[x].month:02}'
+        return list(monthFirstWorkDay.values())
 
 
 class PriceLocator(mticks.Locator):
@@ -571,6 +576,7 @@ class PriceLocator(mticks.Locator):
     def __init__(self, max, min):
         self.max = max
         self.min = min
+        self.ticks = []
 
         diff = max - min
         self.tick = self.tickLevel[0]
@@ -584,19 +590,24 @@ class PriceLocator(mticks.Locator):
     def __call__(self):
         return self.tick_values(None, None)
 
+    def getTicks(self):
+        return self.tick_values(None, None)
+
     def tick_values(self, vmin, vmax):
-        ticks = []
+        if len(self.ticks) > 0:
+            return self.ticks
+
         start = self.min - (self.min % self.tick)
 
         for i in range(20):
             p = start + (self.tick * i)
-            ticks.append(start + (self.tick * i))
+            self.ticks.append(start + (self.tick * i))
 
             if p > self.max:
-                ticks.insert(0, start - self.tick)
-                ticks.append(p + self.tick)
+                self.ticks.insert(0, start - self.tick)
+                self.ticks.append(p + self.tick)
                 break
 
-        self.axis.set_view_interval(ticks[0], ticks[-1])
+        self.axis.set_view_interval(self.ticks[0], self.ticks[-1])
 
-        return np.asarray(ticks)
+        return np.asarray(self.ticks)
