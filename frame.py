@@ -1,5 +1,6 @@
 import glob
 import os
+import time
 import tkinter as tk
 import openpyxl
 import pyautogui
@@ -10,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticks
 from stock import data
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backend_bases import NavigationToolbar2
 from ui import cmoney, xq, stock, log, other, ui
 from PIL import Image, ImageTk
 from mplfinance._styledata import charles
@@ -448,7 +450,7 @@ class watch():
         i = 0
         li = e.shape[0] - (60 + i)
         ri = e.shape[0] + i
-        datas = e[li:ri]
+        self.datas = e[li:ri]
 
         candle = {
             'up': '#9A0000',
@@ -478,7 +480,7 @@ class watch():
         style['base_mpl_style'] = 'dark_background'
 
         fig, axs = mpf.plot(
-            datas,
+            self.datas,
             type='candle',
             style=style,
             datetime_format='%Y-%m-%d',
@@ -499,28 +501,29 @@ class watch():
         )
 
         close = e['close']
-        xdates = np.arange(datas.shape[0])
+        xdates = np.arange(self.datas.shape[0])
 
-        xMax = datas.index.get_loc(datas['high'].idxmax())
-        yMax = datas['high'].max()
+        xMax = self.datas.index.get_loc(self.datas['high'].idxmax())
+        yMax = self.datas['high'].max()
         if int(yMax) == yMax:
             yMax = int(yMax)
 
-        xMin = datas.index.get_loc(datas['low'].idxmin())
-        yMin = datas['low'].min()
+        xMin = self.datas.index.get_loc(self.datas['low'].idxmin())
+        yMin = self.datas['low'].min()
         if int(yMin) == yMin:
             yMin = int(yMin)
 
         priceLoc = PriceLocator(yMax, yMin)
+        dateLoc = DateLocator(self.datas.index)
 
-        axs[0].xaxis.set_major_locator(DateLocator(datas.index))
+        axs[0].xaxis.set_major_locator(dateLoc)
         axs[0].yaxis.set_major_locator(priceLoc)
         axs[0].yaxis.set_major_formatter(PriceFormatter())
 
         volumeF = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
                 x * 1e-3) if x >= 1e3 else '%1.0f' % x
 
-        axs[2].yaxis.set_major_locator(VolumeLocator(datas['volume']))
+        axs[2].yaxis.set_major_locator(VolumeLocator(self.datas['volume']))
         axs[2].yaxis.set_major_formatter(mticks.FuncFormatter(volumeF))
 
         xOffset = {
@@ -581,12 +584,19 @@ class watch():
         # plt.show()
 
         self.canvas = FigureCanvasTkAgg(fig, self.watchFrame)
+        self.event = MoveEvent(self.canvas, self.datas, dateLoc.getTicks())
+        # self._id_drag = self.canvas.mpl_connect('button_press_event', self.on_press)
+        # self.toolbar = NavigationToolbar2(self.canvas)
+        # self.toolbar.update()
+
+        # l = axs[0].axvline(x='2020-08-03', color='red')
+        # l.set_xdata('2020-09-01')
+        # axs[0].relim()
+        # axs[0].autoscale_view(False, False, False)
+        # l.set_visible(True)
+
         self.canvas.draw()
 
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.watchFrame)
-        self.toolbar.update()
-
-        self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.canvas.get_tk_widget().focus_force()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
@@ -606,11 +616,11 @@ class watch():
         self.watchLayout()
 
     def watchLayout(self):
-        self.watchFrame = tk.Frame(self.topFrame, width=self.width * 0.9, height=self.topHeight, bg='red')
+        self.watchFrame = tk.Frame(self.topFrame, width=self.width * 0.9, height=self.topHeight)
         self.watchFrame.pack(side=tk.LEFT)
         self.watchFrame.pack_propagate(0)
 
-        self.listFrame = tk.Frame(self.topFrame, width=self.width * 0.1, height=self.topHeight, bg='blue')
+        self.listFrame = tk.Frame(self.topFrame, width=self.width * 0.1, height=self.topHeight, bg='#C0C0C0')
         self.listFrame.pack(side=tk.LEFT)
         self.listFrame.pack_propagate(0)
 
@@ -618,9 +628,15 @@ class watch():
 class DateLocator(mticks.Locator):
     def __init__(self, data):
         self.data = data
+        self.loc = None
 
     def __call__(self):
+        if self.loc != None:
+            return self.loc
         return self.tick_values(None, None)
+
+    def getTicks(self):
+        return self.__call__()
 
     def tick_values(self, vmin, vmax):
         monthFirstWorkDay = {}
@@ -629,7 +645,9 @@ class DateLocator(mticks.Locator):
             if d.month not in monthFirstWorkDay:
                 monthFirstWorkDay[d.month] = i
 
-        return list(monthFirstWorkDay.values())
+        self.loc = list(monthFirstWorkDay.values())
+
+        return self.loc
 
 
 class PriceLocator(mticks.Locator):
@@ -698,3 +716,50 @@ class PriceFormatter(mticks.Formatter):
             return ''
 
         return '%1.2f' % x
+
+
+class MoveEvent(tk.Frame):
+    def __init__(self, canvas, data, dates):
+        tk.Frame.__init__(self)
+
+        self.data = data
+        self.dates = dates
+        self.canvas = canvas
+        self.event = self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.ax = canvas.figure.axes[0]
+        self.axv = canvas.figure.axes[2]
+
+        self.xv = None
+        self.xh = None
+        self.yv = None
+
+    def on_press(self, event):
+        date = self.data.index[round(event.xdata)]
+        close = self.data['close'][date]
+
+        date = date.strftime('%Y-%m-%d')
+
+        if self.xv == None:
+            self.xv = self.ax.axvline(x=date, color='red')
+            self.xh = self.ax.axhline(y=close, color='red')
+        else:
+            self.xv.set_xdata(event.xdata)
+            self.xh.set_ydata(self.dates)
+
+        self.canvas.draw_idle()
+
+        # if len(ax.lines) > 3:
+        #     ax.lines.remove(self.xvl)
+        #     ax.lines.remove(self.xhl)
+        #     axv.lines.remove(self.xvlv)
+
+        print(date)
+        print(close)
+
+        # self.xvl = ax.axvline(x=date, color='red')
+        # self.xhl = ax.axhline(y=close, color='red')
+        # self.xvlv = axv.axvline(x=date, color='red')
+        #
+        # self.canvas.draw()
+        # ax.autoscale_view(False, False, False)
+        # axv.autoscale_view(False, False, False)
