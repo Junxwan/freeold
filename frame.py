@@ -6,13 +6,13 @@ import pyautogui
 import mplfinance as mpf
 import pandas as pd
 import numpy as np
-from stock import data
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import matplotlib.ticker as mticks
+from stock import data
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from ui import cmoney, xq, stock, log, other, ui
 from PIL import Image, ImageTk
+from mplfinance._styledata import charles
 
 
 class main():
@@ -420,8 +420,9 @@ class watch():
         self.width = self.size.width
         self.height = self.size.height
         self.config = config
+        self.root.geometry(f'{self.width}x{self.height}')
 
-        root.geometry(f'{self.width}x{self.height}')
+        self.mainLayout()
 
         s = data.stock('C:\\Users\\hugh8\\Desktop\\research\\data\\csv')
         s.read('202009')
@@ -433,8 +434,10 @@ class watch():
         s.read('202003')
         s.read('202002')
         s.read('202001')
+        # s.read('2019')
+        # s.read('2018')
 
-        code = 1101
+        code = 2330
 
         e = pd.DataFrame([
             s.data.loc[code][i].tolist() for i in s.data.loc[code]],
@@ -448,38 +451,55 @@ class watch():
         datas = e[li:ri]
 
         candle = {
-            'up': '#a02128',
+            'up': '#9A0000',
             'down': '#FFFFFF'
         }
 
-        fig = mpf.figure(style='charles', figsize=(self.width / 100, self.height / 100))
+        style = charles.style
 
         # 蠟燭顏色
-        fig.mpfstyle['marketcolors']['candle'] = candle
-        fig.mpfstyle['marketcolors']['edge'] = candle
-        fig.mpfstyle['marketcolors']['edge'] = candle
-        fig.mpfstyle['marketcolors']['wick'] = candle
-        fig.mpfstyle['marketcolors']['ohlc'] = candle
+        style['marketcolors']['candle'] = candle
+        style['marketcolors']['edge'] = {
+            'up': '#FF0000',
+            'down': '#FFFFFF'
+        }
+        style['marketcolors']['wick'] = candle
+        style['marketcolors']['ohlc'] = candle
+        style['marketcolors']['volume'] = {
+            'up': '#9A0000',
+            'down': '#23B100'
+        }
 
         # 格子線
-        fig.mpfstyle['gridstyle'] = '-'
+        style['gridstyle'] = '-'
 
         # 格子內顏色
-        fig.mpfstyle['facecolor'] = '#0f0f10'
+        style['facecolor'] = '#0f0f10'
+        style['base_mpl_style'] = 'dark_background'
 
-        ax1 = fig.add_subplot(111)
-        ax1.set_title('2330')
+        fig, axs = mpf.plot(
+            datas,
+            type='candle',
+            style=style,
+            datetime_format='%Y-%m-%d',
+            ylabel='',
+            ylabel_lower='',
+            figsize=(self.width / 100, self.height / 100),
+            update_width_config={
+                'volume_width': 0.85
+            },
+            scale_padding={
+                'left': 0.6,
+                'right': 0.55,
+                'bottom': 0.3,
+            },
+            volume=True,
+            returnfig=True,
+            panel_ratios=(4, 1)
+        )
 
         close = e['close']
         xdates = np.arange(datas.shape[0])
-
-        mpf.plot(
-            datas,
-            ax=ax1,
-            type='candle',
-            datetime_format='%Y-%m-%d',
-            ylabel='',
-        )
 
         xMax = datas.index.get_loc(datas['high'].idxmax())
         yMax = datas['high'].max()
@@ -493,9 +513,15 @@ class watch():
 
         priceLoc = PriceLocator(yMax, yMin)
 
-        ax1.xaxis.OFFSETTEXTPAD = 0
-        ax1.xaxis.set_major_locator(DateLocator(datas.index))
-        ax1.yaxis.set_major_locator(priceLoc)
+        axs[0].xaxis.set_major_locator(DateLocator(datas.index))
+        axs[0].yaxis.set_major_locator(priceLoc)
+        axs[0].yaxis.set_major_formatter(PriceFormatter())
+
+        volumeF = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
+                x * 1e-3) if x >= 1e3 else '%1.0f' % x
+
+        axs[2].yaxis.set_major_locator(VolumeLocator(datas['volume']))
+        axs[2].yaxis.set_major_formatter(mticks.FuncFormatter(volumeF))
 
         xOffset = {
             1: 1.35,
@@ -507,7 +533,7 @@ class watch():
             7: 1.45,
         }
 
-        ax1.annotate(
+        axs[0].annotate(
             yMax,
             xy=(xMax, yMax),
             xytext=(xMax - xOffset[len(str(yMax))], yMax + priceLoc.tick / 2),
@@ -515,7 +541,7 @@ class watch():
             size=30,
             arrowprops=dict(arrowstyle="simple")
         )
-        ax1.annotate(
+        axs[0].annotate(
             yMin,
             xy=(xMin, yMin),
             xytext=(xMin - xOffset[len(str(yMin))], yMin - priceLoc.tick / 1.5),
@@ -524,38 +550,74 @@ class watch():
             arrowprops=dict(arrowstyle="simple")
         )
 
-        ax1.plot(xdates, pd.Series(close).rolling(5).mean().values[li:ri], linewidth=1.8, color='#FF8000')
-        ax1.plot(xdates, pd.Series(close).rolling(10).mean().values[li:ri], linewidth=1.8, color='#00CCCC')
-        ax1.plot(xdates, pd.Series(close).rolling(20).mean().values[li:ri], linewidth=1.8, color='#00CC66')
-        ax1.plot(xdates, pd.Series(close).rolling(60).mean().values[li:ri], linewidth=1.8, color='#FFFF00')
+        axs[0].plot(xdates, pd.Series(close).rolling(5).mean().values[li:ri], linewidth=1.8, color='#FF8000')
+        axs[0].plot(xdates, pd.Series(close).rolling(10).mean().values[li:ri], linewidth=1.8, color='#00CCCC')
+        axs[0].plot(xdates, pd.Series(close).rolling(20).mean().values[li:ri], linewidth=1.8, color='#00CC66')
+        # ax1.plot(xdates, pd.Series(close).rolling(60).mean().values[li:ri], linewidth=1.8, color='#FFFF00')
+        # ax1.plot(xdates, pd.Series(close).rolling(120).mean().values[li:ri], linewidth=1.8, color='#6600CC')
+        # ax1.plot(xdates, pd.Series(close).rolling(240).mean().values[li:ri], linewidth=1.8, color='#CC00CC')
 
         yt = priceLoc.getTicks()
-        topLx = yt[-1] - (priceLoc.tick / 2)
 
-        ax1.text(-4, topLx, 'SMA5', fontsize=30, color='#FF8000')
-        ax1.text(0, topLx, 'SMA10', fontsize=30, color='#00CCCC')
-        ax1.text(4.5, topLx, 'SMA20', fontsize=30, color='#00CC66')
-        ax1.text(9, topLx, 'SMA60', fontsize=30, color='#FFFF00')
+        axs[0].text(-4, yt[-1] + priceLoc.tick, 'SMA5', fontsize=30, color='#FF8000')
+        axs[0].text(0, yt[-1] + priceLoc.tick, 'SMA10', fontsize=30, color='#00CCCC')
+        axs[0].text(4.5, yt[-1] + priceLoc.tick, 'SMA20', fontsize=30, color='#00CC66')
+        # ax1.text(9, topLx, 'SMA60', fontsize=30, color='#FFFF00')
+        # ax1.text(13.5, topLx, 'SMA120', fontsize=30, color='#6600CC')
+        # ax1.text(18.5, topLx, 'SMA240', fontsize=30, color='#CC00CC')
 
-        plt.yticks(fontsize=30, rotation=0)
-        plt.xticks(fontsize=25, rotation=0)
+        for l in axs[0].get_yticklabels():
+            l.update({'fontsize': 30, 'rotation': 0})
+
+        for l in axs[0].get_xticklabels():
+            l.update({'fontsize': 30, 'rotation': 0})
+
+        for l in axs[2].get_yticklabels():
+            l.update({'fontsize': 30, 'rotation': 0})
+
+        for l in axs[2].get_xticklabels():
+            l.update({'fontsize': 30, 'rotation': 0})
 
         # plt.show()
 
-        self.canvas = FigureCanvasTkAgg(fig, root)
+        self.canvas = FigureCanvasTkAgg(fig, self.watchFrame)
         self.canvas.draw()
 
-        self.toolbar = NavigationToolbar2Tk(self.canvas, root)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.watchFrame)
         self.toolbar.update()
 
         self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.canvas.get_tk_widget().focus_force()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
+    def mainLayout(self):
+        self.topHeight = int(self.height * 0.8)
+
+        self.topFrame = tk.Frame(self.root, width=self.width, height=self.topHeight, bg='grey')
+        self.topFrame.pack(side=tk.TOP)
+        self.topFrame.pack_propagate(0)
+
+        self.bottomHeight = int(self.height * 0.2)
+
+        self.bottomFrame = tk.Frame(self.root, width=self.width, height=self.bottomHeight, bg='black')
+        self.bottomFrame.pack(side=tk.BOTTOM)
+        self.bottomFrame.pack_propagate(0)
+
+        self.watchLayout()
+
+    def watchLayout(self):
+        self.watchFrame = tk.Frame(self.topFrame, width=self.width * 0.9, height=self.topHeight, bg='red')
+        self.watchFrame.pack(side=tk.LEFT)
+        self.watchFrame.pack_propagate(0)
+
+        self.listFrame = tk.Frame(self.topFrame, width=self.width * 0.1, height=self.topHeight, bg='blue')
+        self.listFrame.pack(side=tk.LEFT)
+        self.listFrame.pack_propagate(0)
+
 
 class DateLocator(mticks.Locator):
-    def __init__(self, date):
-        self.date = date
+    def __init__(self, data):
+        self.data = data
 
     def __call__(self):
         return self.tick_values(None, None)
@@ -563,7 +625,7 @@ class DateLocator(mticks.Locator):
     def tick_values(self, vmin, vmax):
         monthFirstWorkDay = {}
 
-        for i, d in enumerate(self.date):
+        for i, d in enumerate(self.data):
             if d.month not in monthFirstWorkDay:
                 monthFirstWorkDay[d.month] = i
 
@@ -611,3 +673,28 @@ class PriceLocator(mticks.Locator):
         self.axis.set_view_interval(self.ticks[0], self.ticks[-1])
 
         return np.asarray(self.ticks)
+
+
+class VolumeLocator(mticks.Locator):
+    def __init__(self, data):
+        self.data = data
+
+    def __call__(self):
+        return self.tick_values(None, None)
+
+    def tick_values(self, vmin, vmax):
+        max = self.data.max()
+        min = self.data.min()
+        step = 10 ** (len(str(int((max - min) / 3))) - 1)
+        diff = (max - min) / 3
+        step = int((diff - diff % step) + step)
+
+        return [step * i for i in range(5)]
+
+
+class PriceFormatter(mticks.Formatter):
+    def __call__(self, x, pos=None):
+        if pos == 0:
+            return ''
+
+        return '%1.2f' % x
