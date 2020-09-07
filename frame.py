@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticks
 from stock import data
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from ui import cmoney, xq, stock, log, other, ui
+from ui import cmoney, xq, stock, log, other, ui, watch
 from PIL import Image, ImageTk
 from mplfinance._styledata import charles
 
@@ -416,7 +416,7 @@ class image():
         return [(int(self.width * 0.6), self.topHeight), (int(self.width / 2), self.topHeight)]
 
 
-class watch():
+class Watch():
     def __init__(self, root, config=None):
         self.root = root
         self.size = pyautogui.size()
@@ -424,181 +424,20 @@ class watch():
         self.height = self.size.height
         self.config = config
         self.root.geometry(f'{self.width}x{self.height}')
-
-        labelFontSize = 15
-        tickLabelStyle = {'fontsize': labelFontSize, 'rotation': 0}
-
         self.mainLayout()
-
-        s = data.stock('/private/var/www/other/free/csv')
-        # s.read('202009')
-        s.read('202008')
-        s.read('202007')
-        s.read('202006')
-        s.read('202005')
-        s.read('202004')
-        s.read('202003')
-        s.read('202002')
-        s.read('202001')
-        # s.read('2019')
-        # s.read('2018')
 
         code = 2330
 
-        e = pd.DataFrame([
-            s.data.loc[code][i].tolist() for i in s.data.loc[code]],
-            columns=s.data.loc[code].index.tolist()
-        )
-        e['date'] = pd.to_datetime(e['date'])
-        e = e.set_index('date').sort_index()
-        i = 0
-        li = e.shape[0] - (60 + i)
-        ri = e.shape[0] + i
-        self.datas = e[li:ri]
-
-        candle = {
-            'up': '#9A0000',
-            'down': '#FFFFFF'
-        }
-
-        style = charles.style
-
-        # 蠟燭顏色
-        style['marketcolors']['candle'] = candle
-        style['marketcolors']['edge'] = {
-            'up': '#FF0000',
-            'down': '#FFFFFF'
-        }
-        style['marketcolors']['wick'] = candle
-        style['marketcolors']['ohlc'] = candle
-        style['marketcolors']['volume'] = {
-            'up': '#9A0000',
-            'down': '#23B100'
-        }
-
-        # 格子線
-        style['gridstyle'] = '-'
-
-        # 格子內顏色
-        style['facecolor'] = '#0f0f10'
-        style['base_mpl_style'] = 'dark_background'
-
-        fig, axs = mpf.plot(
-            self.datas,
-            type='candle',
-            style=style,
-            datetime_format='%Y-%m-%d',
-            ylabel='',
-            ylabel_lower='',
-            figsize=(self.width / 100, self.height / 100),
-            update_width_config={
-                'volume_width': 0.85
-            },
-            scale_padding={
-                'left': 0.6,
-                'right': 0.55,
-                'bottom': 0.3,
-            },
-            volume=True,
-            returnfig=True,
-            panel_ratios=(4, 1)
-        )
-
-        close = e['close']
-        xdates = np.arange(self.datas.shape[0])
-
-        xMax = self.datas.index.get_loc(self.datas['high'].idxmax())
-        yMax = self.datas['high'].max()
-        if int(yMax) == yMax:
-            yMax = int(yMax)
-
-        xMin = self.datas.index.get_loc(self.datas['low'].idxmin())
-        yMin = self.datas['low'].min()
-        if int(yMin) == yMin:
-            yMin = int(yMin)
-
-        priceLoc = PriceLocator(yMax, yMin)
-        dateFom = DateFormatter()
-        dateLoc = DateLocator(self.datas.index)
-
-        axs[0].xaxis.set_major_locator(dateLoc)
-        axs[0].xaxis.set_major_formatter(dateFom)
-        axs[0].yaxis.set_major_locator(priceLoc)
-        axs[0].yaxis.set_major_formatter(PriceFormatter())
-
-        volumeF = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
-                x * 1e-3) if x >= 1e3 else '%1.0f' % x
-
-        axs[2].yaxis.set_major_locator(VolumeLocator(self.datas['volume']))
-        axs[2].yaxis.set_major_formatter(mticks.FuncFormatter(volumeF))
-
-        xOffset = {
-            1: 1.35,
-            2: 1.35,
-            3: 1.35,
-            4: 1.05,
-            5: 1.35,
-            6: 1.35,
-            7: 1.45,
-        }
-
-        axs[0].annotate(
-            yMax,
-            xy=(xMax, yMax),
-            xytext=(xMax - xOffset[len(str(yMax))], yMax + priceLoc.tick / 2),
-            color='white',
-            size=labelFontSize,
-            arrowprops=dict(arrowstyle="simple")
-        )
-        axs[0].annotate(
-            yMin,
-            xy=(xMin, yMin),
-            xytext=(xMin - xOffset[len(str(yMin))], yMin - priceLoc.tick / 1.5),
-            color='white',
-            size=labelFontSize,
-            arrowprops=dict(arrowstyle="simple")
-        )
-
-        ma5 = close.rolling(5).mean().round(2).values[li:ri]
-        ma10 = close.rolling(10).mean().round(2).values[li:ri]
-        ma20 = close.rolling(20).mean().round(2).values[li:ri]
-        self.datas.loc[:, '5ma'] = ma5
-        self.datas.loc[:, '10ma'] = ma10
-        self.datas.loc[:, '20ma'] = ma20
-
-        axs[0].plot(xdates, ma5, linewidth=1.8, color='#FF8000')
-        axs[0].plot(xdates, ma10, linewidth=1.8, color='#00CCCC')
-        axs[0].plot(xdates, ma20, linewidth=1.8, color='#00CC66')
-        # ax1.plot(xdates, pd.Series(close).rolling(60).mean().values[li:ri], linewidth=1.8, color='#FFFF00')
-        # ax1.plot(xdates, pd.Series(close).rolling(120).mean().values[li:ri], linewidth=1.8, color='#6600CC')
-        # ax1.plot(xdates, pd.Series(close).rolling(240).mean().values[li:ri], linewidth=1.8, color='#CC00CC')
-
-        yt = priceLoc.getTicks()
-
-        axs[0].text(-11, yt[-1], 'd:', fontsize=16, color='white')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 1.5, 'o:', fontsize=16, color='white')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 3, 'c:', fontsize=16, color='white')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 4.5, 'h:', fontsize=16, color='white')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 6, 'l:', fontsize=16, color='white')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 7.5, 'v:', fontsize=16, color='white')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 9, '5m:', fontsize=15, color='#FF8000')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 10.5, '10m:', fontsize=15, color='#00CCCC')
-        axs[0].text(-11, yt[-1] - priceLoc.tick * 12, '20m:', fontsize=15, color='#00CC66')
-        # ax1.text(9, topLx, 'SMA60', fontsize=30, color='#FFFF00')
-        # ax1.text(13.5, topLx, 'SMA120', fontsize=30, color='#6600CC')
-        # ax1.text(18.5, topLx, 'SMA240', fontsize=30, color='#CC00CC')
-
-        for l in axs[0].get_yticklabels():
-            l.update(tickLabelStyle)
-
-        for l in axs[0].get_xticklabels():
-            l.update(tickLabelStyle)
-
-        for l in axs[2].get_yticklabels():
-            l.update(tickLabelStyle)
-
-        for l in axs[2].get_xticklabels():
-            l.update(tickLabelStyle)
+        fig = watch.Watch(self.watchFrame, config=config, ready=[
+            '202008',
+            '202007',
+            '202006',
+            '202005',
+            '202004',
+            '202003',
+            '202002',
+            '202001',
+        ]).plot(code, self.width, self.height, ma=[5, 10, 20])
 
         # plt.show()
 
@@ -633,112 +472,6 @@ class watch():
         self.listFrame = tk.Frame(self.topFrame, width=self.width * 0.1, height=self.topHeight, bg='#C0C0C0')
         self.listFrame.pack(side=tk.LEFT)
         self.listFrame.pack_propagate(0)
-
-
-class DateLocator(mticks.Locator):
-    def __init__(self, data):
-        self.data = data
-        self.loc = None
-
-    def __call__(self):
-        if self.loc != None:
-            return self.loc
-        return self.tick_values(None, None)
-
-    def getTicks(self):
-        return self.__call__()
-
-    def tick_values(self, vmin, vmax):
-        monthFirstWorkDay = {}
-
-        for i, d in enumerate(self.data):
-            if d.month not in monthFirstWorkDay:
-                monthFirstWorkDay[d.month] = i
-
-        self.loc = list(monthFirstWorkDay.values())
-
-        return self.loc
-
-
-class PriceLocator(mticks.Locator):
-    tickLevel = [50, 25, 10, 7.5, 5, 2.5, 1, 0.5, 0.25, 0.1, 0.05]
-
-    def __init__(self, max, min):
-        self.max = max
-        self.min = min
-        self.ticks = []
-
-        diff = max - min
-        self.tick = self.tickLevel[0]
-
-        for i, t in enumerate(self.tickLevel):
-            d = (diff / t)
-            if d > 10:
-                self.tick = t
-                break
-
-    def __call__(self):
-        return self.tick_values(None, None)
-
-    def getTicks(self):
-        return self.tick_values(None, None)
-
-    def tick_values(self, vmin, vmax):
-        if len(self.ticks) > 0:
-            return self.ticks
-
-        start = self.min - (self.min % self.tick)
-
-        for i in range(20):
-            p = start + (self.tick * i)
-            self.ticks.append(start + (self.tick * i))
-
-            if p > self.max:
-                self.ticks.insert(0, start - self.tick)
-                self.ticks.append(p + self.tick)
-                break
-
-        self.axis.set_view_interval(self.ticks[0], self.ticks[-1])
-
-        return np.asarray(self.ticks)
-
-
-class VolumeLocator(mticks.Locator):
-    def __init__(self, data):
-        self.data = data
-
-    def __call__(self):
-        return self.tick_values(None, None)
-
-    def tick_values(self, vmin, vmax):
-        max = self.data.max()
-        min = self.data.min()
-        step = 10 ** (len(str(int((max - min) / 3))) - 1)
-        diff = (max - min) / 3
-        step = int((diff - diff % step) + step)
-
-        return [step * i for i in range(5)]
-
-
-class DateFormatter(mticks.Formatter):
-    def __call__(self, x, pos=0):
-        if x < 0:
-            return ''
-        return self.axis.major.locator.data[x].strftime('%Y-%m-%d')
-
-    def getTicks(self):
-        if len(self.locs) == 0:
-            self.locs = self.axis.major.locator.loc
-
-        return [self.__call__(x, 0) for x in self.locs]
-
-
-class PriceFormatter(mticks.Formatter):
-    def __call__(self, x, pos=None):
-        if pos == 0:
-            return ''
-
-        return '%1.2f' % x
 
 
 class MoveEvent(tk.Frame):

@@ -200,3 +200,99 @@ class stock():
                 logging.info(f'======= save {query.name} - {date} =======')
 
                 frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
+
+
+class Watch():
+    def __init__(self, dir, ready=None):
+        self._dir = dir
+        self._stock = stock(dir)
+
+        if ready == None:
+            self._stock.readAll()
+        elif type(ready) == list:
+            [self._stock.read(n) for n in ready]
+        else:
+            self._stock.read(ready)
+
+        self._data = {}
+
+    def code(self, code, range=60, date=None, ma=None):
+        if code not in self._data:
+            stock = self._stock.data.loc[code]
+
+            c_data = pd.DataFrame([
+                stock[i].tolist() for i in stock],
+                columns=stock.index.tolist()
+            )
+
+            c_data[DATE] = pd.to_datetime(c_data[DATE])
+            c_data = c_data.set_index(DATE).sort_index()
+            self._data[code] = c_data
+
+        if ma != None:
+            for m in ma:
+                column = f'{m}ma'
+                if column not in self._data[code]:
+                    self._data[code].loc[:, column] = self._data[code][CLOSE].rolling(m).mean().round(2).values
+
+        i = 0
+        li = self._data[code].shape[0] - (range + i)
+        ri = self._data[code].shape[0] + i
+        data = self._data[code][li:ri]
+
+        return WatchData(code, data)
+
+
+class WatchData():
+    def __init__(self, code, data, columns=None):
+        self.code = code
+        self.data = data
+        self.x_max, self.y_max = self._get_max()
+        self.x_min, self.y_min = self._get_min()
+        self._columns = columns
+
+    # 成交量
+    def volume(self):
+        return self.data.loc[VOLUME]
+
+    # 均線
+    def mas(self):
+        if 'ma' not in self._columns:
+            return None
+
+        ma = []
+
+        for m in self._columns['ma']:
+            name = f'{m}ma'
+            ma.append({
+                'ma': m,
+                'name': name,
+                'data': self.data.loc[name]
+            })
+
+        return ma
+
+    # 最高價座標
+    def _get_max(self):
+        x = self.data.index.get_loc(self.data[HIGH].idxmax())
+        y = self.data[HIGH].max()
+        if int(y) == y:
+            y = int(y)
+
+        return x, y
+
+        # 最低價座標
+
+    # 最低價座標
+    def _get_min(self):
+        x = self.data.index.get_loc(self.data[LOW].idxmin())
+        y = self.data[LOW].min()
+        if int(y) == y:
+            y = int(y)
+
+        return x, y
+
+        # 資料長度
+
+    def len(self):
+        return self.data.shape[0]
