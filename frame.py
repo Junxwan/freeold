@@ -1,3 +1,5 @@
+# -- coding: utf-8 --
+
 import glob
 import os
 import time
@@ -10,8 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticks
 from stock import data
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.backend_bases import NavigationToolbar2
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from ui import cmoney, xq, stock, log, other, ui
 from PIL import Image, ImageTk
 from mplfinance._styledata import charles
@@ -424,10 +425,13 @@ class watch():
         self.config = config
         self.root.geometry(f'{self.width}x{self.height}')
 
+        labelFontSize = 15
+        tickLabelStyle = {'fontsize': labelFontSize, 'rotation': 0}
+
         self.mainLayout()
 
-        s = data.stock('C:\\Users\\hugh8\\Desktop\\research\\data\\csv')
-        s.read('202009')
+        s = data.stock('/private/var/www/other/free/csv')
+        # s.read('202009')
         s.read('202008')
         s.read('202007')
         s.read('202006')
@@ -514,9 +518,11 @@ class watch():
             yMin = int(yMin)
 
         priceLoc = PriceLocator(yMax, yMin)
+        dateFom = DateFormatter()
         dateLoc = DateLocator(self.datas.index)
 
         axs[0].xaxis.set_major_locator(dateLoc)
+        axs[0].xaxis.set_major_formatter(dateFom)
         axs[0].yaxis.set_major_locator(priceLoc)
         axs[0].yaxis.set_major_formatter(PriceFormatter())
 
@@ -541,7 +547,7 @@ class watch():
             xy=(xMax, yMax),
             xytext=(xMax - xOffset[len(str(yMax))], yMax + priceLoc.tick / 2),
             color='white',
-            size=30,
+            size=labelFontSize,
             arrowprops=dict(arrowstyle="simple")
         )
         axs[0].annotate(
@@ -549,51 +555,55 @@ class watch():
             xy=(xMin, yMin),
             xytext=(xMin - xOffset[len(str(yMin))], yMin - priceLoc.tick / 1.5),
             color='white',
-            size=30,
+            size=labelFontSize,
             arrowprops=dict(arrowstyle="simple")
         )
 
-        axs[0].plot(xdates, pd.Series(close).rolling(5).mean().values[li:ri], linewidth=1.8, color='#FF8000')
-        axs[0].plot(xdates, pd.Series(close).rolling(10).mean().values[li:ri], linewidth=1.8, color='#00CCCC')
-        axs[0].plot(xdates, pd.Series(close).rolling(20).mean().values[li:ri], linewidth=1.8, color='#00CC66')
+        ma5 = close.rolling(5).mean().round(2).values[li:ri]
+        ma10 = close.rolling(10).mean().round(2).values[li:ri]
+        ma20 = close.rolling(20).mean().round(2).values[li:ri]
+        self.datas.loc[:, '5ma'] = ma5
+        self.datas.loc[:, '10ma'] = ma10
+        self.datas.loc[:, '20ma'] = ma20
+
+        axs[0].plot(xdates, ma5, linewidth=1.8, color='#FF8000')
+        axs[0].plot(xdates, ma10, linewidth=1.8, color='#00CCCC')
+        axs[0].plot(xdates, ma20, linewidth=1.8, color='#00CC66')
         # ax1.plot(xdates, pd.Series(close).rolling(60).mean().values[li:ri], linewidth=1.8, color='#FFFF00')
         # ax1.plot(xdates, pd.Series(close).rolling(120).mean().values[li:ri], linewidth=1.8, color='#6600CC')
         # ax1.plot(xdates, pd.Series(close).rolling(240).mean().values[li:ri], linewidth=1.8, color='#CC00CC')
 
         yt = priceLoc.getTicks()
 
-        axs[0].text(-4, yt[-1] + priceLoc.tick, 'SMA5', fontsize=30, color='#FF8000')
-        axs[0].text(0, yt[-1] + priceLoc.tick, 'SMA10', fontsize=30, color='#00CCCC')
-        axs[0].text(4.5, yt[-1] + priceLoc.tick, 'SMA20', fontsize=30, color='#00CC66')
+        axs[0].text(-11, yt[-1], 'd:', fontsize=16, color='white')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 1.5, 'o:', fontsize=16, color='white')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 3, 'c:', fontsize=16, color='white')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 4.5, 'h:', fontsize=16, color='white')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 6, 'l:', fontsize=16, color='white')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 7.5, 'v:', fontsize=16, color='white')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 9, '5m:', fontsize=15, color='#FF8000')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 10.5, '10m:', fontsize=15, color='#00CCCC')
+        axs[0].text(-11, yt[-1] - priceLoc.tick * 12, '20m:', fontsize=15, color='#00CC66')
         # ax1.text(9, topLx, 'SMA60', fontsize=30, color='#FFFF00')
         # ax1.text(13.5, topLx, 'SMA120', fontsize=30, color='#6600CC')
         # ax1.text(18.5, topLx, 'SMA240', fontsize=30, color='#CC00CC')
 
         for l in axs[0].get_yticklabels():
-            l.update({'fontsize': 30, 'rotation': 0})
+            l.update(tickLabelStyle)
 
         for l in axs[0].get_xticklabels():
-            l.update({'fontsize': 30, 'rotation': 0})
+            l.update(tickLabelStyle)
 
         for l in axs[2].get_yticklabels():
-            l.update({'fontsize': 30, 'rotation': 0})
+            l.update(tickLabelStyle)
 
         for l in axs[2].get_xticklabels():
-            l.update({'fontsize': 30, 'rotation': 0})
+            l.update(tickLabelStyle)
 
         # plt.show()
 
         self.canvas = FigureCanvasTkAgg(fig, self.watchFrame)
-        self.event = MoveEvent(self.canvas, self.datas, dateLoc.getTicks())
-        # self._id_drag = self.canvas.mpl_connect('button_press_event', self.on_press)
-        # self.toolbar = NavigationToolbar2(self.canvas)
-        # self.toolbar.update()
-
-        # l = axs[0].axvline(x='2020-08-03', color='red')
-        # l.set_xdata('2020-09-01')
-        # axs[0].relim()
-        # axs[0].autoscale_view(False, False, False)
-        # l.set_visible(True)
+        self.event = MoveEvent(self.canvas, self.datas, yt=priceLoc.tick, yMax=yt[-1])
 
         self.canvas.draw()
 
@@ -710,6 +720,19 @@ class VolumeLocator(mticks.Locator):
         return [step * i for i in range(5)]
 
 
+class DateFormatter(mticks.Formatter):
+    def __call__(self, x, pos=0):
+        if x < 0:
+            return ''
+        return self.axis.major.locator.data[x].strftime('%Y-%m-%d')
+
+    def getTicks(self):
+        if len(self.locs) == 0:
+            self.locs = self.axis.major.locator.loc
+
+        return [self.__call__(x, 0) for x in self.locs]
+
+
 class PriceFormatter(mticks.Formatter):
     def __call__(self, x, pos=None):
         if pos == 0:
@@ -719,47 +742,81 @@ class PriceFormatter(mticks.Formatter):
 
 
 class MoveEvent(tk.Frame):
-    def __init__(self, canvas, data, dates):
+    def __init__(self, canvas, data, yt=0, yMax=0):
         tk.Frame.__init__(self)
 
-        self.data = data
-        self.dates = dates
+        self._data = data
         self.canvas = canvas
-        self.event = self.canvas.mpl_connect('button_press_event', self.on_press)
+        self._yMax = yMax
+        self._yt = yt
+
+        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
+        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
+
         self.ax = canvas.figure.axes[0]
         self.axv = canvas.figure.axes[2]
 
-        self.xv = None
-        self.xh = None
-        self.yv = None
+        self._xv = None
+        self._xh = None
+        self._yv = None
 
-    def on_press(self, event):
-        date = self.data.index[round(event.xdata)]
-        close = self.data['close'][date]
+        self._style = dict(fontsize=18, color='white')
+        self._isPress = False
 
+        self.init_text()
+
+    def draw(self, event):
+        x = round(event.xdata)
+        date = self._data.index[x]
+        p = self._data.loc[date]
         date = date.strftime('%Y-%m-%d')
 
-        if self.xv == None:
-            self.xv = self.ax.axvline(x=date, color='red')
-            self.xh = self.ax.axhline(y=close, color='red')
+        if self._xv == None:
+            self._xv = self.ax.axvline(x=x, color='#FFFF00', linewidth=0.5)
+            self._xh = self.ax.axhline(y=(p['close']), color='#FFFF00', linewidth=0.5)
+            self._yv = self.axv.axvline(x=x, color='#FFFF00', linewidth=0.5)
         else:
-            self.xv.set_xdata(event.xdata)
-            self.xh.set_ydata(self.dates)
+            self._xv.set_xdata(x)
+            self._xh.set_ydata(p['close'])
+            self._yv.set_xdata(x)
+
+            self.set_text(date, p)
 
         self.canvas.draw_idle()
 
-        # if len(ax.lines) > 3:
-        #     ax.lines.remove(self.xvl)
-        #     ax.lines.remove(self.xhl)
-        #     axv.lines.remove(self.xvlv)
+    def set_text(self, date, price):
+        self._date.set_text(date)
+        self._open.set_text(price['open'])
+        self._close.set_text(price['close'])
+        self._high.set_text(price['high'])
+        self._low.set_text(price['low'])
+        self._volume.set_text(price['volume'])
+        self._5ma.set_text(price['5ma'])
+        self._10ma.set_text(price['10ma'])
+        self._20ma.set_text(price['20ma'])
 
-        print(date)
-        print(close)
+    def init_text(self):
+        date = self._data.index[-1]
+        price = self._data.loc[date]
 
-        # self.xvl = ax.axvline(x=date, color='red')
-        # self.xhl = ax.axhline(y=close, color='red')
-        # self.xvlv = axv.axvline(x=date, color='red')
-        #
-        # self.canvas.draw()
-        # ax.autoscale_view(False, False, False)
-        # axv.autoscale_view(False, False, False)
+        self._date = self.ax.text(-9.5, self._yMax, date.strftime('%Y-%m-%d'), fontsize=13, color='white')
+        self._open = self.ax.text(-9.5, self._yMax - self._yt * 1.5, price['open'], self._style)
+        self._close = self.ax.text(-9.5, self._yMax - self._yt * 3, price['close'], self._style)
+        self._high = self.ax.text(-9.5, self._yMax - self._yt * 4.5, price['high'], self._style)
+        self._low = self.ax.text(-9.5, self._yMax - self._yt * 6, price['low'], self._style)
+        self._volume = self.ax.text(-9.5, self._yMax - self._yt * 7.5, int(price['volume']), self._style)
+        self._5ma = self.ax.text(-8.5, self._yMax - self._yt * 9, int(price['5ma']), self._style)
+        self._10ma = self.ax.text(-8.5, self._yMax - self._yt * 10.5, int(price['10ma']), self._style)
+        self._20ma = self.ax.text(-8.5, self._yMax - self._yt * 12, int(price['20ma']), self._style)
+
+    def on_press(self, event):
+        self._isPress = True
+        self.draw(event)
+
+    def on_release(self, event):
+        self._isPress = False
+
+    def move(self, event):
+        if self._isPress:
+            self.draw(event)
