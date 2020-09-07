@@ -2,20 +2,12 @@
 
 import glob
 import os
-import time
 import tkinter as tk
+from datetime import datetime
 import openpyxl
 import pyautogui
-import mplfinance as mpf
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticks
-from stock import data
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from ui import cmoney, xq, stock, log, other, ui, watch
 from PIL import Image, ImageTk
-from mplfinance._styledata import charles
 
 
 class main():
@@ -428,50 +420,29 @@ class Watch():
 
         code = 2330
 
-        fig = watch.Watch(self.watchFrame, config=config, ready=[
-            '202008',
-            '202007',
-            '202006',
-            '202005',
-            '202004',
-            '202003',
-            '202002',
-            '202001',
-        ]).plot(code, self.width, self.height, ma=[5, 10, 20])
+        ready = [
+            os.path.basename(p).split('.')[0] for p in
+            glob.glob(os.path.join(config['data'], 'csv', f'{datetime.now().year}*.csv'))
+        ]
 
-        # plt.show()
+        self.watch = watch.Watch(self.watchFrame, config=config, ready=sorted(ready, reverse=True))
 
-        self.canvas = FigureCanvasTkAgg(fig, self.watchFrame)
-        self.event = MoveEvent(self.canvas, self.datas, yt=priceLoc.tick, yMax=yt[-1])
-
-        self.canvas.draw()
-
-        self.canvas.get_tk_widget().focus_force()
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self.watch.plot(code, self.width, self.height, ma=[5, 10, 20])
+        self.watch.set_tk(self.watchFrame)
+        self.watch.pack()
 
     def mainLayout(self):
-        self.topHeight = int(self.height * 0.8)
+        self.watchWidth = int(self.width * 0.9)
 
-        self.topFrame = tk.Frame(self.root, width=self.width, height=self.topHeight, bg='grey')
-        self.topFrame.pack(side=tk.TOP)
-        self.topFrame.pack_propagate(0)
-
-        self.bottomHeight = int(self.height * 0.2)
-
-        self.bottomFrame = tk.Frame(self.root, width=self.width, height=self.bottomHeight, bg='black')
-        self.bottomFrame.pack(side=tk.BOTTOM)
-        self.bottomFrame.pack_propagate(0)
-
-        self.watchLayout()
-
-    def watchLayout(self):
-        self.watchFrame = tk.Frame(self.topFrame, width=self.width * 0.9, height=self.topHeight)
+        self.watchFrame = tk.Frame(self.root, width=self.watchWidth, height=self.height)
         self.watchFrame.pack(side=tk.LEFT)
         self.watchFrame.pack_propagate(0)
 
-        self.listFrame = tk.Frame(self.topFrame, width=self.width * 0.1, height=self.topHeight, bg='#C0C0C0')
-        self.listFrame.pack(side=tk.LEFT)
-        self.listFrame.pack_propagate(0)
+        self.rightWidth = int(self.width * 0.1)
+
+        self.rightFrame = tk.Frame(self.root, width=self.rightWidth, height=self.height, bg='#C0C0C0')
+        self.rightFrame.pack(side=tk.RIGHT)
+        self.rightFrame.pack_propagate(0)
 
 
 class MoveEvent(tk.Frame):

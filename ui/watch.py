@@ -1,48 +1,90 @@
 # -- coding: utf-8 --
+
 import os
 import tkinter as tk
 import numpy as np
 import mplfinance as mpf
+import matplotlib.pyplot as plt
 import matplotlib.ticker as mticks
 from stock import data
 from mplfinance._styledata import charles
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # 均線顏色
 MA_COLOR = ['#FF8000', '#00CCCC', '#00CC66', '#FFFF00', '#6600CC', '#CC00CC']
 
-# 均線寬度
-MA_LINE_WIDTH = 1.8
+# 技術線寬度
+LINE_WIDTH = 1.8
 
-# 繪圖上文字size
-PLOT_TEXT_FONT_SIZE = 15
+# 座標size
+XY_TEXT_FONT_SIZE = 24
 
 # label style
-LABEL_STYLE = {'fontsize': PLOT_TEXT_FONT_SIZE, 'rotation': 0}
+LABEL_STYLE = {'fontsize': XY_TEXT_FONT_SIZE, 'rotation': 0}
 
-# 數據-價格文字size
-PRICE_LABEL_FONT_SIZE = 16
+# 數據框-價格文字size
+PRICE_LABEL_FONT_SIZE = 25
 
 # 數據-均線文字size
-MA_LABEL_FONT_SIZE = 15
+MA_LABEL_FONT_SIZE = 30
+
+# 數據框-價格名稱style
+PRICE_NAME_STYLE = dict(fontsize=PRICE_LABEL_FONT_SIZE, color='white')
+
+# 數據框-價格數據style
+PRICE_VALUE_STYLE = dict(fontsize=PRICE_LABEL_FONT_SIZE, color='white')
 
 # 資料欄位x軸
-DATA_X = -11
+DATA_X = -11.0
 
 
 class Watch():
-    data_w = 1.5
+    data_h = 1.5
 
-    data_label = ['d', 'o', 'c', 'h', 'l']
+    text = {
+        data.DATE: {
+            'name': 'd',
+            'text': None,
+            'style': [PRICE_NAME_STYLE, PRICE_VALUE_STYLE],
+        },
+        data.OPEN: {
+            'name': 'o',
+            'text': None,
+            'style': [PRICE_NAME_STYLE, PRICE_VALUE_STYLE],
+        },
+        data.CLOSE: {
+            'name': 'c',
+            'text': None,
+            'style': [PRICE_NAME_STYLE, PRICE_VALUE_STYLE],
+        },
+        data.HIGH: {
+            'name': 'h',
+            'text': None,
+            'style': [PRICE_NAME_STYLE, PRICE_VALUE_STYLE],
+        },
+        data.LOW: {
+            'name': 'l',
+            'text': None,
+            'style': [PRICE_NAME_STYLE, PRICE_VALUE_STYLE],
+        },
+    }
 
-    volume_label_name = 'v'
+    volume_text = {
+        'name': 'v',
+        'text': None,
+        'style': [PRICE_NAME_STYLE, PRICE_VALUE_STYLE],
+    }
 
     def __init__(self, master, config=None, **kwargs):
         self._master = master
         self._fig = None
         self._axs = None
+        self.canvas = None
+        self.event = None
 
         self._main_ax = None
-        self._volume_ax = None
+        self._image_ax = {}
+        self._sup_ax = {}
 
         self._date_fmt = '%Y-%m-%d'
         self.data = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
@@ -51,10 +93,10 @@ class Watch():
         self.data_y = 0
 
     def plot(self, code, width=100, height=100, volume=True, **kwargs):
-        data = self.data.code(code, **kwargs)
+        self.watch = self.data.code(code, **kwargs)
 
         self._fig, self._axs = mpf.plot(
-            data,
+            self.watch.data,
             type='candle',
             style=self._get_style(),
             datetime_format=self._date_fmt,
@@ -71,66 +113,94 @@ class Watch():
         self._main_ax = self._axs[0]
 
         if volume:
-            self._volume_ax = self._axs[2]
-            self.data_label.append(self.volume_label_name)
+            self._sup_ax[data.VOLUME] = self._axs[2]
+            self.text[data.VOLUME] = self.volume_text
 
-        self._major(data)
-        self._plot_ma(data)
-        self._plot_max_min(data)
-        self._plot_price_text(data)
+        self._major()
+        self._plot_price()
+        self._plot_ma()
+        self._plot_max_min()
         self._update_label()
 
         return self._fig
 
-    # 繪製均線
-    def _plot_ma(self, watch):
-        xLen = watch.len()
-        l = self.data_label.__len__()
+    # 繪製數據文字
+    def _plot_price(self):
+        i = 0
+        for k, v in self.text.items():
+            style = v['style']
+            self._plot_data_text(i, v['name'], **style[0])
+            v['text'] = self._plot_data_value_text(i, self.watch.data[k][-1], x=1, **style[1])
+            i += 1
 
-        for i, ma in enumerate(watch.mas()):
-            self._main_ax.plot(xLen, ma['data'], linewidth=MA_LINE_WIDTH, color=MA_COLOR[i])
-            self._plot_data_text(i + l, f"{ma['ma']}m", fontsize=MA_LABEL_FONT_SIZE, color=MA_COLOR[i])
+    # 繪製均線
+    def _plot_ma(self):
+        xLen = np.arange(self.watch.len())
+        l = self.text.__len__()
+
+        for i, ma in enumerate(self.watch.mas()):
+            self._image_ax[ma['name']] = self._main_ax.plot(xLen, ma['data'], linewidth=LINE_WIDTH, color=MA_COLOR[i])
+
+            style = [
+                dict(fontsize=PRICE_LABEL_FONT_SIZE, color=MA_COLOR[i]),
+                PRICE_VALUE_STYLE
+            ]
+
+            self._plot_data_text(i + l, ma['name'], **style[0])
+
+            self.text[ma['name']] = {
+                'name': ma['name'],
+                'text': self._plot_data_value_text(i + l, ma['data'][-1], x=3, **style[1]),
+                'style': style
+            }
 
     # 繪製最高價與最低價
-    def _plot_max_min(self, watch):
+    def _plot_max_min(self):
         xOffset = {
             1: 1.35,
-            2: 1.35,
-            3: 1.35,
+            2: 1,
+            3: 0.9,
             4: 1.05,
             5: 1.35,
             6: 1.35,
             7: 1.45,
         }
 
-        self._main_ax.annotate(
-            watch.y_max,
-            xy=(watch.x_max, watch.y_max),
-            xytext=(watch.x_max - xOffset[len(str(watch.y_max))], watch.y_max + self.y_tick / 2),
-            color='white',
-            size=PLOT_TEXT_FONT_SIZE,
-            arrowprops=dict(arrowstyle="simple")
+        bbox = dict(boxstyle='square', fc="0.5")
+
+        self._image_ax['max_bar'] = self._main_ax.annotate(
+            self.watch.y_max,
+            xy=(self.watch.x_max, self.watch.y_max),
+            xytext=(self.watch.x_max - xOffset[len(str(self.watch.y_max))], self.watch.y_max + self.y_tick / 2),
+            color='black',
+            size=XY_TEXT_FONT_SIZE,
+            arrowprops=dict(arrowstyle="simple"),
+            bbox=bbox
         )
 
-        self._main_ax.annotate(
-            watch.y_min,
-            xy=(watch.x_min, watch.y_min),
-            xytext=(watch.x_min - xOffset[len(str(watch.x_min))], watch.y_min - self.y_tick / 1.5),
-            color='white',
-            size=PLOT_TEXT_FONT_SIZE,
-            arrowprops=dict(arrowstyle="simple")
+        self._image_ax['min_bar'] = self._main_ax.annotate(
+            self.watch.y_min,
+            xy=(self.watch.x_min, self.watch.y_min),
+            xytext=(self.watch.x_min - xOffset[len(str(self.watch.y_min))], self.watch.y_min - self.y_tick),
+            color='black',
+            size=XY_TEXT_FONT_SIZE,
+            arrowprops=dict(arrowstyle="simple"),
+            bbox=bbox
         )
+
+    # 繪製數據值
+    def _plot_data_value_text(self, i, text, x=0, **kwargs):
+        kwargs['bbox'] = dict(boxstyle='square')
+        kwargs['color'] = 'black'
+
+        return self._plot_data_text(i, text, x=x + DATA_X, **kwargs)
 
     # 繪製數據文字
-    def _plot_price_text(self, watch):
-        for i, n in enumerate(self.data_label):
-            self._plot_data_text(i, n, fontsize=PRICE_LABEL_FONT_SIZE, color='white')
-
-    def _plot_data_text(self, i, name, **kwargs):
-        self._main_ax.text(
-            DATA_X,
-            self.data_y - (self.y_tick * ((i + 1) * self.data_w)),
-            f'{name}:',
+    def _plot_data_text(self, i, text, x=DATA_X, **kwargs):
+        return self._main_ax.text(
+            x,
+            self.data_y - (self.y_tick * ((i + 1) * self.data_h)),
+            text,
             **kwargs
         )
 
@@ -142,22 +212,23 @@ class Watch():
         for l in self._main_ax.get_xticklabels():
             l.update(LABEL_STYLE)
 
-        for l in self._volume_ax.get_yticklabels():
-            l.update(LABEL_STYLE)
+        for ax in self._sup_ax.values():
+            for l in ax.get_yticklabels():
+                l.update(LABEL_STYLE)
 
-        for l in self._volume_ax.get_xticklabels():
-            l.update(LABEL_STYLE)
+            for l in ax.get_xticklabels():
+                l.update(LABEL_STYLE)
 
     # 設定資料呈現邏輯與格式
-    def _major(self, watch):
-        self._date_locator = DateLocator(watch.data.index)
+    def _major(self):
+        self._date_locator = DateLocator(self.watch.data.index)
         self._date_formatter = DateFormatter()
 
         self._main_ax.xaxis.set_major_locator(self._date_locator)
         self._main_ax.xaxis.set_major_formatter(self._date_formatter)
 
         self._price_formatter = PriceFormatter()
-        self._price_locator = PriceLocator(watch.y_max, watch.y_min)
+        self._price_locator = PriceLocator(self.watch.y_max, self.watch.y_min)
 
         self._main_ax.yaxis.set_major_locator(self._price_locator)
         self._main_ax.yaxis.set_major_formatter(self._price_formatter)
@@ -165,14 +236,27 @@ class Watch():
         self.y_tick = self._price_locator.tick
         self.data_y = self._price_locator.get_ticks()[-1]
 
-        if self._volume_ax != None:
-            volume = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
-                    x * 1e-3) if x >= 1e3 else '%1.0f' % x
+        if data.VOLUME in self._sup_ax:
+            self._volume_major(self.watch.volume())
 
-            self._volume_locator = VolumeLocator(watch.volume())
+    def _volume_major(self, volume):
+        fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
+                x * 1e-3) if x >= 1e3 else '%1.0f' % x
 
-            self._volume_ax.yaxis.set_major_locator(self._volume_locator)
-            self._volume_ax.yaxis.set_major_formatter(mticks.FuncFormatter(volume))
+        self._volume_locator = VolumeLocator(volume)
+
+        self._sup_ax[data.VOLUME].yaxis.set_major_locator(self._volume_locator)
+        self._sup_ax[data.VOLUME].yaxis.set_major_formatter(mticks.FuncFormatter(fun))
+
+    # 即時顯示資料
+    def event_show_data(self, event, d):
+        for k, v in self.text.items():
+            if k == data.DATE:
+                p = d[k]
+            else:
+                p = '%1.2f' % d[k]
+
+            v['text'].set_text(p)
 
     # 看盤樣式
     def _get_style(self):
@@ -220,8 +304,32 @@ class Watch():
         return {
             'left': 0.6,
             'right': 0.55,
-            'bottom': 0.3,
+            'bottom': 0.2,
         }
+
+    # 設定呈現在TK
+    def set_tk(self, master):
+        self._main_ax.name = data.CLOSE
+        axs = [self._main_ax]
+
+        for n, v in self._sup_ax.items():
+            v.name = n
+            axs.append(v)
+
+        self.canvas = FigureCanvasTkAgg(self._fig, master)
+        self.event = MoveEvent(self.canvas, self.watch.data, axs)
+        self.event.add_callback(self.event_show_data)
+        self.canvas.draw()
+
+    # 直接show圖
+    def show(self):
+        plt.show()
+
+    # 執行
+    def pack(self):
+        if self.canvas != None:
+            self.canvas.get_tk_widget().focus_force()
+            self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 
 # 日期塞選
@@ -284,6 +392,7 @@ class PriceLocator(mticks.Locator):
             if p > self._max:
                 self.ticks.insert(0, start - self.tick)
                 self.ticks.append(p + self.tick)
+                self.ticks.append(p + self.tick * 2)
                 break
 
         self.axis.set_view_interval(self.ticks[0], self.ticks[-1])
@@ -295,6 +404,7 @@ class PriceLocator(mticks.Locator):
 class VolumeLocator(mticks.Locator):
     def __init__(self, data):
         self._data = data
+        self.locs = []
 
     def __call__(self):
         return self.tick_values(None, None)
@@ -339,81 +449,79 @@ class PriceFormatter(mticks.Formatter):
 
 # 事件
 class MoveEvent(tk.Frame):
-    def __init__(self, canvas, data, yt=0, yMax=0):
+    def __init__(self, canvas, data, axs):
         tk.Frame.__init__(self)
 
         self._data = data
         self.canvas = canvas
-        self._yMax = yMax
-        self._yt = yt
+        self._axs = axs
+        self._vax = {}
+        self._hax = {}
+        self._callbacks = []
 
         self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
         self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
         self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
-
-        self.ax = canvas.figure.axes[0]
-        self.axv = canvas.figure.axes[2]
-
-        self._xv = None
-        self._xh = None
-        self._yv = None
-
-        self._style = dict(fontsize=18, color='white')
+        self.releaseEvent = self.canvas.mpl_connect('key_release_event', self.key_release)
+        self._style = dict(color='#FFFF66', linewidth=1)
         self._isPress = False
 
-        self.init_text()
+    # 事件
+    def add_callback(self, fun):
+        self._callbacks.append(fun)
 
+    # 重畫
     def draw(self, event):
+        if event.xdata == None:
+            return
+
         x = round(event.xdata)
-        date = self._data.index[x]
-        p = self._data.loc[date]
-        date = date.strftime('%Y-%m-%d')
+        d = self._data.index[x]
+        p = self._data.loc[d]
 
-        if self._xv == None:
-            self._xv = self.ax.axvline(x=x, color='#FFFF00', linewidth=0.5)
-            self._xh = self.ax.axhline(y=(p['close']), color='#FFFF00', linewidth=0.5)
-            self._yv = self.axv.axvline(x=x, color='#FFFF00', linewidth=0.5)
+        if len(self._vax) == 0:
+            for ax in self._axs:
+                self._vax[ax.name] = ax.axvline(x=x, **self._style)
         else:
-            self._xv.set_xdata(x)
-            self._xh.set_ydata(p['close'])
-            self._yv.set_xdata(x)
+            for ax in self._vax.values():
+                ax.set_visible(True)
+                ax.set_xdata(x)
 
-            self.set_text(date, p)
+        if event.inaxes.name not in self._hax:
+            self._hax[event.inaxes.name] = event.inaxes.axhline(y=(p[event.inaxes.name]), **self._style)
+
+        for name, ax in self._hax.items():
+            if name == event.inaxes.name:
+                ax.set_visible(True)
+                ax.set_ydata(p[event.inaxes.name])
+            else:
+                ax.set_visible(False)
+
+        for fun in self._callbacks:
+            fun(event, p)
 
         self.canvas.draw_idle()
 
-    def set_text(self, date, price):
-        self._date.set_text(date)
-        self._open.set_text(price['open'])
-        self._close.set_text(price['close'])
-        self._high.set_text(price['high'])
-        self._low.set_text(price['low'])
-        self._volume.set_text(price['volume'])
-        self._5ma.set_text(price['5ma'])
-        self._10ma.set_text(price['10ma'])
-        self._20ma.set_text(price['20ma'])
-
-    def init_text(self):
-        date = self._data.index[-1]
-        price = self._data.loc[date]
-
-        self._date = self.ax.text(-9.5, self._yMax, date.strftime('%Y-%m-%d'), fontsize=13, color='white')
-        self._open = self.ax.text(-9.5, self._yMax - self._yt * 1.5, price['open'], self._style)
-        self._close = self.ax.text(-9.5, self._yMax - self._yt * 3, price['close'], self._style)
-        self._high = self.ax.text(-9.5, self._yMax - self._yt * 4.5, price['high'], self._style)
-        self._low = self.ax.text(-9.5, self._yMax - self._yt * 6, price['low'], self._style)
-        self._volume = self.ax.text(-9.5, self._yMax - self._yt * 7.5, int(price['volume']), self._style)
-        self._5ma = self.ax.text(-8.5, self._yMax - self._yt * 9, int(price['5ma']), self._style)
-        self._10ma = self.ax.text(-8.5, self._yMax - self._yt * 10.5, int(price['10ma']), self._style)
-        self._20ma = self.ax.text(-8.5, self._yMax - self._yt * 12, int(price['20ma']), self._style)
-
+    # 點擊
     def on_press(self, event):
         self._isPress = True
         self.draw(event)
 
+    # 釋放
     def on_release(self, event):
         self._isPress = False
 
+    # 移動
     def move(self, event):
         if self._isPress:
             self.draw(event)
+
+    def key_release(self, event):
+        if event.key == 'escape':
+            for ax in self._vax.values():
+                ax.set_visible(False)
+
+            for ax in self._hax.values():
+                ax.set_visible(False)
+
+            self.canvas.draw_idle()

@@ -227,6 +227,7 @@ class Watch():
 
             c_data[DATE] = pd.to_datetime(c_data[DATE])
             c_data = c_data.set_index(DATE).sort_index()
+            c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
             self._data[code] = c_data
 
         if ma != None:
@@ -240,7 +241,7 @@ class Watch():
         ri = self._data[code].shape[0] + i
         data = self._data[code][li:ri]
 
-        return WatchData(code, data)
+        return WatchData(code, data, columns=dict(ma=ma))
 
 
 class WatchData():
@@ -251,23 +252,43 @@ class WatchData():
         self.x_min, self.y_min = self._get_min()
         self._columns = columns
 
+    # 日期
+    def date(self):
+        return self.data[DATE]
+
+    # 開盤
+    def open(self):
+        return self.data[OPEN]
+
+    # 收盤
+    def close(self):
+        return self.data[CLOSE]
+
+    # 最高價
+    def high(self):
+        return self.data[HIGH]
+
+    # 最低價
+    def low(self):
+        return self.data[LOW]
+
     # 成交量
     def volume(self):
-        return self.data.loc[VOLUME]
+        return self.data[VOLUME]
 
     # 均線
     def mas(self):
         if 'ma' not in self._columns:
-            return None
+            return {}
 
         ma = []
 
         for m in self._columns['ma']:
             name = f'{m}ma'
             ma.append({
-                'ma': m,
+                'm': m,
                 'name': name,
-                'data': self.data.loc[name]
+                'data': self.data[name]
             })
 
         return ma
