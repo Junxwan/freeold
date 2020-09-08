@@ -413,33 +413,56 @@ class Watch():
         self.root = root
         self.size = pyautogui.size()
         self.width = self.size.width
-        self.height = self.size.height
+        self.height = int(self.size.height * 0.95)
+
         self.config = config
         self.root.geometry(f'{self.width}x{self.height}')
         self.mainLayout()
-
-        code = 2330
 
         ready = [
             os.path.basename(p).split('.')[0] for p in
             glob.glob(os.path.join(config['data'], 'csv', f'{datetime.now().year}*.csv'))
         ]
 
-        self.watch = watch.Watch(self.watchFrame, config=config, ready=sorted(ready, reverse=True))
-
-        self.watch.plot(code, self.width, self.height, volume=True, max_min=True, ma=[5, 10, 20])
-        self.watch.set_tk(self.watchFrame)
+        self.watch = watch.Watch(self.watch_frame, config=config, ready=sorted(ready, reverse=True))
+        self.watch.plot(2330, self.width, self.height, volume=True, max_min=True, ma=[5, 10, 20])
+        self.watch.set_tk(self.watch_frame)
         self.watch.pack()
 
+        self.buttonLayout()
+
     def mainLayout(self):
-        self.watchWidth = int(self.width * 0.9)
+        self.watch_frame = tk.Frame(self.root, width=int(self.width * 0.9), height=self.height)
+        self.watch_frame.pack(side=tk.LEFT)
+        self.watch_frame.pack_propagate(0)
 
-        self.watchFrame = tk.Frame(self.root, width=self.watchWidth, height=self.height)
-        self.watchFrame.pack(side=tk.LEFT)
-        self.watchFrame.pack_propagate(0)
+        self.right_width = int(self.width * 0.1)
+        self.right_frame = tk.Frame(self.root, width=self.right_width, height=self.height, bg='#C0C0C0')
+        self.right_frame.pack(side=tk.RIGHT)
+        self.right_frame.pack_propagate(0)
 
-        self.rightWidth = int(self.width * 0.1)
+        self.top_frame = tk.Frame(self.right_frame, width=self.right_width, height=int(self.height * 0.5))
+        self.top_frame.pack(side=tk.TOP)
+        self.top_frame.pack_propagate(0)
 
-        self.rightFrame = tk.Frame(self.root, width=self.rightWidth, height=self.height, bg='#C0C0C0')
-        self.rightFrame.pack(side=tk.RIGHT)
-        self.rightFrame.pack_propagate(0)
+        self.bottom_frame = tk.Frame(self.right_frame, width=self.right_width, height=int(self.height * 0.5),
+                                     bg='#E0E0E0')
+        self.bottom_frame.pack(side=tk.BOTTOM)
+        self.bottom_frame.pack_propagate(0)
+
+    def buttonLayout(self):
+        self.code = tk.StringVar()
+        self.date = tk.StringVar()
+
+        self.code.set(2330)
+
+        tk.Label(self.bottom_frame, text='個股:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(self.bottom_frame, width=8, textvariable=self.code, font=ui.FONT).place(x=130, y=10)
+        tk.Label(self.bottom_frame, text='日期:', font=ui.FONT).place(x=10, y=100)
+        tk.Entry(self.bottom_frame, width=8, textvariable=self.date, font=ui.FONT).place(x=130, y=100)
+        tk.Button(
+            self.bottom_frame,
+            text='切換',
+            font=ui.SMALL_FONT,
+            command=lambda: self.watch.plot_code(self.code.get(), date=self.date.get()),
+        ).place(x=10, y=200)

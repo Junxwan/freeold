@@ -32,6 +32,7 @@ class Watch():
         self.y_tick = 0
         self.y_max_tick = 0
 
+    # 繪製
     def plot(self, code, width=100, height=100, date=None, **kwargs):
         self.data = self.watch.code(code, date=date)
 
@@ -77,6 +78,20 @@ class Watch():
         self._update_label()
 
         return self._fig
+
+    # 繪製某個股
+    def plot_code(self, code, date=None):
+        self.data = self.watch.code(code, date=date)
+
+        collections = self._main_axes().collections
+        for c in range(len(collections)):
+            collections[0].remove()
+
+        for name, ax in self.sub.items():
+            ax.clear()
+
+        self.event.clear()
+        self.canvas.draw_idle()
 
     # 設定資料呈現邏輯與格式
     def _major(self):
@@ -222,7 +237,7 @@ class DataLabel():
         i = len(self._title)
         self._title[key] = self._axes.text(
             self._m_min,
-            self._y_max - (self._y_tick * ((i + 1) * 2)),
+            self._y_max - (self._y_tick * ((i + 1) * 1.2)),
             name,
             fontsize=self.title_font_size, color=color,
         )
@@ -269,6 +284,9 @@ class SubAxes():
         pass
 
     def plot_text(self, text, data, **kwargs):
+        pass
+
+    def clear(self):
         pass
 
     def remove(self, **kwargs):
@@ -334,6 +352,12 @@ class MA(SubAxes):
 
         return line
 
+    def clear(self):
+        for name, line in self._line.items():
+            line[0].remove()
+
+        self._line.clear()
+
     def remove(self, **kwargs):
         name = kwargs.get('name')
         if name in self._line[name]:
@@ -363,11 +387,11 @@ class MaxMin(SubAxes):
         (x_max, y_max) = data.get_xy_max()
         (x_min, y_min) = data.get_xy_min()
 
-        self._set(x_max, y_max, y_offset=(y_tick / 2))
-        self._set(x_min, y_min, y_offset=-y_tick)
+        self._max = self._set(x_max, y_max, y_offset=(y_tick / 2))
+        self._min = self._set(x_min, y_min, y_offset=-y_tick)
 
     def _set(self, x, y, y_offset=0.0):
-        self._axes.annotate(
+        return self._axes.annotate(
             y,
             xy=(x, y),
             xytext=(x - self.offset_x[len(str(y))], y + y_offset),
@@ -376,6 +400,9 @@ class MaxMin(SubAxes):
             arrowprops=dict(arrowstyle="simple"),
             bbox=dict(boxstyle='square', fc="0.5")
         )
+
+    def clear(self):
+        self.remove()
 
     def remove(self, **kwargs):
         if self._max != None:
@@ -396,6 +423,9 @@ class Volume(SubAxes):
 
         self._axes.yaxis.set_major_locator(VolumeLocator(data))
         self._axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
+
+    def clear(self):
+        self._axes.clear()
 
     def remove(self, **kwargs):
         self._axes.remove()
@@ -471,14 +501,17 @@ class MoveEvent(tk.Frame):
         if self._isPress:
             self.draw(event)
 
+    # 清空游標
+    def clear(self):
+        for ax in self._vax.values():
+            ax.set_visible(False)
+
+        for ax in self._hax.values():
+            ax.set_visible(False)
+
     def key_release(self, event):
         if event.key == 'escape':
-            for ax in self._vax.values():
-                ax.set_visible(False)
-
-            for ax in self._hax.values():
-                ax.set_visible(False)
-
+            self.clear()
             self.canvas.draw_idle()
 
         if event.key == 'enter':
