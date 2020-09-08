@@ -216,7 +216,7 @@ class Watch():
 
         self._data = {}
 
-    def code(self, code, range=60, date=None, ma=None):
+    def code(self, code, range=60, date=None):
         if code not in self._data:
             stock = self._stock.data.loc[code]
 
@@ -230,27 +230,29 @@ class Watch():
             c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
             self._data[code] = c_data
 
-        if ma != None:
-            for m in ma:
-                column = f'{m}ma'
-                if column not in self._data[code]:
-                    self._data[code].loc[:, column] = self._data[code][CLOSE].rolling(m).mean().round(2).values
-
         i = 0
-        li = self._data[code].shape[0] - (range + i)
-        ri = self._data[code].shape[0] + i
-        data = self._data[code][li:ri]
+        self.li = self._data[code].shape[0] - (range + i)
+        self.ri = self._data[code].shape[0] + i
 
-        return WatchData(code, data, columns=dict(ma=ma))
+        return self.get(code)
+
+    def ma(self, code, day):
+        column = f'{day}ma'
+        if column not in self._data[code]:
+            self._data[code].loc[:, column] = self._data[code][CLOSE].rolling(day).mean().round(2).values
+
+    def data(self, code):
+        return self._data[code][self.li:self.ri]
+
+    def get(self, code):
+        return WatchData(code, self, self.data(code))
 
 
 class WatchData():
-    def __init__(self, code, data, columns=None):
+    def __init__(self, code, watch, data):
         self.code = code
         self.data = data
-        self.x_max, self.y_max = self._get_max()
-        self.x_min, self.y_min = self._get_min()
-        self._columns = columns
+        self._watch = watch
 
     # 日期
     def date(self):
@@ -277,24 +279,28 @@ class WatchData():
         return self.data[VOLUME]
 
     # 均線
-    def mas(self):
-        if 'ma' not in self._columns:
-            return {}
+    def get_ma(self, day):
+        reload = False
+        columns = []
+        for d in day:
+            columns.append(d)
 
-        ma = []
+            if f'{d}ma' not in self.data:
+                self._watch.ma(self.code, d)
+                reload = True
 
-        for m in self._columns['ma']:
-            name = f'{m}ma'
-            ma.append({
-                'm': m,
-                'name': name,
-                'data': self.data[name]
-            })
+        if reload:
+            self.data = self._watch.data(self.code)
+
+        ma = {}
+
+        for name in columns:
+            ma[name] = self.data[f'{name}ma']
 
         return ma
 
     # 最高價座標
-    def _get_max(self):
+    def get_max(self):
         x = self.data.index.get_loc(self.data[HIGH].idxmax())
         y = self.data[HIGH].max()
         if int(y) == y:
@@ -305,7 +311,7 @@ class WatchData():
         # 最低價座標
 
     # 最低價座標
-    def _get_min(self):
+    def get_min(self):
         x = self.data.index.get_loc(self.data[LOW].idxmin())
         y = self.data[LOW].min()
         if int(y) == y:

@@ -427,7 +427,7 @@ class Watch():
 
         self.watch = watch.Watch(self.watchFrame, config=config, ready=sorted(ready, reverse=True))
 
-        self.watch.plot(code, self.width, self.height, ma=[5, 10, 20])
+        self.watch.plot(code, self.width, self.height, max_min=True, ma=[5, 10, 20])
         self.watch.set_tk(self.watchFrame)
         self.watch.pack()
 
@@ -443,84 +443,3 @@ class Watch():
         self.rightFrame = tk.Frame(self.root, width=self.rightWidth, height=self.height, bg='#C0C0C0')
         self.rightFrame.pack(side=tk.RIGHT)
         self.rightFrame.pack_propagate(0)
-
-
-class MoveEvent(tk.Frame):
-    def __init__(self, canvas, data, yt=0, yMax=0):
-        tk.Frame.__init__(self)
-
-        self._data = data
-        self.canvas = canvas
-        self._yMax = yMax
-        self._yt = yt
-
-        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
-        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
-        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
-
-        self.ax = canvas.figure.axes[0]
-        self.axv = canvas.figure.axes[2]
-
-        self._xv = None
-        self._xh = None
-        self._yv = None
-
-        self._style = dict(fontsize=18, color='white')
-        self._isPress = False
-
-        self.init_text()
-
-    def draw(self, event):
-        x = round(event.xdata)
-        date = self._data.index[x]
-        p = self._data.loc[date]
-        date = date.strftime('%Y-%m-%d')
-
-        if self._xv == None:
-            self._xv = self.ax.axvline(x=x, color='#FFFF00', linewidth=0.5)
-            self._xh = self.ax.axhline(y=(p['close']), color='#FFFF00', linewidth=0.5)
-            self._yv = self.axv.axvline(x=x, color='#FFFF00', linewidth=0.5)
-        else:
-            self._xv.set_xdata(x)
-            self._xh.set_ydata(p['close'])
-            self._yv.set_xdata(x)
-
-            self.set_text(date, p)
-
-        self.canvas.draw_idle()
-
-    def set_text(self, date, price):
-        self._date.set_text(date)
-        self._open.set_text(price['open'])
-        self._close.set_text(price['close'])
-        self._high.set_text(price['high'])
-        self._low.set_text(price['low'])
-        self._volume.set_text(price['volume'])
-        self._5ma.set_text(price['5ma'])
-        self._10ma.set_text(price['10ma'])
-        self._20ma.set_text(price['20ma'])
-
-    def init_text(self):
-        date = self._data.index[-1]
-        price = self._data.loc[date]
-
-        self._date = self.ax.text(-9.5, self._yMax, date.strftime('%Y-%m-%d'), fontsize=13, color='white')
-        self._open = self.ax.text(-9.5, self._yMax - self._yt * 1.5, price['open'], self._style)
-        self._close = self.ax.text(-9.5, self._yMax - self._yt * 3, price['close'], self._style)
-        self._high = self.ax.text(-9.5, self._yMax - self._yt * 4.5, price['high'], self._style)
-        self._low = self.ax.text(-9.5, self._yMax - self._yt * 6, price['low'], self._style)
-        self._volume = self.ax.text(-9.5, self._yMax - self._yt * 7.5, int(price['volume']), self._style)
-        self._5ma = self.ax.text(-8.5, self._yMax - self._yt * 9, int(price['5ma']), self._style)
-        self._10ma = self.ax.text(-8.5, self._yMax - self._yt * 10.5, int(price['10ma']), self._style)
-        self._20ma = self.ax.text(-8.5, self._yMax - self._yt * 12, int(price['20ma']), self._style)
-
-    def on_press(self, event):
-        self._isPress = True
-        self.draw(event)
-
-    def on_release(self, event):
-        self._isPress = False
-
-    def move(self, event):
-        if self._isPress:
-            self.draw(event)

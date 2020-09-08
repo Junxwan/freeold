@@ -10,37 +10,14 @@ from stock import data
 from mplfinance._styledata import charles
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-# 均線顏色
-MA_COLOR = ['#FF8000', '#00CCCC', '#00CC66', '#FFFF00', '#6600CC', '#CC00CC']
-
-# 技術線寬度
-LINE_WIDTH = 1.8
-
-# 座標size
-XY_TEXT_FONT_SIZE = 24
-
-# label style
-LABEL_STYLE = {'fontsize': XY_TEXT_FONT_SIZE, 'rotation': 0}
-
-# 數據框-價格文字size
-PRICE_LABEL_FONT_SIZE = 25
-
-# 數據-均線文字size
-MA_LABEL_FONT_SIZE = 30
-
 # 數據框-價格名稱style
-PRICE_NAME_STYLE = dict(fontsize=PRICE_LABEL_FONT_SIZE, color='white')
+PRICE_NAME_STYLE = dict(fontsize=25, color='white')
 
 # 數據框-價格數據style
-PRICE_VALUE_STYLE = dict(fontsize=PRICE_LABEL_FONT_SIZE, color='white')
-
-# 資料欄位x軸
-DATA_X = -11.0
+PRICE_VALUE_STYLE = dict(fontsize=25, color='white')
 
 
 class Watch():
-    data_h = 1.5
-
     text = {
         data.DATE: {
             'name': 'd',
@@ -75,6 +52,8 @@ class Watch():
         'style': [PRICE_NAME_STYLE, PRICE_VALUE_STYLE],
     }
 
+    xy_data_style = {'fontsize': 15, 'rotation': 0}
+
     def __init__(self, master, config=None, **kwargs):
         self._master = master
         self._fig = None
@@ -82,24 +61,27 @@ class Watch():
         self.canvas = None
         self.event = None
 
+        self.ma = None
+        self._max_min = None
+        self.texts = None
+
         self._main_ax = None
         self._image_ax = {}
         self._sup_ax = {}
 
-        self._date_fmt = '%Y-%m-%d'
         self.data = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
 
         self.y_tick = 0
-        self.data_y = 0
+        self.y_max = 0
 
-    def plot(self, code, width=100, height=100, volume=True, **kwargs):
-        self.watch = self.data.code(code, **kwargs)
+    def plot(self, code, width=100, height=100, volume=True, date=None, **kwargs):
+        self.watch = self.data.code(code, date=date)
 
         self._fig, self._axs = mpf.plot(
             self.watch.data,
             type='candle',
             style=self._get_style(),
-            datetime_format=self._date_fmt,
+            datetime_format='%Y-%m-%d',
             ylabel='',
             ylabel_lower='',
             figsize=(width / 100, height / 100),
@@ -111,113 +93,74 @@ class Watch():
         )
 
         self._main_ax = self._axs[0]
+        if volume:
+            self._sup_ax[data.VOLUME] = self._axs[2]
+
+        self._major()
+
+        self.texts = DataLabel(
+            self._main_ax,
+            self.watch,
+            m_min=-11,
+            y_max=self._price_locator.get_ticks()[-1],
+            y_tick=self._price_locator.tick,
+        )
 
         if volume:
             self._sup_ax[data.VOLUME] = self._axs[2]
             self.text[data.VOLUME] = self.volume_text
 
-        self._major()
-        self._plot_price()
-        self._plot_ma()
-        self._plot_max_min()
+        self._plot_max_min(kwargs.get('max_min'))
+        self._plot_ma(kwargs.get('ma'))
         self._update_label()
 
         return self._fig
 
-    # 繪製數據文字
-    def _plot_price(self):
-        i = 0
-        for k, v in self.text.items():
-            style = v['style']
-            self._plot_data_text(i, v['name'], **style[0])
-            v['text'] = self._plot_data_value_text(i, self.watch.data[k][-1], x=1, **style[1])
-            i += 1
+    def plot_code(self, code, **kwargs):
+        if self._fig == None:
+            return self.plot(code, **kwargs)
+
+        return self._fig, self._axs
 
     # 繪製均線
-    def _plot_ma(self):
-        xLen = np.arange(self.watch.len())
-        l = self.text.__len__()
+    def _plot_ma(self, day):
+        if self.ma == None:
+            self.ma = MA(self._main_ax, self.watch)
 
-        for i, ma in enumerate(self.watch.mas()):
-            self._image_ax[ma['name']] = self._main_ax.plot(xLen, ma['data'], linewidth=LINE_WIDTH, color=MA_COLOR[i])
+        self.ma.plot(day)
 
-            style = [
-                dict(fontsize=PRICE_LABEL_FONT_SIZE, color=MA_COLOR[i]),
-                PRICE_VALUE_STYLE
-            ]
+        for d in day:
+            self.texts.add(f'{d}ma', self.watch.get_ma(d)[-1], color=self.ma.color[d], offset_x=3)
 
-            self._plot_data_text(i + l, ma['name'], **style[0])
+    # 繪製標示最高價與最低價Bar
+    def _plot_max_min(self, show):
+        if self._max_min == None:
+            self._max_min = MaxMin(
+                self._main_ax,
+                self.watch.get_max(),
+                self.watch.get_min(),
+                y_tick=self.y_tick
+            )
 
-            self.text[ma['name']] = {
-                'name': ma['name'],
-                'text': self._plot_data_value_text(i + l, ma['data'][-1], x=3, **style[1]),
-                'style': style
-            }
-
-    # 繪製最高價與最低價
-    def _plot_max_min(self):
-        xOffset = {
-            1: 1.35,
-            2: 1,
-            3: 0.9,
-            4: 1.05,
-            5: 1.35,
-            6: 1.35,
-            7: 1.45,
-        }
-
-        bbox = dict(boxstyle='square', fc="0.5")
-
-        self._image_ax['max_bar'] = self._main_ax.annotate(
-            self.watch.y_max,
-            xy=(self.watch.x_max, self.watch.y_max),
-            xytext=(self.watch.x_max - xOffset[len(str(self.watch.y_max))], self.watch.y_max + self.y_tick / 2),
-            color='black',
-            size=XY_TEXT_FONT_SIZE,
-            arrowprops=dict(arrowstyle="simple"),
-            bbox=bbox
-        )
-
-        self._image_ax['min_bar'] = self._main_ax.annotate(
-            self.watch.y_min,
-            xy=(self.watch.x_min, self.watch.y_min),
-            xytext=(self.watch.x_min - xOffset[len(str(self.watch.y_min))], self.watch.y_min - self.y_tick),
-            color='black',
-            size=XY_TEXT_FONT_SIZE,
-            arrowprops=dict(arrowstyle="simple"),
-            bbox=bbox
-        )
-
-    # 繪製數據值
-    def _plot_data_value_text(self, i, text, x=0, **kwargs):
-        kwargs['bbox'] = dict(boxstyle='square')
-        kwargs['color'] = 'black'
-
-        return self._plot_data_text(i, text, x=x + DATA_X, **kwargs)
-
-    # 繪製數據文字
-    def _plot_data_text(self, i, text, x=DATA_X, **kwargs):
-        return self._main_ax.text(
-            x,
-            self.data_y - (self.y_tick * ((i + 1) * self.data_h)),
-            text,
-            **kwargs
-        )
+        if show:
+            self._max_min.plot()
+        else:
+            self._max_min.remove()
 
     # 更新label
     def _update_label(self):
         for l in self._main_ax.get_yticklabels():
-            l.update(LABEL_STYLE)
+            l.update(self.xy_data_style)
 
         for l in self._main_ax.get_xticklabels():
-            l.update(LABEL_STYLE)
+            l.update(self.xy_data_style)
 
         for ax in self._sup_ax.values():
             for l in ax.get_yticklabels():
-                l.update(LABEL_STYLE)
+                l.update(self.xy_data_style)
 
             for l in ax.get_xticklabels():
-                l.update(LABEL_STYLE)
+                l.update(self.xy_data_style)
 
     # 設定資料呈現邏輯與格式
     def _major(self):
@@ -227,14 +170,16 @@ class Watch():
         self._main_ax.xaxis.set_major_locator(self._date_locator)
         self._main_ax.xaxis.set_major_formatter(self._date_formatter)
 
+        (x_max, y_max) = self.watch.get_max()
+        (x_min, y_min) = self.watch.get_min()
         self._price_formatter = PriceFormatter()
-        self._price_locator = PriceLocator(self.watch.y_max, self.watch.y_min)
+        self._price_locator = PriceLocator(y_max, y_min)
 
         self._main_ax.yaxis.set_major_locator(self._price_locator)
         self._main_ax.yaxis.set_major_formatter(self._price_formatter)
 
         self.y_tick = self._price_locator.tick
-        self.data_y = self._price_locator.get_ticks()[-1]
+        self.y_max = self._price_locator.get_ticks()[-1]
 
         if data.VOLUME in self._sup_ax:
             self._volume_major(self.watch.volume())
@@ -330,6 +275,255 @@ class Watch():
         if self.canvas != None:
             self.canvas.get_tk_widget().focus_force()
             self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+
+# 均線
+class MA():
+    # 顏色
+    color = {
+        5: '#FF8000',
+        10: '#00CCCC',
+        20: '#00CC66',
+        60: '#FFFF00',
+        120: '#6600CC',
+        240: '#CC00CC',
+    }
+
+    line_width = 1.8
+
+    def __init__(self, axes, watch):
+        self._axes = axes
+        self._watch = watch
+        self._line = {}
+
+    def list(self):
+        return [n for n in self._line.keys()]
+
+    def plot(self, day):
+        data = self._watch.get_ma(day)
+
+        for d in day:
+            if d not in self._line:
+                self._add(d, data[d])
+
+        day = dict(day)
+
+        for d, v in self._line.items():
+            if d not in day:
+                v.remove()
+                del self._line[d]
+
+    def _add(self, day, data):
+        if day in self.color:
+            color = self.color[day]
+        else:
+            color = 'red'
+
+        line = self._axes.plot(
+            np.arange(len(data)),
+            data,
+            linewidth=self.line_width,
+            color=color,
+        )
+
+        self._line[day] = line
+
+        return line
+
+    def remove(self, name):
+        if name in self._line[name]:
+            self._line[name].remove()
+            del self._line[name]
+
+
+# 最高價與最低價
+class MaxMin():
+    offset_x = {
+        1: 1.35,
+        2: 1,
+        3: 0.9,
+        4: 1.05,
+        5: 1.35,
+        6: 1.35,
+        7: 1.45,
+    }
+
+    def __init__(self, axes, xy_max, xy_min, y_tick=0):
+        self._axes = axes
+        self._xy_max = xy_max
+        self._xy_min = xy_min
+        self._max = None
+        self._min = None
+        self._y_tick = y_tick
+
+    def plot(self):
+        self._set_max()
+        self._set_min()
+
+    def _set_max(self):
+        self._set(self._xy_max[0], self._xy_max[1], y_offset=(self._y_tick / 2))
+
+    def _set_min(self):
+        self._set(self._xy_min[0], self._xy_min[1], y_offset=-self._y_tick)
+
+    def _set(self, x, y, y_offset=0.0):
+        self._axes.annotate(
+            y,
+            xy=(x, y),
+            xytext=(x - self.offset_x[len(str(y))], y + y_offset),
+            color='black',
+            size=15,
+            arrowprops=dict(arrowstyle="simple"),
+            bbox=dict(boxstyle='square', fc="0.5")
+        )
+
+    def remove(self):
+        if self._max != None:
+            self._max.remove()
+
+        if self._min != None:
+            self._min.remove()
+
+
+# 即時數據
+class DataLabel():
+    font_size = 15
+
+    text = {
+        'd': data.DATE,
+        'o': data.OPEN,
+        'c': data.CLOSE,
+        'h': data.HIGH,
+        'l': data.LOW,
+        'v': data.VOLUME,
+    }
+
+    def __init__(self, axes, watch, m_min=0, y_max=0, y_tick=0):
+        self._axes = axes
+        self._watch = watch
+
+        self._title = {}
+        self._value = {}
+
+        self._m_min = m_min
+        self._y_max = y_max
+        self._y_tick = y_tick
+
+        for n, c in self.text.items():
+            self.add(n, self._watch.data[c][-1])
+
+    def add(self, name, value, color='white', offset_x=1):
+        self.set_title(name, color=color)
+        self.set_value(name, value, offset_x=offset_x)
+
+    def set_title(self, name, color='white'):
+        i = len(self._title)
+        self._title[name] = self._axes.text(
+            self._m_min,
+            self._y_max - (self._y_tick * ((i + 1) * 1.5)),
+            name,
+            fontsize=self.font_size, color=color,
+        )
+
+    def set_value(self, name, value, color='black', offset_x=0):
+        if name not in self._title:
+            return
+
+        title = self._title[name]
+
+        self._value[name] = self._axes.text(
+            title._x + offset_x,
+            title._y,
+            value,
+            fontsize=self.font_size, color=color, bbox=dict(boxstyle='square'),
+        )
+
+
+# 事件
+class MoveEvent(tk.Frame):
+    def __init__(self, canvas, data, axs):
+        tk.Frame.__init__(self)
+
+        self._data = data
+        self.canvas = canvas
+        self._axs = axs
+        self._vax = {}
+        self._hax = {}
+        self._callbacks = []
+
+        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
+        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
+        self.releaseEvent = self.canvas.mpl_connect('key_release_event', self.key_release)
+        self._style = dict(color='#FFFF66', linewidth=1)
+        self._isPress = False
+
+    # 事件
+    def add_callback(self, fun):
+        self._callbacks.append(fun)
+
+    # 重畫
+    def draw(self, event):
+        if event.xdata == None:
+            return
+
+        x = round(event.xdata)
+        d = self._data.index[x]
+        p = self._data.loc[d]
+
+        if len(self._vax) == 0:
+            for ax in self._axs:
+                self._vax[ax.name] = ax.axvline(x=x, **self._style)
+        else:
+            for ax in self._vax.values():
+                ax.set_visible(True)
+                ax.set_xdata(x)
+
+        if event.inaxes.name not in self._hax:
+            self._hax[event.inaxes.name] = event.inaxes.axhline(y=(p[event.inaxes.name]), **self._style)
+
+        for name, ax in self._hax.items():
+            if name == event.inaxes.name:
+                ax.set_visible(True)
+                ax.set_ydata(p[event.inaxes.name])
+            else:
+                ax.set_visible(False)
+
+        for fun in self._callbacks:
+            fun(event, p)
+
+        self.canvas.draw_idle()
+
+    # 點擊
+    def on_press(self, event):
+        self._isPress = True
+        self.draw(event)
+
+    # 釋放
+    def on_release(self, event):
+        self._isPress = False
+
+    # 移動
+    def move(self, event):
+        if self._isPress:
+            self.draw(event)
+
+    def key_release(self, event):
+        if event.key == 'escape':
+            for ax in self._vax.values():
+                ax.set_visible(False)
+
+            for ax in self._hax.values():
+                ax.set_visible(False)
+
+            self.canvas.draw_idle()
+
+        if event.key == 'enter':
+            # self.canvas.figure.axes[0].collections[0].remove()
+            # self.canvas.figure.axes[0].collections[0].remove()
+            # self.canvas.figure.axes[0].lines[0].remove()
+            # self.canvas.figure.axes[0].set_yticks([290,310,330,350,370,390,410,430,450,470,490])
+            self.canvas.draw_idle()
 
 
 # 日期塞選
@@ -445,83 +639,3 @@ class PriceFormatter(mticks.Formatter):
             return ''
 
         return '%1.2f' % x
-
-
-# 事件
-class MoveEvent(tk.Frame):
-    def __init__(self, canvas, data, axs):
-        tk.Frame.__init__(self)
-
-        self._data = data
-        self.canvas = canvas
-        self._axs = axs
-        self._vax = {}
-        self._hax = {}
-        self._callbacks = []
-
-        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
-        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
-        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
-        self.releaseEvent = self.canvas.mpl_connect('key_release_event', self.key_release)
-        self._style = dict(color='#FFFF66', linewidth=1)
-        self._isPress = False
-
-    # 事件
-    def add_callback(self, fun):
-        self._callbacks.append(fun)
-
-    # 重畫
-    def draw(self, event):
-        if event.xdata == None:
-            return
-
-        x = round(event.xdata)
-        d = self._data.index[x]
-        p = self._data.loc[d]
-
-        if len(self._vax) == 0:
-            for ax in self._axs:
-                self._vax[ax.name] = ax.axvline(x=x, **self._style)
-        else:
-            for ax in self._vax.values():
-                ax.set_visible(True)
-                ax.set_xdata(x)
-
-        if event.inaxes.name not in self._hax:
-            self._hax[event.inaxes.name] = event.inaxes.axhline(y=(p[event.inaxes.name]), **self._style)
-
-        for name, ax in self._hax.items():
-            if name == event.inaxes.name:
-                ax.set_visible(True)
-                ax.set_ydata(p[event.inaxes.name])
-            else:
-                ax.set_visible(False)
-
-        for fun in self._callbacks:
-            fun(event, p)
-
-        self.canvas.draw_idle()
-
-    # 點擊
-    def on_press(self, event):
-        self._isPress = True
-        self.draw(event)
-
-    # 釋放
-    def on_release(self, event):
-        self._isPress = False
-
-    # 移動
-    def move(self, event):
-        if self._isPress:
-            self.draw(event)
-
-    def key_release(self, event):
-        if event.key == 'escape':
-            for ax in self._vax.values():
-                ax.set_visible(False)
-
-            for ax in self._hax.values():
-                ax.set_visible(False)
-
-            self.canvas.draw_idle()
