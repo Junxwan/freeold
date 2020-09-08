@@ -228,98 +228,114 @@ class Watch():
             c_data[DATE] = pd.to_datetime(c_data[DATE])
             c_data = c_data.set_index(DATE).sort_index()
             c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
-            self._data[code] = c_data
+            self._data[code] = WatchData(code, c_data)
 
-        i = 0
-        self.li = self._data[code].shape[0] - (range + i)
-        self.ri = self._data[code].shape[0] + i
+        self._data[code].set_range(range)
 
-        return self.get(code)
+        if date != None:
+            self._data[code].set_date(date)
 
-    def ma(self, code, day):
-        column = f'{day}ma'
-        if column not in self._data[code]:
-            self._data[code].loc[:, column] = self._data[code][CLOSE].rolling(day).mean().round(2).values
-
-    def data(self, code):
-        return self._data[code][self.li:self.ri]
-
-    def get(self, code):
-        return WatchData(code, self, self.data(code))
+        return self._data[code]
 
 
 class WatchData():
-    def __init__(self, code, watch, data):
+    def __init__(self, code, data):
         self.code = code
-        self.data = data
-        self._watch = watch
+        self._data = data
+        self._range = 60
+        self._index = 0
+        self._li = 0
+        self._ri = data.shape[0]
+
+    def set_range(self, num):
+        self._range = num
+        self._lr()
+
+    def set_date(self, date):
+        self._index = self._data.index[date]
+        self._lr()
+
+    def _lr(self):
+        self.li = self._data.shape[0] - (self._range + self._index)
+        self.ri = self._data.shape[0] + self._index
 
     # 日期
     def date(self):
-        return self.data[DATE]
+        return self.get(column=DATE)
 
     # 開盤
     def open(self):
-        return self.data[OPEN]
+        return self.get(column=OPEN)
 
     # 收盤
     def close(self):
-        return self.data[CLOSE]
+        return self.get(column=CLOSE)
 
     # 最高價
     def high(self):
-        return self.data[HIGH]
+        return self.get(column=HIGH)
 
     # 最低價
     def low(self):
-        return self.data[LOW]
+        return self.get(column=LOW)
 
     # 成交量
     def volume(self):
-        return self.data[VOLUME]
+        return self.get(column=VOLUME)
+
+    def set(self, column, value):
+        self._data.loc[:, column] = value
+
+    def index(self, index):
+        return self.get().iloc[index]
+
+    def get(self, column=None):
+        d = self._data[self.li:self.ri]
+
+        if column == None:
+            return d
+
+        return d[column]
 
     # 均線
     def get_ma(self, day):
-        reload = False
-        columns = []
         for d in day:
-            columns.append(d)
+            if f'{d}ma' not in self._data:
+                column = f'{d}ma'
+                self.set(column, self._data[CLOSE].rolling(d).mean().round(2).values)
 
-            if f'{d}ma' not in self.data:
-                self._watch.ma(self.code, d)
-                reload = True
+        return self.get().loc[:, [f'{d}ma' for d in day]]
 
-        if reload:
-            self.data = self._watch.data(self.code)
+    # 最高xy座標
+    def get_xy_max(self):
+        return self.get_x_max(), self.get_y_max()
 
-        ma = {}
+    # 最低xy座標
+    def get_xy_min(self):
+        return self.get_x_min(), self.get_y_min()
 
-        for name in columns:
-            ma[name] = self.data[f'{name}ma']
+    # x座標 最高與最低
+    def get_x_max_min(self):
+        return self.get_x_max(), self.get_x_min()
 
-        return ma
+    # y座標 最高與最低
+    def get_y_max_min(self):
+        return self.get_y_max(), self.get_y_min()
 
-    # 最高價座標
-    def get_max(self):
-        x = self.data.index.get_loc(self.data[HIGH].idxmax())
-        y = self.data[HIGH].max()
-        if int(y) == y:
-            y = int(y)
+    # 最高x座標
+    def get_x_max(self):
+        d = self.get()
+        return d.index.get_loc(d[HIGH].idxmax())
 
-        return x, y
+    # 最低x座標
+    def get_x_min(self):
+        d = self.get()
+        return d.index.get_loc(d[LOW].idxmin())
 
-        # 最低價座標
+    # 最高y座標
+    def get_y_max(self):
+        return self.high().max()
 
-    # 最低價座標
-    def get_min(self):
-        x = self.data.index.get_loc(self.data[LOW].idxmin())
-        y = self.data[LOW].min()
-        if int(y) == y:
-            y = int(y)
-
-        return x, y
-
-        # 資料長度
-
-    def len(self):
-        return self.data.shape[0]
+    # 最低y座標
+    def get_y_min(self):
+        return self.low().min()
