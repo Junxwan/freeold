@@ -1,6 +1,8 @@
 import logging
 import os
 import glob
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 
@@ -217,6 +219,8 @@ class Watch():
         self._data = {}
 
     def code(self, code, range=60, date=None):
+        code = int(code)
+
         if code not in self._data:
             stock = self._stock.data.loc[code]
 
@@ -232,8 +236,12 @@ class Watch():
 
         self._data[code].set_range(range)
 
-        if date != None:
-            self._data[code].set_date(date)
+        try:
+            if date != None:
+                date = datetime.fromisoformat(date)
+                self._data[code].set_date(date.strftime('%Y-%m-%d'))
+        except:
+            pass
 
         return self._data[code]
 
@@ -242,13 +250,13 @@ class WatchData():
     def __init__(self, code, data):
         self.code = code
         self._data = data
-        self._range = 60
+        self.range = 60
         self._index = 0
         self._li = 0
         self._ri = data.shape[0]
 
     def set_range(self, num):
-        self._range = num
+        self.range = num
         self._lr()
 
     def set_date(self, date):
@@ -256,7 +264,7 @@ class WatchData():
         self._lr()
 
     def _lr(self):
-        self.li = self._data.shape[0] - (self._range + self._index)
+        self.li = self._data.shape[0] - (self.range + self._index)
         self.ri = self._data.shape[0] + self._index
 
     # 日期

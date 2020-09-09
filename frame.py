@@ -425,7 +425,7 @@ class Watch():
         ]
 
         self.watch = watch.Watch(self.watch_frame, config=config, ready=sorted(ready, reverse=True))
-        self.watch.plot(2330, self.width, self.height, volume=True, max_min=True, ma=[5, 10, 20])
+        self.watch.plot(2330, self.width, self.height, index=-1, volume=True, max_min=True, ma=[5, 10, 20])
         self.watch.set_tk(self.watch_frame)
         self.watch.pack()
 

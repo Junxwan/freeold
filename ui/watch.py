@@ -6,6 +6,9 @@ import numpy as np
 import mplfinance as mpf
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticks
+import mplfinance._utils as mutils
+import mplfinance._widths as mwidths
+import mplfinance.plotting as mplotting
 from stock import data
 from datetime import datetime
 from mplfinance._styledata import charles
@@ -13,7 +16,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 class Watch():
-    xy_data_style = {'fontsize': 30, 'rotation': 0}
+    xy_data_style = {'fontsize': 15, 'rotation': 0}
 
     main_panel = 0
 
@@ -24,17 +27,17 @@ class Watch():
         self.canvas = None
         self.event = None
 
+        self._main_axes = None
+        self._sub_axes = {}
+        self._apply_axes = {}
         self.text = None
-        self.sub = {}
 
         self.watch = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
-
-        self.y_tick = 0
-        self.y_max_tick = 0
 
     # 繪製
     def plot(self, code, width=100, height=100, date=None, **kwargs):
         self.data = self.watch.code(code, date=date)
+        self.kwargs = kwargs
 
         self._fig, self._axs = mpf.plot(
             self.data.get(),
@@ -51,30 +54,8 @@ class Watch():
             panel_ratios=(4, 1)
         )
 
-        self._axs[0].name = data.CLOSE
-        self._axs[2].name = data.VOLUME
-
-        self._major()
-
-        self.text = DataLabel(
-            self._main_axes(),
-            self.data,
-            m_min=-11,
-            y_max=self.y_max_tick,
-            y_tick=self.y_tick,
-        )
-
-        kwargs['index'] = -1
-
-        self.load_sub(self._main_axes(), {
-            'ma': MA(),
-            'max_min': MaxMin(),
-        }, **kwargs)
-
-        self.load_sub(self._axs[2], {
-            'volume': Volume(),
-        }, **kwargs)
-
+        self._set_main_axes(self._axs[self.main_panel])
+        self._set_sup_axes({data.VOLUME: self._axs[2]})
         self._update_label()
 
         return self._fig
@@ -82,53 +63,101 @@ class Watch():
     # 繪製某個股
     def plot_code(self, code, date=None):
         self.data = self.watch.code(code, date=date)
+        data = self.data.get()
+        x_data = np.arange(len(data))
 
-        collections = self._main_axes().collections
-        for c in range(len(collections)):
-            collections[0].remove()
+        config = mwidths._determine_width_config(x_data, dict(
+            show_nontrading=False,
+            width_adjuster_version=None,
+            scale_width_adjustment=None,
+            update_width_config=self._update_width_config()
+        ))
 
-        for name, ax in self.sub.items():
-            ax.clear()
+        collections = mutils._construct_candlestick_collections(
+            x_data,
+            data[data.OPEN],
+            data[data.HIGH],
+            data[data.LOW],
+            data[data.CLOSE],
+            marketcolors=self._get_style()['marketcolors'], config=dict(_width_config=config)
+        )
 
-        self.event.clear()
+        self._main_axes.set_ylim(data[data.LOW].min(), data[data.HIGH].max())
+        if len(self._main_axes.collections) > 0:
+            self._main_axes.collections[0].remove()
+            self._main_axes.collections[0].remove()
+
+        for c in collections:
+            self._main_axes.add_collection(c)
+
+        self._major()
+
+        for axes in self._sub_axes.values():
+            axes.update()
+
+        for axes in self._apply_axes.values():
+            axes.update()
+
+        self.text.update(self.data.get().iloc[-1])
+        self._update_label()
         self.canvas.draw_idle()
 
     # 設定資料呈現邏輯與格式
     def _major(self):
-        main = self._main_axes()
-        main.xaxis.set_major_locator(DateLocator(self.data.date()))
-        main.xaxis.set_major_formatter(DateFormatter())
+        self._main_axes.xaxis.set_major_locator(DateLocator(self.data.date()))
+        self._main_axes.xaxis.set_major_formatter(DateFormatter())
 
         (y_max, y_min) = self.data.get_y_max_min()
         price_locator = PriceLocator(y_max, y_min)
 
-        main.yaxis.set_major_locator(price_locator)
-        main.yaxis.set_major_formatter(PriceFormatter())
+        self._main_axes.yaxis.set_major_locator(price_locator)
+        self._main_axes.yaxis.set_major_formatter(PriceFormatter())
 
-        self.y_tick = price_locator.tick
-        self.y_max_tick = price_locator.get_ticks()[-1]
+    # 主圖設定
+    def _set_main_axes(self, axes):
+        y_max, y_min = self.data.get_y_max_min()
+        axes.name = data.CLOSE
+        axes.set_xlim(-0.5, self.data.range - 0.5)
+        axes.set_ylim(y_min, y_max)
+        self._main_axes = axes
 
-    def _main_axes(self):
-        return self._axs[self.main_panel]
+        self._major()
 
-    def load_sub(self, axes, objects, **kwargs):
-        keys = kwargs.keys()
+        self.text = DataLabel(self._main_axes, self.data.get().iloc[-1], x_min=-8)
 
-        for name, object in objects.items():
-            if name in keys:
-                object.set_axes(axes)
-                object.plot(self._fig, self.data, **kwargs)
-                object.plot_text(self.text, self.data, **kwargs)
-                self.sub[name] = object
+        axes_list = {
+            'ma': MA(),
+            'max_min': MaxMin(),
+        }
+
+        for name, object in axes_list.items():
+            self._plot_sup_axes(self._main_axes, object)
+            self._apply_axes[name] = object
+
+    # 附圖設定
+    def _set_sup_axes(self, axes_list):
+        sup = {
+            data.VOLUME: Volume(),
+        }
+
+        for name, axes in axes_list.items():
+            if name in sup:
+                object = sup[name]
+                self._plot_sup_axes(axes, object)
+                self._sub_axes[name] = object
+
+    def _plot_sup_axes(self, axes, object):
+        object.set_axes(axes)
+        object.plot(self._fig, self.data, **self.kwargs)
+        object.plot_text(self.text, self.data, **self.kwargs)
 
     # 更新label
     def _update_label(self):
-        for ax in [self._main_axes(), self._axs[2]]:
-            for l in ax.get_yticklabels():
-                l.update(self.xy_data_style)
+        for l in self._main_axes.get_yticklabels():
+            l.update(self.xy_data_style)
 
-            for l in ax.get_xticklabels():
-                l.update(self.xy_data_style)
+        for l in self._main_axes.get_xticklabels():
+            l.update(self.xy_data_style)
 
     # 即時顯示資料
     def event_show_data(self, event, d):
@@ -186,6 +215,7 @@ class Watch():
     # 設定呈現在TK
     def set_tk(self, master):
         self.canvas = FigureCanvasTkAgg(self._fig, master)
+
         self.event = MoveEvent(self.canvas, self.data, [self._axs[0], self._axs[2]])
         self.event.add_callback(self.event_show_data)
         self.canvas.draw()
@@ -203,8 +233,8 @@ class Watch():
 
 # 即時數據
 class DataLabel():
-    title_font_size = 30
-    value_font_size = 25
+    title_font_size = 15
+    value_font_size = 15
 
     text = {
         'd': data.DATE,
@@ -215,19 +245,18 @@ class DataLabel():
         'v': data.VOLUME,
     }
 
-    def __init__(self, axes, data, m_min=0, y_max=0, y_tick=0):
+    def __init__(self, axes, data, x_min=0):
         self._axes = axes
-        self._data = data
 
         self._title = {}
         self._value = {}
 
-        self._m_min = m_min
-        self._y_max = y_max
-        self._y_tick = y_tick
+        self._x_min = x_min
+        self._y_max = axes.yaxis.major.locator.get_ticks()[-1]
+        self._y_tick = axes.yaxis.major.locator.tick
 
         for n, c in self.text.items():
-            self.add(n, c, self._data.get(column=c)[-1], offset_x=1.5)
+            self.add(n, c, data[c], offset_x=1.5)
 
     def add(self, name, key, value, color='white', offset_x=1.0):
         self.set_title(name, key, color=color)
@@ -236,7 +265,7 @@ class DataLabel():
     def set_title(self, name, key, color='white'):
         i = len(self._title)
         self._title[key] = self._axes.text(
-            self._m_min,
+            self._x_min,
             self._y_max - (self._y_tick * ((i + 1) * 1.2)),
             name,
             fontsize=self.title_font_size, color=color,
@@ -286,6 +315,9 @@ class SubAxes():
     def plot_text(self, text, data, **kwargs):
         pass
 
+    def update(self, data):
+        pass
+
     def clear(self):
         pass
 
@@ -309,6 +341,7 @@ class MA(SubAxes):
 
     def __init__(self):
         SubAxes.__init__(self)
+        self.ma = None
 
     def plot(self, figure, data, **kwargs):
         ma = kwargs.get('ma')
@@ -316,13 +349,17 @@ class MA(SubAxes):
         if ma == None:
             return
 
-        data = data.get_ma(ma)
+        self.ma = ma
+        self._plot(data, ma)
 
-        for d in ma:
+    def _plot(self, data, day):
+        data = data.get_ma(day)
+
+        for d in day:
             if d not in self._line:
                 self._add(d, data[f'{d}ma'])
 
-        day = {d: '' for d in ma}
+        day = {d: '' for d in day}
 
         for d, v in self._line.items():
             if d not in day:
@@ -334,6 +371,10 @@ class MA(SubAxes):
         for name, line in self._line.items():
             key = f'{name}ma'
             text.add(key, key, self._line[name][0]._y[index], color=self.color[name], offset_x=3.5)
+
+    def update(self, data):
+        self.clear()
+        self._plot(data, self.ma)
 
     def _add(self, day, data):
         if day in self.color:
@@ -367,6 +408,8 @@ class MA(SubAxes):
 
 # 最高價與最低價
 class MaxMin(SubAxes):
+    font_size = 15
+
     offset_x = {
         1: 1.35,
         2: 1,
@@ -383,6 +426,9 @@ class MaxMin(SubAxes):
         self._min = None
 
     def plot(self, figure, data, **kwargs):
+        self._plot(data)
+
+    def _plot(self, data):
         y_tick = self._axes.yaxis.major.locator.tick
         (x_max, y_max) = data.get_xy_max()
         (x_min, y_min) = data.get_xy_min()
@@ -390,13 +436,16 @@ class MaxMin(SubAxes):
         self._max = self._set(x_max, y_max, y_offset=(y_tick / 2))
         self._min = self._set(x_min, y_min, y_offset=-y_tick)
 
+    def update(self, data):
+        self._plot(data)
+
     def _set(self, x, y, y_offset=0.0):
         return self._axes.annotate(
             y,
             xy=(x, y),
             xytext=(x - self.offset_x[len(str(y))], y + y_offset),
             color='black',
-            size=30,
+            size=self.font_size,
             arrowprops=dict(arrowstyle="simple"),
             bbox=dict(boxstyle='square', fc="0.5")
         )
@@ -414,8 +463,41 @@ class MaxMin(SubAxes):
 
 # 成交量
 class Volume(SubAxes):
+    # 紅k
+    up_color = '#9A0000'
+
+    # 黑k
+    down_color = '#23B100'
+
+    font_size = 15
+
     def plot(self, figure, data, **kwargs):
-        self._major(data.volume())
+        self._plot(data)
+
+    def _plot(self, data):
+        volumes = data.volume()
+        x_data = np.arange(len(volumes))
+        miny = 0.3 * np.nanmin(volumes)
+        maxy = 1.1 * np.nanmax(volumes)
+        colors = self._colors(data.open(), data.close())
+        config = mwidths._determine_width_config(x_data, dict(
+            show_nontrading=False,
+            width_adjuster_version=None,
+            scale_width_adjustment=None,
+            update_width_config={'volume_width': 0.85}
+        ))
+
+        self._axes.set_ylim(miny, maxy)
+        self._axes.bar(
+            x_data,
+            volumes,
+            width=config['volume_width'],
+            linewidth=config['volume_linewidth'],
+            color=colors,
+            ec=mplotting._adjust_color_brightness(colors, 0.90)
+        )
+
+        self._major(volumes)
 
     def _major(self, data):
         fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
@@ -423,6 +505,17 @@ class Volume(SubAxes):
 
         self._axes.yaxis.set_major_locator(VolumeLocator(data))
         self._axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
+
+        for ticks in [self._axes.get_yticklabels(), self._axes.get_xticklabels()]:
+            for tick in ticks:
+                tick.update({'fontsize': self.font_size, 'rotation': 0})
+
+    def update(self, data):
+        self.clear()
+        self._plot(data)
+
+    def _colors(self, open, close):
+        return mplotting._updown_colors(self.up_color, self.down_color, open, close, use_prev_close=True)
 
     def clear(self):
         self._axes.clear()
