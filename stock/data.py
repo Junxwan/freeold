@@ -219,10 +219,11 @@ class Watch():
         self._data = {}
 
     def code(self, code, range=60, date=None):
-        code = int(code)
-
         if code not in self._data:
-            stock = self._stock.data.loc[code]
+            try:
+                stock = self._stock.data.loc[code]
+            except:
+                return None
 
             c_data = pd.DataFrame([
                 stock[i].tolist() for i in stock],
@@ -245,27 +246,25 @@ class Watch():
 
         return self._data[code]
 
+    def info(self, code):
+        return self._stock.code(code)
+
 
 class WatchData():
     def __init__(self, code, data):
         self.code = code
         self._data = data
         self.range = 60
-        self._index = 0
         self._li = 0
         self._ri = data.shape[0]
 
     def set_range(self, num):
         self.range = num
-        self._lr()
+        self._li = self._ri - self.range
 
     def set_date(self, date):
-        self._index = self._data.index[date]
-        self._lr()
-
-    def _lr(self):
-        self.li = self._data.shape[0] - (self.range + self._index)
-        self.ri = self._data.shape[0] + self._index
+        self._ri = self._data.index.get_loc((self._data[DATE] == date).idxmax()) + 1
+        self._li = self._ri - self.range
 
     # 日期
     def date(self):
@@ -298,7 +297,7 @@ class WatchData():
         return self.get().iloc[index]
 
     def get(self, column=None):
-        d = self._data[self.li:self.ri]
+        d = self._data[self._li:self._ri]
 
         if column == None:
             return d

@@ -6,8 +6,9 @@ import tkinter as tk
 from datetime import datetime
 import openpyxl
 import pyautogui
-from ui import cmoney, xq, stock, log, other, ui, watch
+from tkinter import messagebox
 from PIL import Image, ImageTk
+from ui import cmoney, xq, stock, log, other, ui, watch
 
 
 class main():
@@ -415,9 +416,10 @@ class Watch():
         self.width = self.size.width
         self.height = int(self.size.height * 0.95)
 
+        # self.root.attributes('-fullscreen', True)
         self.config = config
         self.root.geometry(f'{self.width}x{self.height}')
-        self.mainLayout()
+        self._mainLayout()
 
         ready = [
             os.path.basename(p).split('.')[0] for p in
@@ -429,9 +431,9 @@ class Watch():
         self.watch.set_tk(self.watch_frame)
         self.watch.pack()
 
-        self.buttonLayout()
+        self._buttonLayout()
 
-    def mainLayout(self):
+    def _mainLayout(self):
         self.watch_frame = tk.Frame(self.root, width=int(self.width * 0.9), height=self.height)
         self.watch_frame.pack(side=tk.LEFT)
         self.watch_frame.pack_propagate(0)
@@ -450,7 +452,7 @@ class Watch():
         self.bottom_frame.pack(side=tk.BOTTOM)
         self.bottom_frame.pack_propagate(0)
 
-    def buttonLayout(self):
+    def _buttonLayout(self):
         self.code = tk.StringVar()
         self.date = tk.StringVar()
 
@@ -464,5 +466,9 @@ class Watch():
             self.bottom_frame,
             text='切換',
             font=ui.SMALL_FONT,
-            command=lambda: self.watch.plot_code(self.code.get(), date=self.date.get()),
+            command=self._plot_code,
         ).place(x=10, y=200)
+
+    def _plot_code(self):
+        if self.watch.plot_code(int(self.code.get()), date=self.date.get()) == False:
+            messagebox.showinfo('結果', '無此個股')

@@ -12,11 +12,12 @@ import mplfinance.plotting as mplotting
 from stock import data
 from datetime import datetime
 from mplfinance._styledata import charles
+from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 class Watch():
-    xy_data_style = {'fontsize': 15, 'rotation': 0}
+    xy_data_style = {'fontsize': 28, 'rotation': 0}
 
     main_panel = 0
 
@@ -31,6 +32,7 @@ class Watch():
         self._sub_axes = {}
         self._apply_axes = {}
         self.text = None
+        self.info = None
 
         self.watch = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
 
@@ -54,7 +56,7 @@ class Watch():
             panel_ratios=(4, 1)
         )
 
-        self._set_main_axes(self._axs[self.main_panel])
+        self._set_main_axes(code, self._axs[self.main_panel])
         self._set_sup_axes({data.VOLUME: self._axs[2]})
         self._update_label()
 
@@ -62,9 +64,13 @@ class Watch():
 
     # 繪製某個股
     def plot_code(self, code, date=None):
-        self.data = self.watch.code(code, date=date)
-        data = self.data.get()
-        x_data = np.arange(len(data))
+        c_data = self.watch.code(code, date=date)
+        if c_data == None:
+            return False
+
+        self.data = c_data
+        d = self.data.get()
+        x_data = np.arange(len(d))
 
         config = mwidths._determine_width_config(x_data, dict(
             show_nontrading=False,
@@ -75,14 +81,14 @@ class Watch():
 
         collections = mutils._construct_candlestick_collections(
             x_data,
-            data[data.OPEN],
-            data[data.HIGH],
-            data[data.LOW],
-            data[data.CLOSE],
+            d[data.OPEN],
+            d[data.HIGH],
+            d[data.LOW],
+            d[data.CLOSE],
             marketcolors=self._get_style()['marketcolors'], config=dict(_width_config=config)
         )
 
-        self._main_axes.set_ylim(data[data.LOW].min(), data[data.HIGH].max())
+        self._main_axes.set_ylim(d[data.LOW].min(), d[data.HIGH].max())
         if len(self._main_axes.collections) > 0:
             self._main_axes.collections[0].remove()
             self._main_axes.collections[0].remove()
@@ -90,17 +96,32 @@ class Watch():
         for c in collections:
             self._main_axes.add_collection(c)
 
-        self._major()
+        if self.text != None:
+            self.text.clear()
 
-        for axes in self._sub_axes.values():
-            axes.update()
+        if self.info != None:
+            self.info.remove()
 
-        for axes in self._apply_axes.values():
-            axes.update()
+        for ax in self._apply_axes.values():
+            ax.clear()
+        for ax in self._sub_axes.values():
+            ax.clear()
 
-        self.text.update(self.data.get().iloc[-1])
+        self._sub_axes.clear()
+        self._apply_axes.clear()
+
+        self._set_main_axes(code, self._axs[self.main_panel])
+        self._set_sup_axes({data.VOLUME: self._axs[2]})
         self._update_label()
+
+        self.event.clear()
+        self.event.set_data(self.data)
         self.canvas.draw_idle()
+
+        return True
+
+    def _k(self):
+        pass
 
     # 設定資料呈現邏輯與格式
     def _major(self):
@@ -109,12 +130,11 @@ class Watch():
 
         (y_max, y_min) = self.data.get_y_max_min()
         price_locator = PriceLocator(y_max, y_min)
-
         self._main_axes.yaxis.set_major_locator(price_locator)
         self._main_axes.yaxis.set_major_formatter(PriceFormatter())
 
     # 主圖設定
-    def _set_main_axes(self, axes):
+    def _set_main_axes(self, code, axes):
         y_max, y_min = self.data.get_y_max_min()
         axes.name = data.CLOSE
         axes.set_xlim(-0.5, self.data.range - 0.5)
@@ -123,7 +143,27 @@ class Watch():
 
         self._major()
 
+        plt.rcParams['font.sans-serif'] = ['Taipei Sans TC Beta']
+        plt.rcParams['axes.unicode_minus'] = False
+
+        self._y_tick = axes.yaxis.major.locator.tick
+        self._y_max = axes.yaxis.major.locator.get_ticks()[-1]
+
+        info = self.watch.info(code)
+
+        if info.on == 1:
+            on = '上市'
+        else:
+            on = '上櫃'
+
         self.text = DataLabel(self._main_axes, self.data.get().iloc[-1], x_min=-8)
+        self.info = axes.text(
+            -1,
+            self._y_max + self._y_tick / 2,
+            f"{info['name']}({info.code}) - {info.industry}({on}) - {info.title} - [{info.revenue}]",
+            fontsize=40,
+            color='white'
+        )
 
         axes_list = {
             'ma': MA(),
@@ -142,6 +182,7 @@ class Watch():
 
         for name, axes in axes_list.items():
             if name in sup:
+                axes.name = name
                 object = sup[name]
                 self._plot_sup_axes(axes, object)
                 self._sub_axes[name] = object
@@ -224,6 +265,9 @@ class Watch():
     def show(self):
         plt.show()
 
+    def clear(self):
+        self._fig.remove()
+
     # 執行
     def pack(self):
         if self.canvas != None:
@@ -233,8 +277,8 @@ class Watch():
 
 # 即時數據
 class DataLabel():
-    title_font_size = 15
-    value_font_size = 15
+    title_font_size = 28
+    value_font_size = 28
 
     text = {
         'd': data.DATE,
@@ -292,6 +336,15 @@ class DataLabel():
             del self._title[name]
             del self._value[name]
 
+    def clear(self):
+        for v in self._title.values():
+            v.remove()
+        for v in self._value.values():
+            v.remove()
+
+        self._title.clear()
+        self._value.clear()
+
     def update(self, value):
         for name, ax in self._value.items():
             if name == data.DATE:
@@ -313,9 +366,6 @@ class SubAxes():
         pass
 
     def plot_text(self, text, data, **kwargs):
-        pass
-
-    def update(self, data):
         pass
 
     def clear(self):
@@ -372,10 +422,6 @@ class MA(SubAxes):
             key = f'{name}ma'
             text.add(key, key, self._line[name][0]._y[index], color=self.color[name], offset_x=3.5)
 
-    def update(self, data):
-        self.clear()
-        self._plot(data, self.ma)
-
     def _add(self, day, data):
         if day in self.color:
             color = self.color[day]
@@ -408,7 +454,7 @@ class MA(SubAxes):
 
 # 最高價與最低價
 class MaxMin(SubAxes):
-    font_size = 15
+    font_size = 25
 
     offset_x = {
         1: 1.35,
@@ -435,9 +481,6 @@ class MaxMin(SubAxes):
 
         self._max = self._set(x_max, y_max, y_offset=(y_tick / 2))
         self._min = self._set(x_min, y_min, y_offset=-y_tick)
-
-    def update(self, data):
-        self._plot(data)
 
     def _set(self, x, y, y_offset=0.0):
         return self._axes.annotate(
@@ -469,12 +512,15 @@ class Volume(SubAxes):
     # 黑k
     down_color = '#23B100'
 
-    font_size = 15
+    font_size = 25
 
     def plot(self, figure, data, **kwargs):
         self._plot(data)
 
     def _plot(self, data):
+        if len(self._axes.containers) > 0:
+            self._axes.containers[0].remove()
+
         volumes = data.volume()
         x_data = np.arange(len(volumes))
         miny = 0.3 * np.nanmin(volumes)
@@ -511,7 +557,6 @@ class Volume(SubAxes):
                 tick.update({'fontsize': self.font_size, 'rotation': 0})
 
     def update(self, data):
-        self.clear()
         self._plot(data)
 
     def _colors(self, open, close):
@@ -540,10 +585,12 @@ class MoveEvent(tk.Frame):
         self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
         self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
         self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
-        self.releaseEvent = self.canvas.mpl_connect('key_release_event', self.key_release)
 
         self._style = dict(color='#FFFF66', linewidth=1)
         self._isPress = False
+
+    def set_data(self, data):
+        self._data = data
 
     # 事件
     def add_callback(self, fun):
@@ -582,8 +629,12 @@ class MoveEvent(tk.Frame):
 
     # 點擊
     def on_press(self, event):
-        self._isPress = True
-        self.draw(event)
+        if event.button == MouseButton.LEFT:
+            self._isPress = True
+            self.draw(event)
+        elif event.button == MouseButton.RIGHT:
+            self.clear()
+            self.canvas.draw_idle()
 
     # 釋放
     def on_release(self, event):
@@ -601,18 +652,6 @@ class MoveEvent(tk.Frame):
 
         for ax in self._hax.values():
             ax.set_visible(False)
-
-    def key_release(self, event):
-        if event.key == 'escape':
-            self.clear()
-            self.canvas.draw_idle()
-
-        if event.key == 'enter':
-            # self.canvas.figure.axes[0].collections[0].remove()
-            # self.canvas.figure.axes[0].collections[0].remove()
-            # self.canvas.figure.axes[0].lines[0].remove()
-            # self.canvas.figure.axes[0].set_yticks([290,310,330,350,370,390,410,430,450,470,490])
-            self.canvas.draw_idle()
 
 
 # 日期塞選
@@ -667,7 +706,7 @@ class PriceLocator(mticks.Locator):
         if len(self.ticks) > 0:
             return self.ticks
 
-        start = self._min - (self._min % self.tick)
+        start = (self._min - (self._min % self.tick)) - self.tick
 
         for i in range(20):
             p = start + (self.tick * i)
