@@ -3,6 +3,7 @@
 import os
 import tkinter as tk
 import numpy as np
+import pandas as pd
 import mplfinance as mpf
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticks
@@ -11,7 +12,6 @@ import mplfinance._widths as mwidths
 import mplfinance.plotting as mplotting
 from stock import data
 from datetime import datetime
-from mplfinance._styledata import charles
 from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -24,240 +24,124 @@ class Watch():
     def __init__(self, master, config=None, **kwargs):
         self._master = master
         self._fig = None
-        self._axs = None
+        self._axes = {}
         self.canvas = None
         self.event = None
-
-        self._main_axes = None
-        self._sub_axes = {}
-        self._apply_axes = {}
         self.text = None
-        self.info = None
-
         self.watch = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
+
+        self._use_style()
 
     # 繪製
     def plot(self, code, width=100, height=100, date=None, **kwargs):
-        self.data = self.watch.code(code, date=date)
+
+        # self._fig, self._axs = mpf.plot(
+        #     self._c_watch.get(),
+        #     type='candle',
+        #     datetime_format='%Y-%m-%d',
+        #     ylabel='',
+        #     ylabel_lower='',
+        #     figsize=(width / 100, height / 100),
+        #     returnfig=True,
+        #     panel_ratios=(4, 1)
+        # )
+
         self.kwargs = kwargs
+        self._fig, axes_list = self._figure(width, height, (4, 1))
+        self._c_watch = self.watch.code(code, date=date)
 
-        self._fig, self._axs = mpf.plot(
-            self.data.get(),
-            type='candle',
-            style=self._get_style(),
-            datetime_format='%Y-%m-%d',
-            ylabel='',
-            ylabel_lower='',
-            figsize=(width / 100, height / 100),
-            update_width_config=self._update_width_config(),
-            scale_padding=self._scale_padding(),
-            volume=kwargs.get('volume'),
-            returnfig=True,
-            panel_ratios=(4, 1)
-        )
-
-        self._set_main_axes(code, self._axs[self.main_panel])
-        self._set_sup_axes({data.VOLUME: self._axs[2]})
-        self._update_label()
+        i = 0
+        for name, object in self._master_axse().items():
+            object.draw(code, axes_list[i], self.text, self._c_watch, self.watch, **kwargs)
+            self._axes[name] = object
+            i += 1
 
         return self._fig
 
     # 繪製某個股
     def plot_code(self, code, date=None):
-        c_data = self.watch.code(code, date=date)
-        if c_data == None:
+        c_watch = self.watch.code(code, date=date)
+        if c_watch == None:
             return False
 
-        self.data = c_data
-        d = self.data.get()
-        x_data = np.arange(len(d))
-
-        config = mwidths._determine_width_config(x_data, dict(
-            show_nontrading=False,
-            width_adjuster_version=None,
-            scale_width_adjustment=None,
-            update_width_config=self._update_width_config()
-        ))
-
-        collections = mutils._construct_candlestick_collections(
-            x_data,
-            d[data.OPEN],
-            d[data.HIGH],
-            d[data.LOW],
-            d[data.CLOSE],
-            marketcolors=self._get_style()['marketcolors'], config=dict(_width_config=config)
-        )
-
-        self._main_axes.set_ylim(d[data.LOW].min(), d[data.HIGH].max())
-        if len(self._main_axes.collections) > 0:
-            self._main_axes.collections[0].remove()
-            self._main_axes.collections[0].remove()
-
-        for c in collections:
-            self._main_axes.add_collection(c)
-
-        if self.text != None:
-            self.text.clear()
-
-        if self.info != None:
-            self.info.remove()
-
-        for ax in self._apply_axes.values():
-            ax.clear()
-        for ax in self._sub_axes.values():
-            ax.clear()
-
-        self._sub_axes.clear()
-        self._apply_axes.clear()
-
-        self._set_main_axes(code, self._axs[self.main_panel])
-        self._set_sup_axes({data.VOLUME: self._axs[2]})
-        self._update_label()
-
         self.event.clear()
-        self.event.set_data(self.data)
+        self.event.set_data(c_watch)
         self.canvas.draw_idle()
 
         return True
 
-    def _k(self):
-        pass
+    # 繪製畫板
+    def _figure(self, width, height, panel_ratios):
+        fig = plt.figure()
+        fig.set_size_inches((width / 100, height / 100))
 
-    # 設定資料呈現邏輯與格式
-    def _major(self):
-        self._main_axes.xaxis.set_major_locator(DateLocator(self.data.date()))
-        self._main_axes.xaxis.set_major_formatter(DateFormatter())
+        left_pad = 0.108
+        right_pad = 0.055
+        top_pad = 0.12
+        bot_pad = 0.036
+        plot_height = 1.0 - (bot_pad + top_pad)
+        plot_width = 1.0 - (left_pad + right_pad)
 
-        (y_max, y_min) = self.data.get_y_max_min()
-        price_locator = PriceLocator(y_max, y_min)
-        self._main_axes.yaxis.set_major_locator(price_locator)
-        self._main_axes.yaxis.set_major_formatter(PriceFormatter())
+        hs = pd.DataFrame({'height': []})
+        psum = sum(panel_ratios)
+        for panid, size in enumerate(panel_ratios):
+            hs.at[panid, 'height'] = plot_height * size / psum
 
-    # 主圖設定
-    def _set_main_axes(self, code, axes):
-        y_max, y_min = self.data.get_y_max_min()
-        axes.name = data.CLOSE
-        axes.set_xlim(-0.5, self.data.range - 0.5)
-        axes.set_ylim(y_min, y_max)
-        self._main_axes = axes
+        axes = []
+        for index, row in hs.iterrows():
+            lift = hs['height'].loc[(index + 1):].sum()
 
-        self._major()
+            if index == 0:
+                ax = fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height])
+            else:
+                ax = fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height], sharex=axes[0])
 
-        plt.rcParams['font.sans-serif'] = ['Taipei Sans TC Beta']
-        plt.rcParams['axes.unicode_minus'] = False
+            ax.set_axisbelow(True)
+            axes.append(ax)
 
-        self._y_tick = axes.yaxis.major.locator.tick
-        self._y_max = axes.yaxis.major.locator.get_ticks()[-1]
+        return fig, axes
 
-        info = self.watch.info(code)
-
-        if info.on == 1:
-            on = '上市'
-        else:
-            on = '上櫃'
-
-        self.text = DataLabel(self._main_axes, self.data.get().iloc[-1], x_min=-8)
-        self.info = axes.text(
-            -1,
-            self._y_max + self._y_tick / 2,
-            f"{info['name']}({info.code}) - {info.industry}({on}) - {info.title} - [{info.revenue}]",
-            fontsize=40,
-            color='white'
-        )
-
-        axes_list = {
-            'ma': MA(),
-            'max_min': MaxMin(),
-        }
-
-        for name, object in axes_list.items():
-            self._plot_sup_axes(self._main_axes, object)
-            self._apply_axes[name] = object
-
-    # 附圖設定
-    def _set_sup_axes(self, axes_list):
-        sup = {
+    # 主圖清單
+    def _master_axse(self):
+        return {
+            'k': K(),
             data.VOLUME: Volume(),
         }
-
-        for name, axes in axes_list.items():
-            if name in sup:
-                axes.name = name
-                object = sup[name]
-                self._plot_sup_axes(axes, object)
-                self._sub_axes[name] = object
-
-    def _plot_sup_axes(self, axes, object):
-        object.set_axes(axes)
-        object.plot(self._fig, self.data, **self.kwargs)
-        object.plot_text(self.text, self.data, **self.kwargs)
-
-    # 更新label
-    def _update_label(self):
-        for l in self._main_axes.get_yticklabels():
-            l.update(self.xy_data_style)
-
-        for l in self._main_axes.get_xticklabels():
-            l.update(self.xy_data_style)
 
     # 即時顯示資料
     def event_show_data(self, event, d):
         self.text.update(d)
 
-    # 看盤樣式
-    def _get_style(self):
-        default = {
-            'up': '#9A0000',
-            'down': '#FFFFFF'
-        }
+    # 設定看盤樣式
+    def _use_style(self):
+        plt.rcParams['font.sans-serif'] = ['Taipei Sans TC Beta']
+        plt.rcParams['axes.unicode_minus'] = False
 
-        edge = {
-            'up': '#FF0000',
-            'down': '#FFFFFF'
-        }
+        plt.style.use('dark_background')
+        plt.rcParams.update([
+            ('axes.edgecolor', 'white'),
+            ('axes.linewidth', 1.5),
+            ('axes.labelsize', 'large'),
+            ('axes.labelweight', 'semibold'),
+            ('axes.grid', True),
+            ('axes.grid.axis', 'y'),
+            ('grid.linewidth', 0.4),
+            ('lines.linewidth', 2.0),
+            ('font.weight', 'medium'),
+            ('font.size', 10.0),
+        ])
 
-        volume = {
-            'up': '#9A0000',
-            'down': '#23B100'
-        }
-
-        style = charles.style
-
-        # 蠟燭顏色
-        style['marketcolors']['candle'] = default
-        style['marketcolors']['edge'] = edge
-        style['marketcolors']['wick'] = default
-        style['marketcolors']['ohlc'] = default
-        style['marketcolors']['volume'] = volume
-
-        # 格子線
-        style['gridstyle'] = '-'
-
-        # 格子內顏色
-        style['facecolor'] = '#0f0f10'
-        style['base_mpl_style'] = 'dark_background'
-
-        return style
-
-    # 更新默認樣式寬度
-    def _update_width_config(self):
-        return {
-            'volume_width': 0.85
-        }
-
-    # 看盤比例
-    def _scale_padding(self):
-        return {
-            'left': 0.6,
-            'right': 0.55,
-            'bottom': 0.2,
-        }
+        plt.rcParams.update({
+            'axes.facecolor': '#0f0f10',
+            'grid.linestyle': '-',
+            'grid.color': '#a0a0a0',
+        })
 
     # 設定呈現在TK
     def set_tk(self, master):
         self.canvas = FigureCanvasTkAgg(self._fig, master)
 
-        self.event = MoveEvent(self.canvas, self.data, [self._axs[0], self._axs[2]])
+        self.event = MoveEvent(self.canvas, self._c_watch, self._axes.values())
         self.event.add_callback(self.event_show_data)
         self.canvas.draw()
 
@@ -280,16 +164,7 @@ class DataLabel():
     title_font_size = 28
     value_font_size = 28
 
-    text = {
-        'd': data.DATE,
-        'o': data.OPEN,
-        'c': data.CLOSE,
-        'h': data.HIGH,
-        'l': data.LOW,
-        'v': data.VOLUME,
-    }
-
-    def __init__(self, axes, data, x_min=0):
+    def __init__(self, axes, x_min=0):
         self._axes = axes
 
         self._title = {}
@@ -298,9 +173,6 @@ class DataLabel():
         self._x_min = x_min
         self._y_max = axes.yaxis.major.locator.get_ticks()[-1]
         self._y_tick = axes.yaxis.major.locator.tick
-
-        for n, c in self.text.items():
-            self.add(n, c, data[c], offset_x=1.5)
 
     def add(self, name, key, value, color='white', offset_x=1.0):
         self.set_title(name, key, color=color)
@@ -356,23 +228,232 @@ class DataLabel():
 
 
 class SubAxes():
+    xy_data_style = {'fontsize': 28, 'rotation': 0}
+
     def __init__(self):
+        self._sup = {}
         self._line = {}
 
-    def set_axes(self, axes):
+    def draw(self, code, axes, text, c_watch, watch, **kwargs):
+        self.code = code
         self._axes = axes
+        self._c_watch = c_watch
+        self._watch = watch
 
-    def plot(self, figure, data, **kwargs):
+        self._plot(**kwargs)
+        # self._plot_text(text, **kwargs)
+        self._load_sup(text, **kwargs)
+
+    def _plot(self, **kwargs):
         pass
 
-    def plot_text(self, text, data, **kwargs):
+    def _plot_text(self, text, **kwargs):
         pass
+
+    def _load_sup(self, text, **kwargs):
+        for name, object in self._sup_axes().items():
+            object.draw(self.code, self._axes, text, self._c_watch, self._watch, **kwargs)
+            self._sup[name] = object
+
+    def _sup_axes(self):
+        return {}
+
+    # 更新label
+    def _update_label(self):
+        self._axes.yaxis.set_tick_params(which='major', labelleft=False, labelright=True)
+
+        for l in self._axes.get_yticklabels():
+            l.update(self.xy_data_style)
+
+        for l in self._axes.get_xticklabels():
+            l.update(self.xy_data_style)
 
     def clear(self):
         pass
 
     def remove(self, **kwargs):
         pass
+
+
+# K線
+class K(SubAxes):
+    text = {
+        '日': data.DATE,
+        '開': data.OPEN,
+        '收': data.CLOSE,
+        '高': data.HIGH,
+        '低': data.LOW,
+    }
+
+    def __init__(self):
+        SubAxes.__init__(self)
+        self.info = None
+
+    # 繪製主圖
+    def _plot(self, **kwargs):
+        self._axes.name = data.CLOSE
+        y_max, y_min = self._c_watch.get_y_max_min()
+        self._axes.set_xlim(-0.5, self._c_watch.range - 0.5)
+        self._axes.set_ylim(y_min, y_max)
+
+        self._plot_k()
+        self._update_label()
+
+    # 繪製文案
+    def _plot_text(self, text, **kwargs):
+        info = self._watch.info(self.code)
+
+        if info.on == 1:
+            on = '上市'
+        else:
+            on = '上櫃'
+
+        _y_tick = self._axes.yaxis.major.locator.tick
+        _y_max = self._axes.yaxis.major.locator.get_ticks()[-1]
+
+        self.info = self._axes.text(
+            -1,
+            _y_max + _y_tick / 2,
+            f"{info['name']}({info.code}) - {info.industry}({on}) - {info.title} - [{info.revenue}]",
+            fontsize=40,
+            color='white'
+        )
+
+        last = self._c_watch.get_last()
+        for name, c in self.text.items():
+            text.add(name, c, last[c], offset_x=1.5)
+
+    # 繪製K線
+    def _plot_k(self):
+        d = self._c_watch.get()
+        x_data = np.arange(len(d))
+
+        collections = mutils._construct_candlestick_collections(
+            x_data,
+            d[data.OPEN],
+            d[data.HIGH],
+            d[data.LOW],
+            d[data.CLOSE],
+            marketcolors=self._color(), config=dict(_width_config=self._config(self._c_watch.range))
+        )
+
+        self._axes.set_ylim(d[data.LOW].min(), d[data.HIGH].max())
+
+        for c in collections:
+            self._axes.add_collection(c)
+
+        self._major()
+
+    # 設定檔
+    def _config(self, data_len):
+        def lw(name):
+            return mwidths._dfinterpolate(mwidths._widths, data_len, name)
+
+        return {
+            'ohlc_ticksize': lw('ow'),
+            'ohlc_linewidth': lw('olw'),
+            'candle_width': lw('cw'),
+            'candle_linewidth': lw('clw'),
+            'line_width': lw('lw'),
+        }
+
+    # 顏色
+    def _color(self):
+        default = {
+            'up': '#9A0000',
+            'down': '#FFFFFF'
+        }
+
+        edge = {
+            'up': '#FF0000',
+            'down': '#FFFFFF'
+        }
+
+        return {
+            'candle': default,
+            'edge': edge,
+            'wick': default,
+            'ohlc': default,
+            'alpha': 1,
+        }
+
+    # 設定資料呈現邏輯與格式
+    def _major(self):
+        self._axes.xaxis.set_major_locator(DateLocator(self._c_watch.date()))
+        self._axes.xaxis.set_major_formatter(DateFormatter())
+
+        (y_max, y_min) = self._c_watch.get_y_max_min()
+        price_locator = PriceLocator(y_max, y_min)
+        self._axes.yaxis.set_major_locator(price_locator)
+        self._axes.yaxis.set_major_formatter(PriceFormatter())
+
+    # 副圖
+    def _sup_axes(self):
+        return {
+            'ma': MA(),
+            'max_min': MaxMin(),
+        }
+
+
+# 成交量
+class Volume(SubAxes):
+    # 紅k
+    up_color = '#9A0000'
+
+    # 黑k
+    down_color = '#23B100'
+
+    font_size = 25
+
+    def _plot(self, **kwargs):
+        if len(self._axes.containers) > 0:
+            self._axes.containers[0].remove()
+
+        d = self._c_watch.get()
+        volumes = d[data.VOLUME]
+        x_data = np.arange(len(volumes))
+        miny = 0.3 * np.nanmin(volumes)
+        maxy = 1.1 * np.nanmax(volumes)
+        colors = mplotting._updown_colors(
+            self.up_color,
+            self.down_color,
+            d[data.OPEN],
+            d[data.CLOSE],
+            use_prev_close=True
+        )
+
+        self._axes.set_ylim(miny, maxy)
+        self._axes.bar(
+            x_data,
+            volumes,
+            width=0.85,
+            linewidth=mwidths._dfinterpolate(mwidths._widths, self._c_watch.range, 'vlw'),
+            color=colors,
+            ec=mplotting._adjust_color_brightness(colors, 0.90)
+        )
+
+        self._major(volumes)
+        self._update_label()
+
+    def _plot_text(self, text, **kwargs):
+        text.add('量', data.VOLUME, self._c_watch.get_last()[data.VOLUME], offset_x=1.5)
+
+    def _major(self, data):
+        fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
+                x * 1e-3) if x >= 1e3 else '%1.0f' % x
+
+        self._axes.yaxis.set_major_locator(VolumeLocator(data))
+        self._axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
+
+        for ticks in [self._axes.get_yticklabels(), self._axes.get_xticklabels()]:
+            for tick in ticks:
+                tick.update({'fontsize': self.font_size, 'rotation': 0})
+
+    def clear(self):
+        self._axes.clear()
+
+    def remove(self, **kwargs):
+        self._axes.remove()
 
 
 # 均線
@@ -391,19 +472,16 @@ class MA(SubAxes):
 
     def __init__(self):
         SubAxes.__init__(self)
-        self.ma = None
+        self.day = []
 
-    def plot(self, figure, data, **kwargs):
-        ma = kwargs.get('ma')
+    def _plot(self, **kwargs):
+        day = kwargs.get('ma')
 
-        if ma == None:
+        if day == None:
             return
 
-        self.ma = ma
-        self._plot(data, ma)
-
-    def _plot(self, data, day):
-        data = data.get_ma(day)
+        self.day = day
+        data = self._c_watch.get_ma(day)
 
         for d in day:
             if d not in self._line:
@@ -416,7 +494,7 @@ class MA(SubAxes):
                 v.remove()
                 del self._line[d]
 
-    def plot_text(self, text, data, **kwargs):
+    def _plot_text(self, text, **kwargs):
         index = kwargs.get('index')
         for name, line in self._line.items():
             key = f'{name}ma'
@@ -471,13 +549,10 @@ class MaxMin(SubAxes):
         self._max = None
         self._min = None
 
-    def plot(self, figure, data, **kwargs):
-        self._plot(data)
-
-    def _plot(self, data):
+    def _plot(self, **kwargs):
         y_tick = self._axes.yaxis.major.locator.tick
-        (x_max, y_max) = data.get_xy_max()
-        (x_min, y_min) = data.get_xy_min()
+        (x_max, y_max) = self._c_watch.get_xy_max()
+        (x_min, y_min) = self._c_watch.get_xy_min()
 
         self._max = self._set(x_max, y_max, y_offset=(y_tick / 2))
         self._min = self._set(x_min, y_min, y_offset=-y_tick)
@@ -502,71 +577,6 @@ class MaxMin(SubAxes):
 
         if self._min != None:
             self._min.remove()
-
-
-# 成交量
-class Volume(SubAxes):
-    # 紅k
-    up_color = '#9A0000'
-
-    # 黑k
-    down_color = '#23B100'
-
-    font_size = 25
-
-    def plot(self, figure, data, **kwargs):
-        self._plot(data)
-
-    def _plot(self, data):
-        if len(self._axes.containers) > 0:
-            self._axes.containers[0].remove()
-
-        volumes = data.volume()
-        x_data = np.arange(len(volumes))
-        miny = 0.3 * np.nanmin(volumes)
-        maxy = 1.1 * np.nanmax(volumes)
-        colors = self._colors(data.open(), data.close())
-        config = mwidths._determine_width_config(x_data, dict(
-            show_nontrading=False,
-            width_adjuster_version=None,
-            scale_width_adjustment=None,
-            update_width_config={'volume_width': 0.85}
-        ))
-
-        self._axes.set_ylim(miny, maxy)
-        self._axes.bar(
-            x_data,
-            volumes,
-            width=config['volume_width'],
-            linewidth=config['volume_linewidth'],
-            color=colors,
-            ec=mplotting._adjust_color_brightness(colors, 0.90)
-        )
-
-        self._major(volumes)
-
-    def _major(self, data):
-        fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
-                x * 1e-3) if x >= 1e3 else '%1.0f' % x
-
-        self._axes.yaxis.set_major_locator(VolumeLocator(data))
-        self._axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
-
-        for ticks in [self._axes.get_yticklabels(), self._axes.get_xticklabels()]:
-            for tick in ticks:
-                tick.update({'fontsize': self.font_size, 'rotation': 0})
-
-    def update(self, data):
-        self._plot(data)
-
-    def _colors(self, open, close):
-        return mplotting._updown_colors(self.up_color, self.down_color, open, close, use_prev_close=True)
-
-    def clear(self):
-        self._axes.clear()
-
-    def remove(self, **kwargs):
-        self._axes.remove()
 
 
 # 事件

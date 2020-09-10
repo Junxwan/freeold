@@ -304,6 +304,9 @@ class WatchData():
 
         return d[column]
 
+    def get_last(self):
+        return self.get().iloc[-1]
+
     # 均線
     def get_ma(self, day):
         for d in day:
