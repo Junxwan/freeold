@@ -228,7 +228,7 @@ class DataLabel():
 
 
 class SubAxes():
-    xy_data_style = {'fontsize': 28, 'rotation': 0}
+    xy_font_size = 25
 
     def __init__(self):
         self._sup = {}
@@ -260,13 +260,9 @@ class SubAxes():
 
     # 更新label
     def _update_label(self):
-        self._axes.yaxis.set_tick_params(which='major', labelleft=False, labelright=True)
-
-        for l in self._axes.get_yticklabels():
-            l.update(self.xy_data_style)
-
-        for l in self._axes.get_xticklabels():
-            l.update(self.xy_data_style)
+        self._axes.yaxis.tick_right()
+        self._axes.tick_params(axis='y', labelsize=self.xy_font_size)
+        self._axes.tick_params(axis='x', labelsize=self.xy_font_size)
 
     def clear(self):
         pass
@@ -293,8 +289,8 @@ class K(SubAxes):
     def _plot(self, **kwargs):
         self._axes.name = data.CLOSE
         y_max, y_min = self._c_watch.get_y_max_min()
-        self._axes.set_xlim(-0.5, self._c_watch.range - 0.5)
         self._axes.set_ylim(y_min, y_max)
+        self._axes.grid(True)
 
         self._plot_k()
         self._update_label()
@@ -406,6 +402,8 @@ class Volume(SubAxes):
     font_size = 25
 
     def _plot(self, **kwargs):
+        self._axes.grid(True)
+
         if len(self._axes.containers) > 0:
             self._axes.containers[0].remove()
 
