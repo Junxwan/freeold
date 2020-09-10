@@ -27,32 +27,21 @@ class Watch():
         self._axes = {}
         self.canvas = None
         self.event = None
-        self.text = None
+        self._data_text = None
         self.watch = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
 
         self._use_style()
 
     # 繪製
     def plot(self, code, width=100, height=100, date=None, **kwargs):
-
-        # self._fig, self._axs = mpf.plot(
-        #     self._c_watch.get(),
-        #     type='candle',
-        #     datetime_format='%Y-%m-%d',
-        #     ylabel='',
-        #     ylabel_lower='',
-        #     figsize=(width / 100, height / 100),
-        #     returnfig=True,
-        #     panel_ratios=(4, 1)
-        # )
-
         self.kwargs = kwargs
         self._fig, axes_list = self._figure(width, height, (4, 1))
         self._c_watch = self.watch.code(code, date=date)
+        self._data_test(axes_list[-1])
 
         i = 0
         for name, object in self._master_axse().items():
-            object.draw(code, axes_list[i], self.text, self._c_watch, self.watch, **kwargs)
+            object.draw(code, axes_list[i], self._data_text, self._c_watch, self.watch, **kwargs)
             self._axes[name] = object
             i += 1
 
@@ -99,7 +88,18 @@ class Watch():
             ax.set_axisbelow(True)
             axes.append(ax)
 
+        axes.append(fig.add_axes([0, bot_pad, 1 - (plot_width + right_pad), hs['height'].sum()]))
+
         return fig, axes
+
+    def _data_test(self, axes):
+        self._data_text = DataLabel(axes)
+        axes.grid(False)
+        axes.set_xlim((0, self._data_text.x_max))
+        axes.set_ylim((0, self._data_text.y_max))
+        axes.set_xticks(np.arange(self._data_text.x_max))
+        axes.set_yticks(np.arange(self._data_text.y_max))
+        axes.set_xticklabels(['' for i in range(self._data_text.x_max)])
 
     # 主圖清單
     def _master_axse(self):
@@ -164,27 +164,25 @@ class DataLabel():
     title_font_size = 28
     value_font_size = 28
 
-    def __init__(self, axes, x_min=0):
-        self._axes = axes
+    x_max = 3
+    y_max = 20
 
+    def __init__(self, axes):
+        self._axes = axes
         self._title = {}
         self._value = {}
-
-        self._x_min = x_min
-        self._y_max = axes.yaxis.major.locator.get_ticks()[-1]
-        self._y_tick = axes.yaxis.major.locator.tick
 
     def add(self, name, key, value, color='white', offset_x=1.0):
         self.set_title(name, key, color=color)
         self.set_value(key, value, offset_x=offset_x)
 
     def set_title(self, name, key, color='white'):
-        i = len(self._title)
         self._title[key] = self._axes.text(
-            self._x_min,
-            self._y_max - (self._y_tick * ((i + 1) * 1.2)),
+            0.1,
+            (self.y_max - 0.5) - len(self._title),
             name,
-            fontsize=self.title_font_size, color=color,
+            fontsize=self.title_font_size,
+            color=color
         )
 
     def set_value(self, name, value, color='black', offset_x=0.0):
@@ -194,10 +192,12 @@ class DataLabel():
         title = self._title[name]
 
         self._value[name] = self._axes.text(
-            title._x + offset_x,
+            0.1 + offset_x,
             title._y,
             value,
-            fontsize=self.value_font_size, color=color, bbox=dict(boxstyle='square'),
+            fontsize=self.value_font_size,
+            color=color,
+            bbox=dict(boxstyle='square')
         )
 
     def remove(self, name):
@@ -241,7 +241,7 @@ class SubAxes():
         self._watch = watch
 
         self._plot(**kwargs)
-        # self._plot_text(text, **kwargs)
+        self._plot_text(text, **kwargs)
         self._load_sup(text, **kwargs)
 
     def _plot(self, **kwargs):
@@ -279,6 +279,7 @@ class K(SubAxes):
         '收': data.CLOSE,
         '高': data.HIGH,
         '低': data.LOW,
+        '量': data.VOLUME,
     }
 
     def __init__(self):
@@ -317,7 +318,7 @@ class K(SubAxes):
 
         last = self._c_watch.get_last()
         for name, c in self.text.items():
-            text.add(name, c, last[c], offset_x=1.5)
+            text.add(name, c, last[c], offset_x=1)
 
     # 繪製K線
     def _plot_k(self):
@@ -402,6 +403,7 @@ class Volume(SubAxes):
     font_size = 25
 
     def _plot(self, **kwargs):
+        self._axes.name = data.VOLUME
         self._axes.grid(True)
 
         if len(self._axes.containers) > 0:
@@ -432,9 +434,6 @@ class Volume(SubAxes):
 
         self._major(volumes)
         self._update_label()
-
-    def _plot_text(self, text, **kwargs):
-        text.add('量', data.VOLUME, self._c_watch.get_last()[data.VOLUME], offset_x=1.5)
 
     def _major(self, data):
         fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
@@ -496,7 +495,7 @@ class MA(SubAxes):
         index = kwargs.get('index')
         for name, line in self._line.items():
             key = f'{name}ma'
-            text.add(key, key, self._line[name][0]._y[index], color=self.color[name], offset_x=3.5)
+            text.add(key, key, self._line[name][0]._y[index], color=self.color[name], offset_x=1.2)
 
     def _add(self, day, data):
         if day in self.color:
