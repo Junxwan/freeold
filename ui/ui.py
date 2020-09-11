@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import threading
+import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
-import tkinter as tk
 
 FONT = ('Helvetica', 18, "bold")
 
