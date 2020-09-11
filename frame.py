@@ -426,9 +426,14 @@ class Watch():
             glob.glob(os.path.join(config['data'], 'csv', f'{datetime.now().year}*.csv'))
         ]
 
-        self.watch = watch.Watch(self.watch_frame, config=config, ready=sorted(ready, reverse=True))
-        self.watch.plot(2330, self.width, self.height, index=-1, volume=True, max_min=True, ma=[5, 10, 20])
-        self.watch.set_tk(self.watch_frame)
+        self.watch = watch.Watch(
+            self.watch_frame,
+            width=self.width,
+            height=self.height,
+            config=config,
+            ready=sorted(ready, reverse=True)
+        )
+        self.watch.plot(2330, panel_ratios=(4, 1), ma=[5, 10, 20])
         self.watch.pack()
 
         self._buttonLayout()

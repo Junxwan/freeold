@@ -21,43 +21,89 @@ class Watch():
 
     main_panel = 0
 
-    def __init__(self, master, config=None, **kwargs):
-        self._master = master
+    def __init__(self, frame, config=None, width=100, height=100, **kwargs):
+        self._frame = frame
         self._fig = None
         self._axes = {}
+        self._master = []
         self.canvas = None
         self.event = None
+        self.width = width
+        self.height = height
         self._data_text = None
         self.watch = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
 
         self._use_style()
 
     # 繪製
-    def plot(self, code, width=100, height=100, date=None, **kwargs):
+    def plot(self, code, date=None, panel_ratios=None, **kwargs):
+        if self._fig is not None:
+            self._fig.remove()
+
         self.kwargs = kwargs
-        self._fig, axes_list = self._figure(width, height, (4, 1))
-        self._c_watch = self.watch.code(code, date=date)
+        self._fig, axes_list = self._figure(self.width, self.height, panel_ratios)
         self._data_test(axes_list[-1])
+
+        self._c_watch = self.watch.code(code, date=date)
+        if self._c_watch is None:
+            return False
 
         i = 0
         for name, object in self._master_axse().items():
-            object.draw(code, axes_list[i], self._data_text, self._c_watch, self.watch, **kwargs)
+            object.draw(code, axes_list[i], self._data_text, self._c_watch, self.watch, **self.kwargs)
             self._axes[name] = object
+            self._master.append(name)
             i += 1
+
+        self.canvas = FigureCanvasTkAgg(self._fig, self._frame)
+        self.event = MoveEvent(self.canvas, self._c_watch, [a.axes for a in self._axes.values()])
+        self.event.add_callback(self.event_show_data)
 
         return self._fig
 
     # 繪製某個股
     def plot_code(self, code, date=None):
-        c_watch = self.watch.code(code, date=date)
-        if c_watch == None:
+        self._c_watch = self.watch.code(code, date=date)
+        if self._c_watch is None:
             return False
 
-        self.event.clear()
-        self.event.set_data(c_watch)
+        self._data_text.clear()
+
+        for object in self._axes.values():
+            object.re_draw(code, object.axes, self._data_text, self._c_watch, self.watch, **self.kwargs)
+
+        if self.event is not None:
+            self.event.clear()
+            self.event.set_data(self._c_watch)
+
         self.canvas.draw_idle()
 
         return True
+
+    def _candle(self, code, date=None, axes_list=None, **kwargs):
+        self._c_watch = self.watch.code(code, date=date)
+        if self._c_watch == None:
+            return False
+
+        if axes_list != None:
+            self._data_test(axes_list[-1])
+
+            i = 0
+            for name, object in self._master_axse().items():
+                object.draw(code, axes_list[i], self._data_text, self._c_watch, self.watch, **kwargs)
+                self._axes[name] = object
+                i += 1
+        else:
+            self._data_text.clear()
+
+            for object in self._axes.values():
+                object.re_draw(code, object.axes, self._data_text, self._c_watch, self.watch, **kwargs)
+
+            if self.event != None:
+                self.event.clear()
+                self.event.set_data(self._c_watch)
+
+        return self._fig
 
     # 繪製畫板
     def _figure(self, width, height, panel_ratios):
@@ -110,7 +156,7 @@ class Watch():
 
     # 即時顯示資料
     def event_show_data(self, event, d):
-        self.text.update(d)
+        self._data_text.update(d)
 
     # 設定看盤樣式
     def _use_style(self):
@@ -137,26 +183,14 @@ class Watch():
             'grid.color': '#a0a0a0',
         })
 
-    # 設定呈現在TK
-    def set_tk(self, master):
-        self.canvas = FigureCanvasTkAgg(self._fig, master)
-
-        self.event = MoveEvent(self.canvas, self._c_watch, self._axes.values())
-        self.event.add_callback(self.event_show_data)
-        self.canvas.draw()
-
-    # 直接show圖
-    def show(self):
-        plt.show()
-
     def clear(self):
         self._fig.remove()
 
     # 執行
     def pack(self):
-        if self.canvas != None:
-            self.canvas.get_tk_widget().focus_force()
-            self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().focus_force()
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 
 # 即時數據
@@ -179,7 +213,7 @@ class DataLabel():
     def set_title(self, name, key, color='white'):
         self._title[key] = self._axes.text(
             0.1,
-            (self.y_max - 0.5) - len(self._title),
+            (self.y_max - 0.5) - len(self._title) - 0.2,
             name,
             fontsize=self.title_font_size,
             color=color
@@ -233,16 +267,24 @@ class SubAxes():
     def __init__(self):
         self._sup = {}
         self._line = {}
+        self.code = None
+        self._watch = None
+        self._c_watch = None
+        self.axes = None
 
     def draw(self, code, axes, text, c_watch, watch, **kwargs):
         self.code = code
-        self._axes = axes
+        self.axes = axes
         self._c_watch = c_watch
         self._watch = watch
 
         self._plot(**kwargs)
         self._plot_text(text, **kwargs)
         self._load_sup(text, **kwargs)
+
+    def re_draw(self, code, axes, text, c_watch, watch, **kwargs):
+        self.clear()
+        self.draw(code, axes, text, c_watch, watch, **kwargs)
 
     def _plot(self, **kwargs):
         pass
@@ -251,20 +293,30 @@ class SubAxes():
         pass
 
     def _load_sup(self, text, **kwargs):
-        for name, object in self._sup_axes().items():
-            object.draw(self.code, self._axes, text, self._c_watch, self._watch, **kwargs)
-            self._sup[name] = object
+        for name, o in self._sup_axes().items():
+            if isinstance(o, SubAxes):
+                o.draw(self.code, self.axes, text, self._c_watch, self._watch, **kwargs)
+                self._sup[name] = o
 
     def _sup_axes(self):
         return {}
 
     # 更新label
     def _update_label(self):
-        self._axes.yaxis.tick_right()
-        self._axes.tick_params(axis='y', labelsize=self.xy_font_size)
-        self._axes.tick_params(axis='x', labelsize=self.xy_font_size)
+        self.axes.yaxis.tick_right()
+        self.axes.tick_params(axis='y', labelsize=self.xy_font_size)
+        self.axes.tick_params(axis='x', labelsize=self.xy_font_size)
+
+    def clear_sup(self):
+        for a in self._sup.values():
+            if isinstance(a, SubAxes):
+                a._clear()
 
     def clear(self):
+        self.clear_sup()
+        self._clear()
+
+    def _clear(self):
         pass
 
     def remove(self, **kwargs):
@@ -288,10 +340,11 @@ class K(SubAxes):
 
     # 繪製主圖
     def _plot(self, **kwargs):
-        self._axes.name = data.CLOSE
+        self.axes.name = data.CLOSE
         y_max, y_min = self._c_watch.get_y_max_min()
-        self._axes.set_ylim(y_min, y_max)
-        self._axes.grid(True)
+        self.axes.set_xlim(-2, self._c_watch.range)
+        self.axes.set_ylim(y_min, y_max)
+        self.axes.grid(True)
 
         self._plot_k()
         self._update_label()
@@ -305,10 +358,10 @@ class K(SubAxes):
         else:
             on = '上櫃'
 
-        _y_tick = self._axes.yaxis.major.locator.tick
-        _y_max = self._axes.yaxis.major.locator.get_ticks()[-1]
+        _y_tick = self.axes.yaxis.major.locator.tick
+        _y_max = self.axes.yaxis.major.locator.get_ticks()[-1]
 
-        self.info = self._axes.text(
+        self.info = self.axes.text(
             -1,
             _y_max + _y_tick / 2,
             f"{info['name']}({info.code}) - {info.industry}({on}) - {info.title} - [{info.revenue}]",
@@ -318,7 +371,7 @@ class K(SubAxes):
 
         last = self._c_watch.get_last()
         for name, c in self.text.items():
-            text.add(name, c, last[c], offset_x=1)
+            text.add(name, c, last[c], offset_x=0.7)
 
     # 繪製K線
     def _plot_k(self):
@@ -334,10 +387,10 @@ class K(SubAxes):
             marketcolors=self._color(), config=dict(_width_config=self._config(self._c_watch.range))
         )
 
-        self._axes.set_ylim(d[data.LOW].min(), d[data.HIGH].max())
+        self.axes.set_ylim(d[data.LOW].min(), d[data.HIGH].max())
 
         for c in collections:
-            self._axes.add_collection(c)
+            self.axes.add_collection(c)
 
         self._major()
 
@@ -376,13 +429,13 @@ class K(SubAxes):
 
     # 設定資料呈現邏輯與格式
     def _major(self):
-        self._axes.xaxis.set_major_locator(DateLocator(self._c_watch.date()))
-        self._axes.xaxis.set_major_formatter(DateFormatter())
+        self.axes.xaxis.set_major_locator(DateLocator(self._c_watch.date()))
+        self.axes.xaxis.set_major_formatter(DateFormatter())
 
         (y_max, y_min) = self._c_watch.get_y_max_min()
         price_locator = PriceLocator(y_max, y_min)
-        self._axes.yaxis.set_major_locator(price_locator)
-        self._axes.yaxis.set_major_formatter(PriceFormatter())
+        self.axes.yaxis.set_major_locator(price_locator)
+        self.axes.yaxis.set_major_formatter(PriceFormatter())
 
     # 副圖
     def _sup_axes(self):
@@ -390,6 +443,11 @@ class K(SubAxes):
             'ma': MA(),
             'max_min': MaxMin(),
         }
+
+    def _clear(self):
+        self.info.set_text('')
+        self.axes.collections[0].remove()
+        self.axes.collections[0].remove()
 
 
 # 成交量
@@ -403,11 +461,11 @@ class Volume(SubAxes):
     font_size = 25
 
     def _plot(self, **kwargs):
-        self._axes.name = data.VOLUME
-        self._axes.grid(True)
+        self.axes.name = data.VOLUME
+        self.axes.grid(True)
 
-        if len(self._axes.containers) > 0:
-            self._axes.containers[0].remove()
+        if len(self.axes.containers) > 0:
+            self.axes.containers[0].remove()
 
         d = self._c_watch.get()
         volumes = d[data.VOLUME]
@@ -422,8 +480,8 @@ class Volume(SubAxes):
             use_prev_close=True
         )
 
-        self._axes.set_ylim(miny, maxy)
-        self._axes.bar(
+        self.axes.set_ylim(miny, maxy)
+        self.axes.bar(
             x_data,
             volumes,
             width=0.85,
@@ -435,22 +493,22 @@ class Volume(SubAxes):
         self._major(volumes)
         self._update_label()
 
-    def _major(self, data):
+    def _major(self, volume):
         fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
                 x * 1e-3) if x >= 1e3 else '%1.0f' % x
 
-        self._axes.yaxis.set_major_locator(VolumeLocator(data))
-        self._axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
+        self.axes.yaxis.set_major_locator(VolumeLocator(volume))
+        self.axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
 
-        for ticks in [self._axes.get_yticklabels(), self._axes.get_xticklabels()]:
+        for ticks in [self.axes.get_yticklabels(), self.axes.get_xticklabels()]:
             for tick in ticks:
                 tick.update({'fontsize': self.font_size, 'rotation': 0})
 
-    def clear(self):
-        self._axes.clear()
+    def _clear(self):
+        self.axes.containers[0].remove()
 
     def remove(self, **kwargs):
-        self._axes.remove()
+        self.axes.remove()
 
 
 # 均線
@@ -474,15 +532,15 @@ class MA(SubAxes):
     def _plot(self, **kwargs):
         day = kwargs.get('ma')
 
-        if day == None:
+        if day is None:
             return
 
         self.day = day
-        data = self._c_watch.get_ma(day)
+        ma = self._c_watch.get_ma(day)
 
         for d in day:
             if d not in self._line:
-                self._add(d, data[f'{d}ma'])
+                self._add(d, ma[f'{d}ma'])
 
         day = {d: '' for d in day}
 
@@ -492,20 +550,19 @@ class MA(SubAxes):
                 del self._line[d]
 
     def _plot_text(self, text, **kwargs):
-        index = kwargs.get('index')
         for name, line in self._line.items():
             key = f'{name}ma'
-            text.add(key, key, self._line[name][0]._y[index], color=self.color[name], offset_x=1.2)
+            text.add(key, key, self._line[name][0].get_ydata()[-1], color=self.color[name], offset_x=1.2)
 
-    def _add(self, day, data):
+    def _add(self, day, price):
         if day in self.color:
             color = self.color[day]
         else:
             color = 'red'
 
-        line = self._axes.plot(
-            np.arange(len(data)),
-            data,
+        line = self.axes.plot(
+            np.arange(len(price)),
+            price,
             linewidth=self.line_width,
             color=color,
         )
@@ -514,7 +571,7 @@ class MA(SubAxes):
 
         return line
 
-    def clear(self):
+    def _clear(self):
         for name, line in self._line.items():
             line[0].remove()
 
@@ -547,7 +604,7 @@ class MaxMin(SubAxes):
         self._min = None
 
     def _plot(self, **kwargs):
-        y_tick = self._axes.yaxis.major.locator.tick
+        y_tick = self.axes.yaxis.major.locator.tick
         (x_max, y_max) = self._c_watch.get_xy_max()
         (x_min, y_min) = self._c_watch.get_xy_min()
 
@@ -555,7 +612,7 @@ class MaxMin(SubAxes):
         self._min = self._set(x_min, y_min, y_offset=-y_tick)
 
     def _set(self, x, y, y_offset=0.0):
-        return self._axes.annotate(
+        return self.axes.annotate(
             y,
             xy=(x, y),
             xytext=(x - self.offset_x[len(str(y))], y + y_offset),
@@ -565,23 +622,23 @@ class MaxMin(SubAxes):
             bbox=dict(boxstyle='square', fc="0.5")
         )
 
-    def clear(self):
+    def _clear(self):
         self.remove()
 
     def remove(self, **kwargs):
-        if self._max != None:
+        if self._max is not None:
             self._max.remove()
 
-        if self._min != None:
+        if self._min is not None:
             self._min.remove()
 
 
 # 事件
 class MoveEvent(tk.Frame):
-    def __init__(self, canvas, data, axs):
+    def __init__(self, canvas, c_watch, axs):
         tk.Frame.__init__(self)
 
-        self._data = data
+        self._data = c_watch
         self.canvas = canvas
         self._axs = axs
 
@@ -596,8 +653,8 @@ class MoveEvent(tk.Frame):
         self._style = dict(color='#FFFF66', linewidth=1)
         self._isPress = False
 
-    def set_data(self, data):
-        self._data = data
+    def set_data(self, c_watch):
+        self._data = c_watch
 
     # 事件
     def add_callback(self, fun):
@@ -605,7 +662,7 @@ class MoveEvent(tk.Frame):
 
     # 重畫
     def draw(self, event):
-        if event.xdata == None:
+        if event.xdata is None:
             return
 
         x = round(event.xdata)
@@ -663,38 +720,39 @@ class MoveEvent(tk.Frame):
 
 # 日期塞選
 class DateLocator(mticks.Locator):
-    def __init__(self, data):
-        self._data = data
-        self.locs = []
+    def __init__(self, date):
+        self.data = date
+        self.loc = []
 
     def __call__(self):
-        if len(self.locs) > 0:
-            return self.locs
+        if len(self.loc) > 0:
+            return self.loc
         return self.tick_values(None, None)
 
     def tick_values(self, vmin, vmax):
         monthFirstWorkDay = {}
 
-        for i, d in enumerate(self._data):
+        for i, d in enumerate(self.data):
             d = datetime.fromisoformat(d)
             if d.month not in monthFirstWorkDay:
                 monthFirstWorkDay[d.month] = i
 
-        self.locs = list(monthFirstWorkDay.values())
+        self.loc = list(monthFirstWorkDay.values())
+        self.loc.append(len(self.data) - 1)
 
-        return self.locs
+        return self.loc
 
 
 # 股價塞選
 class PriceLocator(mticks.Locator):
     _tick_level = [50, 25, 10, 7.5, 5, 2.5, 1, 0.5, 0.25, 0.1, 0.05]
 
-    def __init__(self, max, min):
-        self._max = max
-        self._min = min
+    def __init__(self, mx, mi):
+        self._mx = mx
+        self._mi = mi
         self.ticks = []
 
-        diff = max - min
+        diff = mx - mi
         self.tick = self._tick_level[0]
 
         for i, t in enumerate(self._tick_level):
@@ -713,13 +771,13 @@ class PriceLocator(mticks.Locator):
         if len(self.ticks) > 0:
             return self.ticks
 
-        start = (self._min - (self._min % self.tick)) - self.tick
+        start = (self._mi - (self._mi % self.tick)) - self.tick
 
         for i in range(20):
             p = start + (self.tick * i)
             self.ticks.append(start + (self.tick * i))
 
-            if p > self._max:
+            if p > self._mx:
                 self.ticks.insert(0, start - self.tick)
                 self.ticks.append(p + self.tick)
                 self.ticks.append(p + self.tick * 2)
@@ -732,8 +790,8 @@ class PriceLocator(mticks.Locator):
 
 # 交易量塞選
 class VolumeLocator(mticks.Locator):
-    def __init__(self, data):
-        self._data = data
+    def __init__(self, c_watch):
+        self._c_watch = c_watch
         self.locs = []
 
     def __call__(self):
@@ -743,10 +801,10 @@ class VolumeLocator(mticks.Locator):
         if len(self.locs) > 0:
             return self.locs
 
-        max = self._data.max()
-        min = self._data.min()
-        step = 10 ** (len(str(int((max - min) / 3))) - 1)
-        diff = (max - min) / 3
+        mx = self._c_watch.max()
+        mi = self._c_watch.min()
+        step = 10 ** (len(str(int((mx - mi) / 3))) - 1)
+        diff = (mx - mi) / 3
         step = int((diff - diff % step) + step)
 
         self.locs = [step * i for i in range(5)]
@@ -759,11 +817,11 @@ class DateFormatter(mticks.Formatter):
     def __call__(self, x, pos=0):
         if x < 0:
             return ''
-        return self.axis.major.locator._data[x]
+        return self.axis.major.locator.data[x]
 
-    def getTicks(self):
+    def get_ticks(self):
         if len(self.locs) == 0:
-            self.locs = self.axis.major.locator.locs
+            self.locs = self.axis.major.locator.loc
 
         return [self.__call__(x, 0) for x in self.locs]
 
