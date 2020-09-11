@@ -16,7 +16,6 @@ class info():
             productRevenue = []
             product = []
             concept = []
-            on = ''
 
             if rows[4].value != None:
                 group = rows[4].value.split(',')

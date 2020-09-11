@@ -54,4 +54,4 @@ class app(tk.Tk):
         self.run(lambda: frame.Watch(self, config=self.configs))
 
 
-app().runWatch()
+app().runDate()
