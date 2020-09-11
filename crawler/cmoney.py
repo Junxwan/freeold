@@ -55,7 +55,7 @@ class stock(tick):
 
         t = str(date).replace('-', '')
 
-        dir = os.path.join(self.dir, date.replace('-', '')[:6], date)
+        dir = os.path.join(self.dir, date)
 
         if os.path.exists(dir) == False:
             os.makedirs(dir)

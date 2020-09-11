@@ -18,7 +18,7 @@ class tick(ui.process):
         self.date = tk.StringVar()
 
         if config != None:
-            self.output.set(config['tick'])
+            self.output.set(os.path.join(config['tick'], 'stock'))
             self.date.set(config['open'])
 
         tk.Label(master, text='CK:', font=ui.FONT).place(x=10, y=10)
