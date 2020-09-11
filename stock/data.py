@@ -4,7 +4,6 @@ import logging
 import os
 import glob
 from datetime import datetime
-
 import pandas as pd
 import numpy as np
 
