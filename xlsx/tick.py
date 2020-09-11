@@ -23,6 +23,18 @@ class to_csv():
             self.ticks[os.path.basename(dir)] = tick_files
 
     def output(self, output):
+        name = os.path.basename(self.dir)
+        output = os.path.join(output, name)
+        if os.path.exists(output) == False:
+            os.mkdir(output)
+
+        if name == 'stock':
+            self.stock_to_csv(output)
+
+        if (name == 'otc') | (name == 'tse'):
+            self.market_to_csv(output)
+
+    def stock_to_csv(self, output):
         for date, paths in self.ticks.items():
             stock = {}
 
@@ -50,11 +62,10 @@ class to_csv():
 
             index = pd.MultiIndex.from_product([codes, self.columns], names=['code', 'name'])
 
-            file_dir = os.path.join(output, f'{date[:4]}{date[5:7]}')
-            if os.path.exists(file_dir) == False:
-                os.mkdir(file_dir)
-
-            name = os.path.join(file_dir, date) + '.csv'
+            name = os.path.join(output, date) + '.csv'
             pd.DataFrame(data, index=index).to_csv(name)
 
             logging.info(f'save {name}')
+
+    def market_to_csv(self, output):
+        pass
