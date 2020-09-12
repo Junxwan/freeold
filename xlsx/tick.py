@@ -28,7 +28,7 @@ class ToCsv():
         name = os.path.basename(self.dir)
         output = os.path.join(output, name)
         if os.path.exists(output) == False:
-            os.mkdir(output)
+            os.makedirs(output)
 
         self.to_csv(output)
 
@@ -39,33 +39,61 @@ class ToCsv():
 class StockToCsv(ToCsv):
     def to_csv(self, output):
         for date, paths in self.ticks.items():
-            stock = {}
+            self._to_csv(date, paths, output)
 
+    def _to_csv(self, date, paths, output):
+        stock = {}
+
+        for path in paths:
+            data = json.load(codecs.open(path, 'r', 'utf-8-sig'))
+
+            if data['date'] != date:
+                return
+
+            stock[data['code']] = data['tick']
+
+        codes = sorted(list(stock.keys()))
+
+        data = {}
+        for i in range(266):
+            values = []
+
+            for c in codes:
+                if len(stock[c]) <= i:
+                    [values.append(np.nan) for _ in self.columns]
+                else:
+                    for n, v in stock[c][i].items():
+                        if n == 'time':
+                            v = pd.Timestamp(v, unit='s')
+                        values.append(v)
+
+            data[i] = values
+
+        index = pd.MultiIndex.from_product([codes, self.columns], names=['code', 'name'])
+        name = os.path.join(output, date) + '.csv'
+        pd.DataFrame(data, index=index).to_csv(name)
+
+        logging.info(f'save {name}')
+
+
+class MarketToCsv(ToCsv):
+    def to_csv(self, output):
+        for date, paths in self.ticks.items():
             for path in paths:
-                data = json.load(codecs.open(path, 'r', 'utf-8-sig'))
+                self._to_csv(path, output)
 
-                if data['date'] != date:
-                    return
+    def _to_csv(self, file_path, output):
+        data = json.load(codecs.open(file_path, 'r', 'utf-8-sig'))
+        values = []
 
-                stock[data['code']] = data['tick']
+        for d in data['tick']:
+            value = []
+            for n, v in d.items():
+                if n == 'time':
+                    v = pd.Timestamp(v, unit='s')
+                value.append(v)
+            values.append(value)
 
-            codes = sorted(list(stock.keys()))
-
-            data = {}
-            for i in range(266):
-                values = []
-
-                for c in codes:
-                    if len(stock[c]) <= i:
-                        [values.append(np.nan) for _ in self.columns]
-                    else:
-                        [values.append(v) for n, v in stock[c][i].items()]
-
-                data[i] = values
-
-            index = pd.MultiIndex.from_product([codes, self.columns], names=['code', 'name'])
-
-            name = os.path.join(output, date) + '.csv'
-            pd.DataFrame(data, index=index).to_csv(name)
-
-            logging.info(f'save {name}')
+        file = os.path.join(output, data['date']) + '.csv'
+        pd.DataFrame(values, columns=self.columns).to_csv(file)
+        logging.info(f'save {file}')

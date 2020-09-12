@@ -174,7 +174,7 @@ class main():
         tk.Button(
             self.btnGroupFrame,
             text='市場tick轉csv',
-            command=lambda: self.switchArg(cmoney.stock_tick_to_csv)
+            command=lambda: self.switchArg(cmoney.MarKetTickToCsv)
         ).place(x=5, y=self.h * 24)
 
         self.setLog('cmoney')
