@@ -42,44 +42,59 @@ class Watch():
             self._fig.remove()
 
         self.kwargs = kwargs
-        self._fig, axes_list = self._figure(self.width, self.height, panel_ratios)
-        self._data_test(axes_list[-1])
 
-        self._c_watch = self.watch.code(code, date=date)
-        if self._c_watch is None:
-            return False
+        if kwargs.get('k'):
+            self._plot_k(code, date=date, panel_ratios=panel_ratios, **kwargs)
+        elif kwargs.get('trend'):
+            self._plot_trend(code, date=date, panel_ratios=panel_ratios, **kwargs)
 
-        i = 0
-        for name, object in self._master_axse().items():
-            object.draw(code, axes_list[i], self._data_text, self._c_watch, self.watch, **self.kwargs)
-            self._axes[name] = object
-            self._master.append(name)
-            i += 1
-
-        self.canvas = FigureCanvasTkAgg(self._fig, self._frame)
-        self.event = KMoveEvent(self.canvas, self._c_watch, [a.axes for a in self._axes.values()])
-        self.event.add_callback(self.event_show_data)
+        if self._fig is not None:
+            self.canvas = FigureCanvasTkAgg(self._fig, self._frame)
+            self.event = KMoveEvent(self.canvas, self._c_watch, [a.axes for a in self._axes.values()])
+            self.event.add_callback(self.event_show_data)
 
         return self._fig
 
     # 繪製某個股
-    def plot_code(self, code, date=None):
-        self._c_watch = self.watch.code(code, date=date)
-        if self._c_watch is None:
-            return False
-
-        self._data_text.clear()
-
-        for object in self._axes.values():
-            object.re_draw(code, object.axes, self._data_text, self._c_watch, self.watch, **self.kwargs)
-
-        if self.event is not None:
-            self.event.clear()
-            self.event.set_data(self._c_watch)
+    def update_plot(self, code, date=None):
+        if self.kwargs.get('k'):
+            self._plot_k(code, date=date, **self.kwargs)
+        elif self.kwargs.get('trend'):
+            self._plot_trend(code, date=date, **self.kwargs)
 
         self.canvas.draw_idle()
 
         return True
+
+    # K線看盤
+    def _plot_k(self, code, date=None, **kwargs):
+        self._c_watch = self.watch.code(code, date=date)
+        if self._c_watch is None:
+            return False
+
+        if self._fig is None:
+            self._fig, axes_list = self._figure(self.width, self.height, kwargs.get('panel_ratios'))
+            self._data_test(axes_list[-1])
+
+            i = 0
+            for name, object in self._master_axse().items():
+                object.draw(code, axes_list[i], self._data_text, self._c_watch, self.watch, **kwargs)
+                self._axes[name] = object
+                self._master.append(name)
+                i += 1
+        else:
+            self._data_text.clear()
+
+            for object in self._axes.values():
+                object.re_draw(code, object.axes, self._data_text, self._c_watch, self.watch, **kwargs)
+
+            if self.event is not None:
+                self.event.clear()
+                self.event.set_data(self._c_watch)
+
+    # 走勢圖看盤
+    def _plot_trend(self, code, date=None, **kwargs):
+        pass
 
     def _candle(self, code, date=None, axes_list=None, **kwargs):
         self._c_watch = self.watch.code(code, date=date)
@@ -787,14 +802,13 @@ class PriceLocator(mticks.Locator):
 
         start = (self._mi - (self._mi % self.tick)) - self.tick
 
-        for i in range(20):
+        for i in range(25):
             p = start + (self.tick * i)
             self.ticks.append(start + (self.tick * i))
 
             if p > self._mx:
                 self.ticks.insert(0, start - self.tick)
                 self.ticks.append(p + self.tick)
-                self.ticks.append(p + self.tick * 2)
                 break
 
         self.axis.set_view_interval(self.ticks[0], self.ticks[-1])

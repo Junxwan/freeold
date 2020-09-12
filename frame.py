@@ -454,10 +454,11 @@ class Watch():
             config=config,
             ready=sorted(ready, reverse=True)
         )
-        self.watch.plot(2330, panel_ratios=(4, 1), ma=[5, 10, 20])
-        self.watch.pack()
 
         self._buttonLayout()
+
+        self._plot_k()
+        self.watch.pack()
 
     def _mainLayout(self):
         self.watch_frame = tk.Frame(self.root, width=int(self.width * 0.9), height=self.height)
@@ -494,7 +495,22 @@ class Watch():
             font=ui.SMALL_FONT,
             command=self._plot_code,
         ).place(x=10, y=200)
+        tk.Button(
+            self.bottom_frame,
+            text='K',
+            font=ui.SMALL_FONT,
+            command=self._plot_k,
+        ).place(x=140, y=200)
+        tk.Button(
+            self.bottom_frame,
+            text='勢',
+            font=ui.SMALL_FONT,
+            command=self._plot_code,
+        ).place(x=220, y=200)
+
+    def _plot_k(self):
+        self.watch.plot(int(self.code.get()), k=True, panel_ratios=(4, 1), ma=[5, 10, 20])
 
     def _plot_code(self):
-        if self.watch.plot_code(int(self.code.get()), date=self.date.get()) == False:
+        if self.watch.update_plot(int(self.code.get()), date=self.date.get()) == False:
             messagebox.showinfo('結果', '無此個股')
