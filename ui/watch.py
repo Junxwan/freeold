@@ -57,7 +57,7 @@ class Watch():
             i += 1
 
         self.canvas = FigureCanvasTkAgg(self._fig, self._frame)
-        self.event = MoveEvent(self.canvas, self._c_watch, [a.axes for a in self._axes.values()])
+        self.event = KMoveEvent(self.canvas, self._c_watch, [a.axes for a in self._axes.values()])
         self.event.add_callback(self.event_show_data)
 
         return self._fig
@@ -332,7 +332,9 @@ class K(SubAxes):
         '收': data.CLOSE,
         '高': data.HIGH,
         '低': data.LOW,
+        '漲': data.INCREASE,
         '量': data.VOLUME,
+        '振': data.AMPLITUDE,
     }
 
     def __init__(self):
@@ -345,6 +347,7 @@ class K(SubAxes):
         y_max, y_min = self._c_watch.get_y_max_min()
         self.axes.set_xlim(-2, self._c_watch.range)
         self.axes.set_ylim(y_min, y_max)
+        self.axes.tick_params(axis='x', rotation=90)
         self.axes.grid(True)
 
         self._plot_k()
@@ -634,14 +637,15 @@ class MaxMin(SubAxes):
             self._min.remove()
 
 
-# 事件
-class MoveEvent(tk.Frame):
+# K線事件
+class KMoveEvent(tk.Frame):
     def __init__(self, canvas, c_watch, axs):
         tk.Frame.__init__(self)
 
         self._data = c_watch
         self.canvas = canvas
         self._axs = axs
+        self._date = None
 
         self._vax = {}
         self._hax = {}
@@ -677,6 +681,12 @@ class MoveEvent(tk.Frame):
                 ax.set_visible(True)
                 ax.set_xdata(x)
 
+        if self._date == None:
+            self._date = self._axs[-1].text(int(x - 3), -5, p[data.DATE], fontsize='30', color='#FFFFFF')
+        else:
+            self._date.set_text(p[data.DATE])
+            self._date.set_position((int(x - 3), -5))
+
         if event.inaxes.name not in self._hax:
             self._hax[event.inaxes.name] = event.inaxes.axhline(y=(p[event.inaxes.name]), **self._style)
 
@@ -698,6 +708,7 @@ class MoveEvent(tk.Frame):
             self._isPress = True
             self.draw(event)
         elif event.button == MouseButton.RIGHT:
+            self._date.remove()
             self.clear()
             self.canvas.draw_idle()
 
@@ -712,6 +723,8 @@ class MoveEvent(tk.Frame):
 
     # 清空游標
     def clear(self):
+        self._date = None
+
         for ax in self._vax.values():
             ax.set_visible(False)
 

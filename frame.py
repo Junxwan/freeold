@@ -444,7 +444,7 @@ class Watch():
 
         ready = [
             os.path.basename(p).split('.')[0] for p in
-            glob.glob(os.path.join(config['data'], 'csv', f'{datetime.now().year}*.csv'))
+            glob.glob(os.path.join(config['data'], 'csv', 'stock', f'{datetime.now().year}*.csv'))
         ]
 
         self.watch = watch.Watch(
