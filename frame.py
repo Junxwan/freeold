@@ -435,16 +435,22 @@ class Watch():
         self.root = root
         self.size = pyautogui.size()
         self.width = self.size.width
-        self.height = int(self.size.height * 0.95)
+        self.height = self.size.height
 
         # self.root.attributes('-fullscreen', True)
         self.config = config
-        self.root.geometry(f'{self.width}x{self.height}')
+        self.plot_config = dict(
+            k=True,
+            panel_ratios=(4, 1),
+            ma=[5, 10, 20]
+        )
+
+        self.root.state('zoomed')
         self._mainLayout()
 
         ready = [
             os.path.basename(p).split('.')[0] for p in
-            glob.glob(os.path.join(config['data'], 'csv', 'stock', f'{datetime.now().year}*.csv'))
+            glob.glob(os.path.join(other.stock_csv_path(config), f'{datetime.now().year}*.csv'))
         ]
 
         self.watch = watch.Watch(
@@ -493,7 +499,7 @@ class Watch():
             self.bottom_frame,
             text='切換',
             font=ui.SMALL_FONT,
-            command=self._plot_code,
+            command=self._update_plot,
         ).place(x=10, y=200)
         tk.Button(
             self.bottom_frame,
@@ -505,12 +511,18 @@ class Watch():
             self.bottom_frame,
             text='勢',
             font=ui.SMALL_FONT,
-            command=self._plot_code,
+            command=self._plot_trend,
         ).place(x=220, y=200)
 
     def _plot_k(self):
-        self.watch.plot(int(self.code.get()), k=True, panel_ratios=(4, 1), ma=[5, 10, 20])
+        self._plot('k')
 
-    def _plot_code(self):
+    def _plot_trend(self):
+        self._plot('trend')
+
+    def _plot(self, type):
+        self.watch.plot(int(self.code.get()), type=type, **self.plot_config)
+
+    def _update_plot(self):
         if self.watch.update_plot(int(self.code.get()), date=self.date.get()) == False:
             messagebox.showinfo('結果', '無此個股')

@@ -39,19 +39,20 @@ class Watch():
     # 繪製
     def plot(self, code, date=None, panel_ratios=None, **kwargs):
         if self._fig is not None:
-            self._fig.remove()
+            self.remove()
+        else:
+            self._fig = plt.figure()
+            self.canvas = FigureCanvasTkAgg(self._fig, self._frame)
 
         self.kwargs = kwargs
+        type = kwargs.get('type')
 
-        if kwargs.get('k'):
+        if type == 'k':
             self._plot_k(code, date=date, panel_ratios=panel_ratios, **kwargs)
-        elif kwargs.get('trend'):
+        elif type == 'trend':
             self._plot_trend(code, date=date, panel_ratios=panel_ratios, **kwargs)
 
-        if self._fig is not None:
-            self.canvas = FigureCanvasTkAgg(self._fig, self._frame)
-            self.event = KMoveEvent(self.canvas, self._c_watch, [a.axes for a in self._axes.values()])
-            self.event.add_callback(self.event_show_data)
+        self.canvas.draw_idle()
 
         return self._fig
 
@@ -72,8 +73,8 @@ class Watch():
         if self._c_watch is None:
             return False
 
-        if self._fig is None:
-            self._fig, axes_list = self._figure(self.width, self.height, kwargs.get('panel_ratios'))
+        if len(self._axes) == 0:
+            axes_list = self._build_axes(self.width, self.height, kwargs.get('panel_ratios'))
             self._data_test(axes_list[-1])
 
             i = 0
@@ -82,6 +83,9 @@ class Watch():
                 self._axes[name] = object
                 self._master.append(name)
                 i += 1
+
+            self.event = KMoveEvent(self.canvas, self._c_watch, [a.axes for a in self._axes.values()])
+            self.event.add_callback(self.event_show_data)
         else:
             self._data_text.clear()
 
@@ -122,9 +126,8 @@ class Watch():
         return self._fig
 
     # 繪製畫板
-    def _figure(self, width, height, panel_ratios):
-        fig = plt.figure()
-        fig.set_size_inches((width / 100, height / 100))
+    def _build_axes(self, width, height, panel_ratios):
+        self._fig.set_size_inches((width / 100, height / 100))
 
         left_pad = 0.108
         right_pad = 0.055
@@ -143,16 +146,16 @@ class Watch():
             lift = hs['height'].loc[(index + 1):].sum()
 
             if index == 0:
-                ax = fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height])
+                ax = self._fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height])
             else:
-                ax = fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height], sharex=axes[0])
+                ax = self._fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height], sharex=axes[0])
 
             ax.set_axisbelow(True)
             axes.append(ax)
 
-        axes.append(fig.add_axes([0, bot_pad, 1 - (plot_width + right_pad), hs['height'].sum()]))
+        axes.append(self._fig.add_axes([0, bot_pad, 1 - (plot_width + right_pad), hs['height'].sum()]))
 
-        return fig, axes
+        return axes
 
     def _data_test(self, axes):
         self._data_text = DataLabel(axes)
@@ -202,6 +205,16 @@ class Watch():
     def clear(self):
         self._fig.remove()
 
+    def remove(self):
+        self._data_text.remove()
+        for n, o in self._axes.items():
+            o.remove()
+            o.axes.remove()
+
+        self.event.remove()
+        self._axes.clear()
+        self._fig.clear()
+
     # 執行
     def pack(self):
         self.canvas.draw()
@@ -250,13 +263,17 @@ class DataLabel():
             bbox=dict(boxstyle='square')
         )
 
-    def remove(self, name):
-        if name in self._title:
-            self._title[name].remove()
-            self._value[name].remove()
+    def remove(self, name=None):
+        if name is not None:
+            if name in self._title:
+                self._title[name].remove()
+                self._value[name].remove()
 
-            del self._title[name]
-            del self._value[name]
+                del self._title[name]
+                del self._value[name]
+        else:
+            self._axes.remove()
+            self.clear()
 
     def clear(self):
         for v in self._title.values():
@@ -335,7 +352,18 @@ class SubAxes():
     def _clear(self):
         pass
 
-    def remove(self, **kwargs):
+    def remove(self):
+        self._remove()
+
+        for n, o in self._sup.items():
+            o.remove()
+        for n, o in self._line.items():
+            o[0].remove()
+
+        self._line.clear()
+        self._sup.clear()
+
+    def _remove(self):
         pass
 
 
@@ -465,8 +493,12 @@ class K(SubAxes):
 
     def _clear(self):
         self.info.set_text('')
-        self.axes.collections[0].remove()
-        self.axes.collections[0].remove()
+        if len(self.axes.collections) > 0:
+            self.axes.collections[0].remove()
+            self.axes.collections[0].remove()
+
+    def _remove(self):
+        self.info.remove()
 
 
 # 成交量
@@ -524,10 +556,8 @@ class Volume(SubAxes):
                 tick.update({'fontsize': self.font_size, 'rotation': 0})
 
     def _clear(self):
-        self.axes.containers[0].remove()
-
-    def remove(self, **kwargs):
-        self.axes.remove()
+        if len(self.axes.containers) > 0:
+            self.axes.containers[0].remove()
 
 
 # 均線
@@ -596,12 +626,6 @@ class MA(SubAxes):
 
         self._line.clear()
 
-    def remove(self, **kwargs):
-        name = kwargs.get('name')
-        if name in self._line[name]:
-            self._line[name].remove()
-            del self._line[name]
-
 
 # 最高價與最低價
 class MaxMin(SubAxes):
@@ -642,9 +666,6 @@ class MaxMin(SubAxes):
         )
 
     def _clear(self):
-        self.remove()
-
-    def remove(self, **kwargs):
         if self._max is not None:
             self._max.remove()
 
@@ -735,6 +756,17 @@ class KMoveEvent(tk.Frame):
     def move(self, event):
         if self._isPress:
             self.draw(event)
+
+    def remove(self):
+        for ax in self._vax.values():
+            ax.remove()
+
+        for ax in self._hax.values():
+            ax.remove()
+
+        self.canvas.mpl_disconnect(self.moveEvent)
+        self.canvas.mpl_disconnect(self.clickEvent)
+        self.canvas.mpl_disconnect(self.releaseEvent)
 
     # 清空游標
     def clear(self):
