@@ -59,7 +59,7 @@ class select(ui.process):
             ) + '.json'
         )
         if self.stock == None:
-            self.stock = data.stock(self.dir.get())
+            self.stock = data.Stock(self.dir.get())
 
         self.stock.run(query, self.startDate.get(), end=self.endDate.get(), output=self.output.get())
         self.showSuccess()

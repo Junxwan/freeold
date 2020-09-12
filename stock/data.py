@@ -53,7 +53,7 @@ STOCK_COLUMNS = [
 ]
 
 
-class stock():
+class Stock():
     data = pd.DataFrame()
     stock = pd.DataFrame()
     tick = pd.DataFrame()
@@ -208,7 +208,7 @@ class stock():
 class Watch():
     def __init__(self, dir, ready=None):
         self._dir = dir
-        self._stock = stock(dir)
+        self._stock = Stock(dir)
 
         if ready == None:
             self._stock.readAll()
