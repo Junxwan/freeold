@@ -3,7 +3,7 @@
 import os
 import tkinter as tk
 from datetime import datetime
-from . import ui
+from . import ui, other
 from stock import data, builder as sql
 
 
@@ -21,7 +21,7 @@ class select(ui.process):
         self.startDate.set(datetime.now().date())
 
         if config != None:
-            self.dir.set(os.path.join(config['data'], 'csv'))
+            self.dir.set(other.stock_csv_path(config))
 
         tk.Label(master, text='開始日期:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.startDate, font=ui.FONT).place(x=self.ex, y=10)

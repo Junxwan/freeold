@@ -205,6 +205,35 @@ class Stock():
                 frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
 
 
+class Tick():
+    data = {}
+    dk = {}
+
+    def __init__(self, dir):
+        self.dir = dir
+
+    def month(self, month):
+        dates = [
+            os.path.basename(p).split('.')[0] for p in
+            glob.glob(os.path.join(self.dir, month[:4], f'{month[:4]}-{month[4:6]}-*.csv'))
+        ]
+
+        data = {}
+        for date in dates:
+            data[date] = self.read(date)
+
+        return data
+
+    def date(self, date):
+        self.read(date)
+
+    def read(self, date):
+        if date not in self.data:
+            self.data[date] = pd.read_csv(os.path.join(self.dir, date[:4], f'{date}.csv'), index_col=[0, 1], header=[0])
+
+        return self.data[date]
+
+
 class Watch():
     def __init__(self, dir, ready=None):
         self._dir = dir

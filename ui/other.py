@@ -39,3 +39,7 @@ class stockInfo(ui.process):
     def run(self):
         stock.info(self.input.get()).output(self.output.get())
         self.showSuccess()
+
+
+def stock_csv_path(config):
+    return os.path.join(config['data'], 'csv', 'stock')

@@ -11,6 +11,7 @@ import mplfinance._utils as mutils
 import mplfinance._widths as mwidths
 import mplfinance.plotting as mplotting
 from stock import data
+from . import other
 from datetime import datetime
 from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -31,7 +32,7 @@ class Watch():
         self.width = width
         self.height = height
         self._data_text = None
-        self.watch = data.Watch(os.path.join(config['data'], 'csv'), **kwargs)
+        self.watch = data.Watch(other.stock_csv_path(config), **kwargs)
 
         self._use_style()
 
