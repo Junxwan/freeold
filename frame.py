@@ -147,14 +147,35 @@ class main():
 
     # cmoney功能按鈕組群
     def cmoneyButtonGroup(self):
-        btn = tk.Button(self.btnGroupFrame, text='日轉csv', command=lambda: self.switchArg(cmoney.dayToData))
-        btn.place(x=5, y=5)
+        tk.Button(
+            self.btnGroupFrame,
+            text='日轉csv',
+            command=lambda: self.switchArg(cmoney.dayToData)
+        ).place(x=5, y=5)
 
-        btn = tk.Button(self.btnGroupFrame, text='年轉csv', command=lambda: self.switchArg(cmoney.yearToData))
-        btn.place(x=5, y=self.h * 6)
+        tk.Button(
+            self.btnGroupFrame,
+            text='年轉csv',
+            command=lambda: self.switchArg(cmoney.yearToData)
+        ).place(x=5, y=self.h * 6)
 
-        btn = tk.Button(self.btnGroupFrame, text='個股轉csv', command=lambda: self.switchArg(cmoney.stockToData))
-        btn.place(x=5, y=self.h * 12)
+        tk.Button(
+            self.btnGroupFrame,
+            text='個股轉csv',
+            command=lambda: self.switchArg(cmoney.stockToData)
+        ).place(x=5, y=self.h * 12)
+
+        tk.Button(
+            self.btnGroupFrame,
+            text='個股tick轉csv',
+            command=lambda: self.switchArg(cmoney.stock_tick_to_csv)
+        ).place(x=5, y=self.h * 18)
+
+        tk.Button(
+            self.btnGroupFrame,
+            text='市場tick轉csv',
+            command=lambda: self.switchArg(cmoney.stock_tick_to_csv)
+        ).place(x=5, y=self.h * 24)
 
         self.setLog('cmoney')
 
@@ -169,9 +190,6 @@ class main():
     def otherButtonGroup(self):
         btn = tk.Button(self.btnGroupFrame, text='個股資料轉json', command=lambda: self.switchArg(other.stockInfo))
         btn.place(x=5, y=5)
-
-        btn = tk.Button(self.btnGroupFrame, text='tick資料轉csv', command=lambda: self.switchArg(other.tick_to_csv))
-        btn.place(x=5, y=self.h * 6)
 
         self.setLog('other')
 

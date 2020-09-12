@@ -57,7 +57,7 @@ class stock(tick):
 
         t = str(date).replace('-', '')
 
-        dir = os.path.join(self.dir, date)
+        dir = os.path.join(self.dir, date[:4], date)
 
         if os.path.exists(dir) == False:
             os.makedirs(dir)
@@ -115,7 +115,7 @@ class market(tick):
         t = str(date).replace('-', '')
 
         for code, dir in self.code.items():
-            dir = os.path.join(dir, date.replace('-', '')[:6])
+            dir = os.path.join(dir, date[:4])
 
             if os.path.exists(dir) == False:
                 os.mkdir(dir)

@@ -6,11 +6,11 @@ import time
 import tkinter as tk
 import openpyxl
 from crawler import cmoney as crawler
-from xlsx import cmoney as xlsx
+from xlsx import cmoney as xlsx, tick
 from . import ui
 
 
-class tick(ui.process):
+class Tick(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
@@ -18,11 +18,13 @@ class tick(ui.process):
         self.session = tk.StringVar()
         self.output = tk.StringVar()
         self.date = tk.StringVar()
+        self.crawler = None
 
         if config != None:
-            self.output.set(os.path.join(config['tick'], 'stock'))
             self.date.set(config['open'])
+            self.output.set(os.path.join(config['tick']))
 
+        self.default_output()
         tk.Label(master, text='CK:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.ck, font=ui.FONT).place(x=self.ex, y=10)
 
@@ -49,6 +51,9 @@ class tick(ui.process):
 
         self.addRunBtn(master)
 
+    def default_output(self):
+        pass
+
     def run(self):
         dates = []
         date = self.date.get()
@@ -72,15 +77,15 @@ class tick(ui.process):
 
 
 # 抓取tick
-class stock(tick):
+class stock(Tick):
     def __init__(self, root, master, w, h, config=None):
-        tick.__init__(self, root, master, w, h, config=config)
+        Tick.__init__(self, root, master, w, h, config=config)
 
         self.code = tk.StringVar()
-        self.crawler = None
 
         if config != None:
             self.code.set(config['code'])
+            self.output.set(os.path.join(config['tick'], 'stock'))
 
         tk.Label(master, text='個股清單:', font=ui.FONT).place(x=10, y=self.ey * 4)
         tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=self.ey * 4)
@@ -91,23 +96,26 @@ class stock(tick):
             command=lambda: self.code.set(ui.openFile().name)
         ).place(x=w * 50, y=h * 38)
 
+    def default_output(self):
+        self.output.set(os.path.join(self.output.get(), 'stock'))
+
     def call(self, date):
         logging.info('======================= start ' + date + ' =======================')
 
         if self.crawler == None:
-            self.crawler = crawler.stock(self.ck.get(), self.session.get(), self.code.get(), self.output.get())
+            self.crawler = crawler.stock(
+                self.ck.get(),
+                self.session.get(),
+                self.code.get(),
+                self.output.get()
+            )
 
         self.crawler.get(date)
 
         logging.info('======================= end ' + date + ' =======================')
 
 
-class market(tick):
-    def __init__(self, root, master, w, h, config=None):
-        tick.__init__(self, root, master, w, h, config=config)
-
-        self.crawler = None
-
+class market(Tick):
     def call(self, date):
         if self.crawler == None:
             self.crawler = crawler.market(self.ck.get(), self.session.get(), self.output.get())
@@ -124,6 +132,8 @@ class toData(ui.process):
 
         if config != None:
             self.output.set(os.path.join(config['data'], 'csv'))
+
+        self.default_output()
 
         tk.Label(master, text='xlsx:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
@@ -144,6 +154,9 @@ class toData(ui.process):
         ).place(x=self.w * 50, y=self.h * 8)
 
         self.addRunBtn(master)
+
+    def default_output(self):
+        pass
 
     def openInputText(self):
         return ""
@@ -168,6 +181,9 @@ class dayToData(toData):
     def openOutPut(self):
         self.output.set(ui.openDir())
 
+    def default_output(self):
+        self.output.set(os.path.join(self.output.get(), 'stock'))
+
     def run(self):
         xlsx.day(self.input.get()).output(self.output.get())
         self.showSuccess()
@@ -183,6 +199,9 @@ class yearToData(toData):
 
     def openOutPut(self):
         self.output.set(ui.openDir())
+
+    def default_output(self):
+        self.output.set(os.path.join(self.output.get(), 'stock'))
 
     def run(self):
         now = time.time()
@@ -207,4 +226,39 @@ class stockToData(toData):
 
     def run(self):
         xlsx.stock(self.input.get()).output(self.output.get())
+        self.showSuccess()
+
+
+class stock_tick_to_csv(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.input = tk.StringVar()
+        self.output = tk.StringVar()
+
+        if config != None:
+            self.output.set(os.path.join(config['data'], 'csv', 'tick', 'stock'))
+
+        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.input.set(ui.openDir())
+        ).place(x=w * 50, y=10)
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=h * 8)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        tick.ToCsv(self.input.get()).output(self.output.get())
         self.showSuccess()

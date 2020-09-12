@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 
-class to_csv():
+class ToCsv():
     columns = ['time', 'price', 'volume', 'max', 'min']
 
     def __init__(self, dir):
@@ -30,13 +30,14 @@ class to_csv():
         if os.path.exists(output) == False:
             os.mkdir(output)
 
-        if name == 'stock':
-            self.stock_to_csv(output)
+        self.to_csv(output)
 
-        if (name == 'otc') | (name == 'tse'):
-            self.market_to_csv(output)
+    def to_csv(self, output):
+        pass
 
-    def stock_to_csv(self, output):
+
+class StockToCsv(ToCsv):
+    def to_csv(self, output):
         for date, paths in self.ticks.items():
             stock = {}
 
@@ -68,6 +69,3 @@ class to_csv():
             pd.DataFrame(data, index=index).to_csv(name)
 
             logging.info(f'save {name}')
-
-    def market_to_csv(self, output):
-        pass
