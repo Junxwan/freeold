@@ -99,6 +99,7 @@ class Stock():
                 self.read(os.path.basename(path).split('.')[0])
 
     def read(self, dk):
+        dk = str(dk)
         if dk not in self.dk:
             data = pd.read_csv(os.path.join(self.dir, f'{dk}.csv'), index_col=[0, 1], header=[0])
 
@@ -250,31 +251,48 @@ class Watch():
 
     def code(self, code, range=60, date=None):
         if code not in self._data:
-            try:
-                stock = self._stock.data.loc[code]
-            except:
+            c_data = self._code(code)
+
+            if c_data is None:
                 return None
 
-            c_data = pd.DataFrame([
-                stock[i].tolist() for i in stock],
-                columns=stock.index.tolist()
-            )
-
-            c_data[DATE] = pd.to_datetime(c_data[DATE])
-            c_data = c_data.set_index(DATE).sort_index()
-            c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
-            self._data[code] = WatchData(code, c_data)
+            self._data[code] = c_data
 
         self._data[code].set_range(range)
 
         try:
             if date != None:
                 date = datetime.fromisoformat(date)
-                self._data[code].set_date(date.strftime('%Y-%m-%d'))
+                s_date = date.strftime('%Y-%m-%d')
+                if self._data[code].isDate(date):
+                    if self._data[code].set_date(s_date) == False:
+                        return None
+                else:
+                    self._stock.read(date.year)
+                    c_data = self._code(code)
+                    c_data.set_range(range)
+                    c_data.set_date(s_date)
+                    self._data[code] = c_data
         except:
-            pass
+            return None
 
         return self._data[code]
+
+    def _code(self, code):
+        try:
+            stock = self._stock.data.loc[code]
+        except:
+            return None
+
+        c_data = pd.DataFrame([
+            stock[i].tolist() for i in stock],
+            columns=stock.index.tolist()
+        )
+
+        c_data[DATE] = pd.to_datetime(c_data[DATE])
+        c_data = c_data.set_index(DATE).sort_index()
+        c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
+        return WatchData(code, c_data)
 
     def info(self, code):
         return self._stock.code(code)
@@ -287,14 +305,23 @@ class WatchData():
         self.range = 60
         self._li = 0
         self._ri = data.shape[0]
+        self._start_date = data.index[0]
 
     def set_range(self, num):
         self.range = num
         self._li = self._ri - self.range
 
     def set_date(self, date):
-        self._ri = self._data.index.get_loc((self._data[DATE] == date).idxmax()) + 1
-        self._li = self._ri - self.range
+        try:
+            self._ri = self._data.index.get_loc(date) + 1
+            self._li = self._ri - self.range
+        except:
+            return False
+
+        return True
+
+    def isDate(self, date):
+        return self._start_date <= date
 
     # 日期
     def date(self):

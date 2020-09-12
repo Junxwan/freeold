@@ -682,7 +682,7 @@ class KMoveEvent(tk.Frame):
                 ax.set_xdata(x)
 
         if self._date == None:
-            self._date = self._axs[-1].text(int(x - 3), -5, p[data.DATE], fontsize='30', color='#FFFFFF')
+            self._date = self._axs[-1].text(int(x - 3), -5, p[data.DATE], fontsize='30', color='#00FFFF')
         else:
             self._date.set_text(p[data.DATE])
             self._date.set_position((int(x - 3), -5))
