@@ -95,6 +95,11 @@ class Stock():
 
         return self.query(start, end)
 
+    def yesterday(self, code, date):
+        data = self.data.loc[code]
+        q = data.loc[DATE]
+        return data[q[q < date].index[0]]
+
     def readAll(self):
         for dk, path in self.csv.items():
             if dk not in self.dk:
@@ -151,8 +156,8 @@ class Stock():
         r = q[q <= date]
         return self.data.iloc[0, int(r.index[0]):(r.index[-1])].to_numpy().tolist()
 
-    def qDate(self):
-        return self.data.loc[2330].loc[DATE]
+    def qDate(self, code=2330):
+        return self.data.loc[code].loc[DATE]
 
     def run(self, query, start, end=None, output=None, codes=None):
         data = self.date(start, end)
@@ -310,6 +315,9 @@ class K():
 
     def info(self, code):
         return self._stock.code(code)
+
+    def get_stock(self):
+        return self._stock
 
 
 class KData():

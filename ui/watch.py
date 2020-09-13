@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import mplfinance as mpf
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticks
 from stock import data
 from . import other, k
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -23,7 +24,10 @@ class Watch():
         self.width = width
         self.height = height
         self.ready = ready
+
+        self.k_watch = data.K(other.stock_csv_path(self.config))
         self.k = None
+        self.trend_watch = data.Tick(other.stock_tick_csv_path(self.config))
         self.trend = None
 
         self._use_style()
@@ -66,7 +70,7 @@ class Watch():
             self.k = KWatch(
                 self._fig,
                 self.canvas,
-                other.stock_csv_path(self.config),
+                self.k_watch,
             )
 
         self.k.plot(code, date=date, **kwargs)
@@ -77,7 +81,8 @@ class Watch():
             self.trend = TrendWatch(
                 self._fig,
                 self.canvas,
-                other.stock_tick_csv_path(self.config),
+                self.trend_watch,
+                self.k_watch.get_stock(),
             )
 
         self.trend.plot(code, date=date, **kwargs)
@@ -122,10 +127,10 @@ class Watch():
 
 # K線看盤
 class KWatch():
-    def __init__(self, fig, canvas, dir):
+    def __init__(self, fig, canvas, watch):
         self._fig = fig
         self._c_watch = None
-        self.watch = data.K(dir)
+        self.watch = watch
         self.canvas = canvas
         self._data_text = None
         self.event = None
@@ -190,10 +195,11 @@ class KWatch():
 
 
 class TrendWatch():
-    def __init__(self, fig, canvas, dir):
+    def __init__(self, fig, canvas, watch, stock):
         self._fig = fig
         self.canvas = canvas
-        self.watch = data.Tick(dir)
+        self.watch = watch
+        self.stock = stock
         self._axes = {}
         self._data_text = None
 
@@ -202,16 +208,78 @@ class TrendWatch():
         if c_watch is None:
             return False
 
+        if date is None:
+            date = c_watch.loc['time'][0][:10]
+
+        yesterday = self.stock.yesterday(code, date)
+        if yesterday is None:
+            return False
+
         axes_list = _build_axes(self._fig)
-        pd.date_range(start='1/1/2018', end='1/08/2018')
+        axes_list[0].xaxis.set_major_locator(TimeLocator())
+        axes_list[0].yaxis.set_major_locator(PriceLocator(yesterday['close']))
+
         t = np.arange(0.0, 2.0, 0.01)
         s = 1 + np.sin(2 * np.pi * t)
-
         axes_list[0].plot(t, s)
         axes_list[0].set(xlabel='time (s)', ylabel='voltage (mV)',
                          title='About as simple as it gets, folks')
         axes_list[0].grid(True)
         axes_list[1].grid(False)
+
+
+# 日期塞選
+class TimeLocator(mticks.Locator):
+    def __init__(self):
+        self.loc = []
+
+    def __call__(self):
+        if len(self.loc) > 0:
+            return self.loc
+        return self.tick_values(None, None)
+
+    def tick_values(self, vmin, vmax):
+        date_times = pd.date_range(start='2020-01-01 09:00:00', end=f'2020-01-01 13:33:00', freq='min')
+        for i in range(4):
+            date_times = date_times.delete(266)
+
+        self.loc = [t.strftime('%H:%M:%S') for t in date_times]
+
+        return self.loc
+
+
+# 股價塞選
+class PriceLocator(mticks.Locator):
+    _tick_level = [50, 25, 10, 7.5, 5, 2.5, 1, 0.5, 0.25, 0.1, 0.05]
+
+    def __init__(self, close):
+        self._close = close
+        self._max = close * 1.1
+        self._min = close * 0.9
+        self.ticks = []
+
+        diff = self._max - self._min
+        self.tick = self._tick_level[0]
+
+        for i, t in enumerate(self._tick_level):
+            d = (diff / t)
+            if d > 10:
+                self.tick = t
+                break
+
+    def __call__(self):
+        if len(self.ticks) > 0:
+            return self.ticks
+        return self.tick_values(None, None)
+
+    def tick_values(self, vmin, vmax):
+        self.ticks.append(self._min)
+
+
+
+        self.ticks.append(self._max)
+
+        return self.ticks
 
 
 # 繪製畫板
