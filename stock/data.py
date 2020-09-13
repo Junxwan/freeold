@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 
 # 日期
+from ui import other
+
 DATE = 'date'
 
 # 開盤價
@@ -228,24 +230,36 @@ class Tick():
     def date(self, date):
         self.read(date)
 
+    def code(self, code, date):
+        if date is None:
+            date = self.now_date()
+
+        self.read(date)
+        return self.data[date].loc[code]
+
     def read(self, date):
         if date not in self.data:
             self.data[date] = pd.read_csv(os.path.join(self.dir, date[:4], f'{date}.csv'), index_col=[0, 1], header=[0])
 
         return self.data[date]
 
+    def now_date(self):
+        return os.path.basename(
+            glob.glob(os.path.join(self.dir, str(datetime.now().year), '*.csv'))[-1]
+        ).split('.')[0]
 
-class Watch():
-    def __init__(self, dir, ready=None):
+
+class K():
+    def __init__(self, dir):
         self._dir = dir
         self._stock = Stock(dir)
 
-        if ready == None:
-            self._stock.readAll()
-        elif type(ready) == list:
-            [self._stock.read(n) for n in ready]
-        else:
-            self._stock.read(ready)
+        ready = [
+            os.path.basename(p).split('.')[0] for p in
+            glob.glob(os.path.join(dir, f'{datetime.now().year}*.csv'))
+        ]
+
+        [self._stock.read(n) for n in sorted(ready, reverse=True)]
 
         self._data = {}
 
@@ -292,13 +306,13 @@ class Watch():
         c_data[DATE] = pd.to_datetime(c_data[DATE])
         c_data = c_data.set_index(DATE).sort_index()
         c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
-        return WatchData(code, c_data)
+        return KData(code, c_data)
 
     def info(self, code):
         return self._stock.code(code)
 
 
-class WatchData():
+class KData():
     def __init__(self, code, data):
         self.code = code
         self._data = data

@@ -43,3 +43,7 @@ class stockInfo(ui.process):
 
 def stock_csv_path(config):
     return os.path.join(config['data'], 'csv', 'stock')
+
+
+def stock_tick_csv_path(config):
+    return os.path.join(config['data'], 'csv', 'tick', 'stock')

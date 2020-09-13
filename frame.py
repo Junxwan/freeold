@@ -448,22 +448,16 @@ class Watch():
         self.root.state('zoomed')
         self._mainLayout()
 
-        ready = [
-            os.path.basename(p).split('.')[0] for p in
-            glob.glob(os.path.join(other.stock_csv_path(config), f'{datetime.now().year}*.csv'))
-        ]
-
         self.watch = watch.Watch(
             self.watch_frame,
             width=self.width,
             height=self.height,
             config=config,
-            ready=sorted(ready, reverse=True)
         )
 
         self._buttonLayout()
 
-        self._plot_k()
+        self._plot_trend()
         self.watch.pack()
 
     def _mainLayout(self):
