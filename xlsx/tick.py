@@ -55,7 +55,7 @@ class StockToCsv(ToCsv):
         codes = sorted(list(stock.keys()))
 
         data = {}
-        for i in range(269):
+        for i in range(270):
             values = []
 
             for c in codes:

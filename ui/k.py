@@ -307,8 +307,6 @@ class Volume(SubAxes):
         d = self._c_watch.get()
         volumes = d[data.VOLUME]
         x_data = np.arange(len(volumes))
-        miny = 0.3 * np.nanmin(volumes)
-        maxy = 1.1 * np.nanmax(volumes)
         colors = mplotting._updown_colors(
             self.up_color,
             self.down_color,
@@ -317,7 +315,7 @@ class Volume(SubAxes):
             use_prev_close=True
         )
 
-        self.axes.set_ylim(miny, maxy)
+        self.axes.set_ylim(0.3 * np.nanmin(volumes), 1.1 * np.nanmax(volumes))
         self.axes.bar(
             x_data,
             volumes,
@@ -638,8 +636,9 @@ class PriceLocator(mticks.Locator):
 
 # 交易量塞選
 class VolumeLocator(mticks.Locator):
-    def __init__(self, c_watch):
+    def __init__(self, c_watch, len=5):
         self._c_watch = c_watch
+        self.len = len
         self.locs = []
 
     def __call__(self):
@@ -655,7 +654,7 @@ class VolumeLocator(mticks.Locator):
         diff = (mx - mi) / 3
         step = int((diff - diff % step) + step)
 
-        self.locs = [step * i for i in range(5)]
+        self.locs = [step * i for i in range(self.len)]
 
         return self.locs
 
