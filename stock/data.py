@@ -415,14 +415,27 @@ class Trend():
             date = self.now_date()
 
         self.read(date)
+        if date not in self.data:
+            return None
+
         return self.data[date].loc[code]
 
     def get(self, code, date):
-        return TrendData(code, self.code(code, date))
+        data = self.code(code, date)
+
+        if data is None:
+            return None
+
+        return TrendData(code, data)
 
     def read(self, date):
         if date not in self.data:
-            self.data[date] = pd.read_csv(os.path.join(self.dir, date[:4], f'{date}.csv'), index_col=[0, 1], header=[0])
+            file = os.path.join(self.dir, date[:4], f'{date}.csv')
+
+            if os.path.exists(file) == False:
+                return None
+
+            self.data[date] = pd.read_csv(file, index_col=[0, 1], header=[0], low_memory=False)
 
         return self.data[date]
 
@@ -455,7 +468,7 @@ class TrendData():
         data.columns = self._data.columns.astype(int)
         self._data = data
 
-    def all(self):
+    def value(self):
         return self._data
 
     def time(self):

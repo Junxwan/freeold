@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-import math
 import tkinter as tk
 import numpy as np
 import pandas as pd
 import mplfinance as mpf
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticks
 from stock import data
 from . import other, k, trend
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.backend_bases import MouseButton
 
 
 class Watch():
@@ -25,6 +22,7 @@ class Watch():
         self.width = width
         self.height = height
         self.ready = ready
+        self.type = ''
 
         self.k_watch = data.K(other.stock_csv_path(self.config))
         self.k = None
@@ -109,8 +107,9 @@ class Watch():
         })
 
     def clear(self):
-        if self.k is not None:
-            self.k.remove()
+        for ax in [self.k, self.trend]:
+            if ax is not None:
+                ax.remove()
 
         self._fig.clear()
 
@@ -131,72 +130,39 @@ class Plot():
         self._axes = {}
 
     def plot(self, code, date=None, **kwargs):
-        c_watch = self.watch._get(code, date=date)
+        c_watch = self._get(code, date)
         if c_watch is None:
             return False
 
         if len(self._axes) == 0:
-            axes_list = _build_axes(self._fig, panel_ratios=kwargs.get('panel_ratios'))
+            axes_list = self._build_axes(self._fig, **kwargs)
             self._build_text(axes_list[-1])
-        else:
-            pass
-
-    def _build_text(self, axes):
-        axes.grid(False)
-        axes.set_xlim((0, self._data_text.x_max))
-        axes.set_ylim((0, self._data_text.y_max))
-        axes.set_xticks(np.arange(self._data_text.x_max))
-        axes.set_yticks(np.arange(self._data_text.y_max))
-        axes.set_xticklabels(['' for i in range(self._data_text.x_max)])
-
-    def _get(self, code, date=None):
-        return None
-
-
-# K線看盤
-class KWatch():
-    def __init__(self, fig, canvas, watch):
-        self._fig = fig
-        self.watch = watch
-        self.canvas = canvas
-        self._data_text = None
-        self.event = None
-        self._axes = {}
-
-        self._c_watch = None
-
-    def plot(self, code, date=None, **kwargs):
-        c_watch = self.watch.code(code, date=date)
-        if c_watch is None:
-            return False
-
-        if len(self._axes) == 0:
-            axes_list = _build_axes(self._fig, panel_ratios=kwargs.get('panel_ratios'))
-            self._data_test(axes_list[-1])
 
             i = 0
             for name, object in self._master_axse().items():
-                if object.draw(code, axes_list[i], self._data_text, c_watch, self.watch, **kwargs) == False:
+                if object.draw(code, axes_list[i], self._data_text, c_watch, self._get_watch(), **kwargs) == False:
                     return False
                 self._axes[name] = object
                 i += 1
 
-            self.event = k.KMoveEvent(self.canvas, c_watch, [a.axes for a in self._axes.values()])
+            self.event = self._build_move_event(c_watch)
             self.event.add_callback(self.event_show_data)
-
         else:
             self._data_text.clear()
 
             for object in self._axes.values():
-                if object.re_draw(code, object.axes, self._data_text, c_watch, self.watch, **kwargs) == False:
+                if object.re_draw(code, object.axes, self._data_text, c_watch, self._get_watch(), **kwargs) == False:
                     return False
 
             if self.event is not None:
                 self.event.clear()
-                self.event.set_data(c_watch)
+                self.event.set_data(self._get_data(c_watch))
 
-    def _data_test(self, axes):
-        self._data_text = k.DataLabel(axes)
+    def _build_axes(self, fig, **kwargs) -> list:
+        return []
+
+    def _build_text(self, axes):
+        self._data_text = DataLabel(axes)
         axes.grid(False)
         axes.set_xlim((0, self._data_text.x_max))
         axes.set_ylim((0, self._data_text.y_max))
@@ -204,16 +170,24 @@ class KWatch():
         axes.set_yticks(np.arange(self._data_text.y_max))
         axes.set_xticklabels(['' for i in range(self._data_text.x_max)])
 
-    # 主圖清單
-    def _master_axse(self):
-        return {
-            'k': k.Watch(),
-            data.VOLUME: k.Volume(),
-        }
+    def _build_move_event(self, c_watch) -> k.MoveEvent:
+        return k.MoveEvent(self.canvas, c_watch, [a.axes for a in self._axes.values()])
 
-    # 即時顯示資料
-    def event_show_data(self, event, d):
-        self._data_text.update(d)
+    # 主圖清單
+    def _master_axse(self) -> dict:
+        return {}
+
+    def _get_watch(self):
+        return None
+
+    def _get_data(self, c_watch):
+        return c_watch
+
+    def event_show_data(self, event, data):
+        self._data_text.update(data)
+
+    def _get(self, code, date):
+        return None
 
     def remove(self):
         self._data_text.remove()
@@ -225,60 +199,58 @@ class KWatch():
         self._axes.clear()
 
 
+# K線看盤
+class KWatch(Plot):
+    def __init__(self, fig, canvas, watch):
+        Plot.__init__(self, fig, canvas, watch)
+        self._c_watch = None
+
+    def _build_axes(self, fig, **kwargs) -> list:
+        return _build_axes(fig, panel_ratios=kwargs.get('panel_ratios'))
+
+    def _get(self, code, date=None):
+        return self.watch.code(code, date=date)
+
+    def _get_watch(self):
+        return self.watch
+
+    # 主圖清單
+    def _master_axse(self):
+        return {
+            'k': k.Watch(),
+            data.VOLUME: k.Volume(),
+        }
+
+
 # 日內趨勢看盤
-class TrendWatch():
+class TrendWatch(Plot):
     def __init__(self, fig, canvas, watch, stock):
-        self._fig = fig
-        self.watch = watch
-        self.canvas = canvas
-        self._data_text = None
-        self.event = None
-        self._axes = {}
+        Plot.__init__(self, fig, canvas, watch)
 
         self.stock = stock
 
-    def plot(self, code, date=None, **kwargs):
-        c_watch = self.watch.get(code, date)
-        if c_watch is None:
-            return False
+    def _build_axes(self, fig, **kwargs) -> list:
+        axes = _build_axes(self._fig, panel_ratios=kwargs.get('panel_ratios'), scale_left=0.4, left=False)
+        axes[-1].yaxis.tick_right()
+        return axes
 
-        if len(self._axes) == 0:
-            axes_list = _build_axes(self._fig, panel_ratios=(4, 1), scale_left=0.4, left=False)
-            self._data_test(axes_list[-1])
+    def _build_move_event(self, c_watch):
+        return trend.MoveEvent(
+            self.canvas,
+            c_watch.value(),
+            [a.axes for a in self._axes.values()],
+            show_date=False,
+            color='#00FFFF'
+        )
 
-            i = 0
-            for name, object in self._master_axse().items():
-                if object.draw(code, axes_list[i], self._data_text, c_watch, self.stock, **kwargs) == False:
-                    return False
-                self._axes[name] = object
-                i += 1
+    def _get(self, code, date=None):
+        return self.watch.get(code, date)
 
-            self.event = trend.KMoveEvent(self.canvas, c_watch.all(), [a.axes for a in self._axes.values()])
-            self.event.add_callback(self.event_show_data)
-        else:
-            self._data_text.clear()
+    def _get_watch(self):
+        return self.stock
 
-            for object in self._axes.values():
-                if object.re_draw(code, object.axes, self._data_text, c_watch, self.stock, **kwargs) == False:
-                    return False
-
-            if self.event is not None:
-                self.event.clear()
-                self.event.set_data(c_watch.all())
-
-    def _data_test(self, axes):
-        axes.yaxis.tick_right()
-        self._data_text = trend.DataLabel(axes)
-        axes.grid(False)
-        axes.set_xlim((0, self._data_text.x_max))
-        axes.set_ylim((0, self._data_text.y_max))
-        axes.set_xticks(np.arange(self._data_text.x_max))
-        axes.set_yticks(np.arange(self._data_text.y_max))
-        axes.set_xticklabels(['' for i in range(self._data_text.x_max)])
-
-    # 即時顯示資料
-    def event_show_data(self, event, d):
-        self._data_text.update(d)
+    def _get_data(self, c_watch):
+        return c_watch.value()
 
     # 主圖清單
     def _master_axse(self):
@@ -287,15 +259,103 @@ class TrendWatch():
             data.VOLUME: trend.Volume(),
         }
 
+    def _clear(self):
+        pass
+
+
+# 即時數據
+class DataLabel():
+    title_font_size = 28
+    value_font_size = 28
+
+    x_max = 3
+    y_max = 20
+
+    def __init__(self, axes):
+        self._axes = axes
+        self._title = {}
+        self._value = {}
+
+    def add(self, name, key, value, color='white', offset_x=1.0):
+        self.set_title(name, key, color=color)
+        self.set_value(key, value, offset_x=offset_x)
+
+    def set_title(self, name, key, color='white'):
+        self._title[key] = self._axes.text(
+            0.1,
+            (self.y_max - 0.5) - len(self._title) - 0.2,
+            name,
+            fontsize=self.title_font_size,
+            color=color
+        )
+
+    def set_value(self, name, value, color='black', offset_x=0.0):
+        if name not in self._title:
+            return
+
+        title = self._title[name]
+
+        self._value[name] = self._axes.text(
+            0.1 + offset_x,
+            title._y,
+            value,
+            fontsize=self.value_font_size,
+            color=color,
+            bbox=dict(boxstyle='square')
+        )
+
+    def remove(self, name=None):
+        if name is not None:
+            if name in self._title:
+                self._title[name].remove()
+                self._value[name].remove()
+
+                del self._title[name]
+                del self._value[name]
+        else:
+            if self._axes is not None:
+                if self._axes.axes is not None:
+                    self._axes.remove()
+            self.clear()
+
+    def clear(self):
+        for v in self._title.values():
+            v.remove()
+        for v in self._value.values():
+            v.remove()
+
+        self._title.clear()
+        self._value.clear()
+
+    def update(self, value):
+        for name, ax in self._value.items():
+            if name not in value:
+                continue
+
+            if (name == 'time') | (name == data.DATE):
+                p = value[name]
+            else:
+                p = float(value[name])
+                if p < 50:
+                    p = '%1.2f' % p
+                elif p < 500:
+                    p = '%1.1f' % p
+
+            ax.set_text(p)
+
 
 # 繪製畫板
-def _build_axes(fig, panel_ratios=None, scale_left=1.0, left=True):
-    left_pad = 0.108 * scale_left
-    right_pad = 0.055 * (scale_left * 5)
+def _build_axes(fig, panel_ratios=None, scale_left=0.0, left=True):
+    left_pad = 0.108
+    right_pad = 0.055
     top_pad = 0.12
     bot_pad = 0.036
     plot_height = 1.0 - (bot_pad + top_pad)
     plot_width = 1.0 - (left_pad + right_pad)
+
+    if scale_left > 0:
+        left_pad *= scale_left
+        right_pad *= (scale_left * 5)
 
     hs = pd.DataFrame({'height': []})
     if panel_ratios is None:

@@ -6,82 +6,6 @@ from . import k
 from stock import data
 from matplotlib.backend_bases import MouseButton
 
-
-# 即時數據
-class DataLabel():
-    title_font_size = 15
-    value_font_size = 15
-
-    x_max = 3
-    y_max = 20
-
-    def __init__(self, axes):
-        self._axes = axes
-        self._title = {}
-        self._value = {}
-
-    def add(self, name, key, value, color='white', offset_x=1.0):
-        self.set_title(name, key, color=color)
-        self.set_value(key, value, offset_x=offset_x)
-
-    def set_title(self, name, key, color='white'):
-        self._title[key] = self._axes.text(
-            0.1,
-            (self.y_max - 0.5) - len(self._title) - 0.2,
-            name,
-            fontsize=self.title_font_size,
-            color=color
-        )
-
-    def set_value(self, name, value, color='black', offset_x=0.0):
-        if name not in self._title:
-            return
-
-        title = self._title[name]
-
-        self._value[name] = self._axes.text(
-            0.1 + offset_x,
-            title._y,
-            value,
-            fontsize=self.value_font_size,
-            color=color,
-            bbox=dict(boxstyle='square')
-        )
-
-    def remove(self, name=None):
-        if name is not None:
-            if name in self._title:
-                self._title[name].remove()
-                self._value[name].remove()
-
-                del self._title[name]
-                del self._value[name]
-        else:
-            self._axes.remove()
-            self.clear()
-
-    def clear(self):
-        for v in self._title.values():
-            v.remove()
-        for v in self._value.values():
-            v.remove()
-
-        self._title.clear()
-        self._value.clear()
-
-    def update(self, value):
-        for name, ax in self._value.items():
-            if name not in value:
-                continue
-
-            if name == 'time':
-                p = value[name]
-            else:
-                p = '%1.2f' % float(value[name])
-
-            ax.set_text(p)
-
-
 # 日內走勢
 class Watch(k.SubAxes):
     text = {
@@ -151,23 +75,24 @@ class Watch(k.SubAxes):
         }
 
     def _update_label(self):
-        self.axes.tick_params(axis='y', labelsize=self.xy_font_size)
+        self.axes.tick_params(axis='y', labelsize=self.xy_font_size, labelcolor='#FFFFFF')
         self.axes.tick_params(axis='x', labelsize=self.xy_font_size)
 
         y_label = self.axes.get_yticklabels()
         y_label[0].set_bbox(dict(facecolor='green'))
         y_label[-1].set_bbox(dict(facecolor='red'))
-        close_pos = math.ceil(len(y_label) / 2)
+        close_pos = int(len(y_label) / 2)
 
-        for l in y_label[1:close_pos - 1]:
+        for l in y_label[1:close_pos]:
             l.set_color('#51F069')
+            l.set_bbox(None)
 
-        for l in y_label[close_pos:-1]:
+        for l in y_label[close_pos + 1:-1]:
             l.set_color('#FF0000')
+            l.set_bbox(None)
 
     def _clear(self):
-        if len(self.axes.lines) > 0:
-            self.axes.lines[0].remove()
+        for i in range(len(self.axes.lines)):
             self.axes.lines[0].remove()
 
 
@@ -254,99 +179,9 @@ class MaxMin(k.SubAxes):
 
 
 # 日內走勢事件
-class KMoveEvent(tk.Frame):
-    def __init__(self, canvas, c_watch, axs):
-        tk.Frame.__init__(self)
-
-        self._data = c_watch
-        self.canvas = canvas
-        self._axs = axs
-
-        self._vax = {}
-        self._hax = {}
-        self._callbacks = []
-
-        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
-        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
-        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
-
-        self._style = dict(color='#00FFFF', linewidth=0.7)
-        self._isPress = False
-
-    def set_data(self, c_watch):
-        self._data = c_watch
-
-    # 事件
-    def add_callback(self, fun):
-        self._callbacks.append(fun)
-
-    # 重畫
-    def draw(self, event):
-        if event.xdata is None:
-            return
-
-        x = round(event.xdata)
-        p = self._data[x]
-
-        if len(self._vax) == 0:
-            for ax in self._axs:
-                self._vax[ax.name] = ax.axvline(x=x, **self._style)
-        else:
-            for ax in self._vax.values():
-                ax.set_visible(True)
-                ax.set_xdata(x)
-
-        if event.inaxes.name not in self._hax:
-            self._hax[event.inaxes.name] = event.inaxes.axhline(y=(p[event.inaxes.name]), **self._style)
-
-        for name, ax in self._hax.items():
-            if name == event.inaxes.name:
-                ax.set_visible(True)
-                ax.set_ydata(p[event.inaxes.name])
-            else:
-                ax.set_visible(False)
-
-        for fun in self._callbacks:
-            fun(event, p)
-
-        self.canvas.draw_idle()
-
-    # 點擊
-    def on_press(self, event):
-        if event.button == MouseButton.LEFT:
-            self._isPress = True
-            self.draw(event)
-        elif event.button == MouseButton.RIGHT:
-            self.clear()
-            self.canvas.draw_idle()
-
-    # 釋放
-    def on_release(self, event):
-        self._isPress = False
-
-    # 移動
-    def move(self, event):
-        if self._isPress:
-            self.draw(event)
-
-    def remove(self):
-        for ax in self._vax.values():
-            ax.remove()
-
-        for ax in self._hax.values():
-            ax.remove()
-
-        self.canvas.mpl_disconnect(self.moveEvent)
-        self.canvas.mpl_disconnect(self.clickEvent)
-        self.canvas.mpl_disconnect(self.releaseEvent)
-
-    # 清空游標
-    def clear(self):
-        for ax in self._vax.values():
-            ax.set_visible(False)
-
-        for ax in self._hax.values():
-            ax.set_visible(False)
+class MoveEvent(k.MoveEvent):
+    def get(self, x):
+        return self._data[x]
 
 
 # 日期塞選
