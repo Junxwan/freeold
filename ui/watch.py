@@ -121,6 +121,38 @@ class Watch():
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 
+class Plot():
+    def __init__(self, fig, canvas, watch):
+        self._fig = fig
+        self.watch = watch
+        self.canvas = canvas
+        self._data_text = None
+        self.event = None
+        self._axes = {}
+
+    def plot(self, code, date=None, **kwargs):
+        c_watch = self.watch._get(code, date=date)
+        if c_watch is None:
+            return False
+
+        if len(self._axes) == 0:
+            axes_list = _build_axes(self._fig, panel_ratios=kwargs.get('panel_ratios'))
+            self._build_text(axes_list[-1])
+        else:
+            pass
+
+    def _build_text(self, axes):
+        axes.grid(False)
+        axes.set_xlim((0, self._data_text.x_max))
+        axes.set_ylim((0, self._data_text.y_max))
+        axes.set_xticks(np.arange(self._data_text.x_max))
+        axes.set_yticks(np.arange(self._data_text.y_max))
+        axes.set_xticklabels(['' for i in range(self._data_text.x_max)])
+
+    def _get(self, code, date=None):
+        return None
+
+
 # K線看盤
 class KWatch():
     def __init__(self, fig, canvas, watch):
