@@ -9,6 +9,7 @@ import matplotlib.ticker as mticks
 from stock import data
 from . import other, k
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backend_bases import MouseButton
 
 
 class Watch():
@@ -195,7 +196,15 @@ class KWatch():
 
 
 class TrendWatch():
-    xy_font_size = 25
+    xy_font_size = 15
+
+    text = {
+        '時': 'time',
+        '成': 'price',
+        '高': 'max',
+        '低': 'min',
+        '量': data.VOLUME,
+    }
 
     def __init__(self, fig, canvas, watch, stock):
         self._fig = fig
@@ -217,9 +226,16 @@ class TrendWatch():
         if yesterday is None:
             return False
 
-        volume = c_watch.loc[data.VOLUME].dropna().astype(int)
+        c_watch = c_watch.dropna(axis='columns')
+        volume = c_watch.loc[data.VOLUME].astype(int)
+        price = c_watch.loc['price'].astype(float)
+        time = c_watch.loc['time'].transform(lambda x: x[11:])
 
-        axes_list = _build_axes(self._fig, panel_ratios=(4, 1))
+        c_watch.loc[data.VOLUME] = volume
+        c_watch.loc['price'] = price
+        c_watch.loc['time'] = time
+
+        axes_list = _build_axes(self._fig, panel_ratios=(4, 1), scale_left=0.4, left=False)
         axes_list[0].xaxis.set_major_locator(TimeLocator())
         axes_list[0].xaxis.set_major_formatter(TimeFormatter())
         axes_list[1].xaxis.set_major_locator(TimeLocator())
@@ -265,18 +281,17 @@ class TrendWatch():
         x = [i - 5 for i in range(6)]
         y = [yesterday['close'] for i in range(6)]
         yv = [0 for i in range(6)]
-        p = c_watch.loc['price'].dropna().astype(float)
 
-        for i, t in enumerate(c_watch.loc['time'].dropna()):
-            x.append(times[t[11:]])
-            y.append(p[i])
+        for i, t in enumerate(time):
+            x.append(times[t])
+            y.append(price[i])
             yv.append(volume[i])
 
         axes_list[0].plot(x, y, color='#FFFF00')
         axes_list[1].bar(x, yv, color='#FF00FF', width=0.2)
 
-        y_max = p.max()
-        x_max = int(p.idxmax())
+        y_max = price.max()
+        x_max = int(price.idxmax())
         axes_list[0].annotate(
             y_max,
             xy=(x_max, y_max + 0.5 * 2),
@@ -286,8 +301,8 @@ class TrendWatch():
             arrowprops=dict(arrowstyle="simple", color='#FF0000'),
         )
 
-        y_min = p.min()
-        x_min = int(p.idxmin())
+        y_min = price.min()
+        x_min = int(price.idxmin())
         axes_list[0].annotate(
             y_min,
             xy=(x_min, y_min - 0.5 * 2),
@@ -297,8 +312,214 @@ class TrendWatch():
             arrowprops=dict(arrowstyle="simple", color='#51F069'),
         )
 
+        axes_list[0].name = 'price'
+        axes_list[1].name = data.VOLUME
+
         axes_list[0].grid(True)
         axes_list[1].grid(True)
+        axes_list[2].grid(False)
+        self._data_test(axes_list[-1])
+        axes_list[-1].yaxis.tick_right()
+
+        first = c_watch['0']
+        for name, c in self.text.items():
+            self._data_text.add(name, c, first[c], offset_x=0.5)
+
+        self.event = KMoveEvent(self.canvas, c_watch, [axes_list[0], axes_list[1]])
+        self.event.add_callback(self.event_show_data)
+
+    def _data_test(self, axes):
+        self._data_text = DataLabel(axes)
+        axes.grid(False)
+        axes.set_xlim((0, self._data_text.x_max))
+        axes.set_ylim((0, self._data_text.y_max))
+        axes.set_xticks(np.arange(self._data_text.x_max))
+        axes.set_yticks(np.arange(self._data_text.y_max))
+        axes.set_xticklabels(['' for i in range(self._data_text.x_max)])
+
+    # 即時顯示資料
+    def event_show_data(self, event, d):
+        self._data_text.update(d)
+
+
+# 即時數據
+class DataLabel():
+    title_font_size = 15
+    value_font_size = 15
+
+    x_max = 3
+    y_max = 20
+
+    def __init__(self, axes):
+        self._axes = axes
+        self._title = {}
+        self._value = {}
+
+    def add(self, name, key, value, color='white', offset_x=1.0):
+        self.set_title(name, key, color=color)
+        self.set_value(key, value, offset_x=offset_x)
+
+    def set_title(self, name, key, color='white'):
+        self._title[key] = self._axes.text(
+            0.1,
+            (self.y_max - 0.5) - len(self._title) - 0.2,
+            name,
+            fontsize=self.title_font_size,
+            color=color
+        )
+
+    def set_value(self, name, value, color='black', offset_x=0.0):
+        if name not in self._title:
+            return
+
+        title = self._title[name]
+
+        self._value[name] = self._axes.text(
+            0.1 + offset_x,
+            title._y,
+            value,
+            fontsize=self.value_font_size,
+            color=color,
+            bbox=dict(boxstyle='square')
+        )
+
+    def remove(self, name=None):
+        if name is not None:
+            if name in self._title:
+                self._title[name].remove()
+                self._value[name].remove()
+
+                del self._title[name]
+                del self._value[name]
+        else:
+            self._axes.remove()
+            self.clear()
+
+    def clear(self):
+        for v in self._title.values():
+            v.remove()
+        for v in self._value.values():
+            v.remove()
+
+        self._title.clear()
+        self._value.clear()
+
+    def update(self, value):
+        for name, ax in self._value.items():
+            if name == 'time':
+                p = value[name]
+            else:
+                p = '%1.2f' % float(value[name])
+
+            ax.set_text(p)
+
+
+# K線事件
+class KMoveEvent(tk.Frame):
+    def __init__(self, canvas, c_watch, axs):
+        tk.Frame.__init__(self)
+
+        self._data = c_watch
+        self.canvas = canvas
+        self._axs = axs
+        self._date = None
+
+        self._vax = {}
+        self._hax = {}
+        self._callbacks = []
+
+        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
+        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
+
+        self._style = dict(color='#FFFF66', linewidth=1)
+        self._isPress = False
+
+    def set_data(self, c_watch):
+        self._data = c_watch
+
+    # 事件
+    def add_callback(self, fun):
+        self._callbacks.append(fun)
+
+    # 重畫
+    def draw(self, event):
+        if event.xdata is None:
+            return
+
+        x = round(event.xdata)
+        p = self._data[f'{x}']
+
+        if len(self._vax) == 0:
+            for ax in self._axs:
+                self._vax[ax.name] = ax.axvline(x=x, **self._style)
+        else:
+            for ax in self._vax.values():
+                ax.set_visible(True)
+                ax.set_xdata(x)
+
+        if self._date == None:
+            self._date = self._axs[-1].text(int(x - 3), -5, p['time'], fontsize=15, color='#00FFFF')
+        else:
+            self._date.set_visible(True)
+            self._date.set_text(p['time'])
+            self._date.set_position((int(x - 3), -5))
+
+        if event.inaxes.name not in self._hax:
+            self._hax[event.inaxes.name] = event.inaxes.axhline(y=(p[event.inaxes.name]), **self._style)
+
+        for name, ax in self._hax.items():
+            if name == event.inaxes.name:
+                ax.set_visible(True)
+                ax.set_ydata(p[event.inaxes.name])
+            else:
+                ax.set_visible(False)
+
+        for fun in self._callbacks:
+            fun(event, p)
+
+        self.canvas.draw_idle()
+
+    # 點擊
+    def on_press(self, event):
+        if event.button == MouseButton.LEFT:
+            self._isPress = True
+            self.draw(event)
+        elif event.button == MouseButton.RIGHT:
+            self.clear()
+            self.canvas.draw_idle()
+
+    # 釋放
+    def on_release(self, event):
+        self._isPress = False
+
+    # 移動
+    def move(self, event):
+        if self._isPress:
+            self.draw(event)
+
+    def remove(self):
+        for ax in self._vax.values():
+            ax.remove()
+
+        for ax in self._hax.values():
+            ax.remove()
+
+        self._date.remove()
+        self.canvas.mpl_disconnect(self.moveEvent)
+        self.canvas.mpl_disconnect(self.clickEvent)
+        self.canvas.mpl_disconnect(self.releaseEvent)
+
+    # 清空游標
+    def clear(self):
+        if self._date is not None:
+            self._date.set_text('')
+
+        for ax in self._vax.values():
+            ax.set_visible(False)
+
+        for ax in self._hax.values():
+            ax.set_visible(False)
 
 
 # 日期塞選
@@ -460,9 +681,9 @@ class PriceFormatter(mticks.Formatter):
 
 
 # 繪製畫板
-def _build_axes(fig, panel_ratios=None):
-    left_pad = 0.108
-    right_pad = 0.055
+def _build_axes(fig, panel_ratios=None, scale_left=1.0, left=True):
+    left_pad = 0.108 * scale_left
+    right_pad = 0.055 * (scale_left * 5)
     top_pad = 0.12
     bot_pad = 0.036
     plot_height = 1.0 - (bot_pad + top_pad)
@@ -488,6 +709,9 @@ def _build_axes(fig, panel_ratios=None):
         ax.set_axisbelow(True)
         axes.append(ax)
 
-    # axes.append(fig.add_axes([0, bot_pad, 1 - (plot_width + right_pad), hs['height'].sum()]))
+    if left:
+        axes.append(fig.add_axes([0, bot_pad, 1 - (plot_width + right_pad), hs['height'].sum()]))
+    else:
+        axes.append(fig.add_axes([plot_width + left_pad, bot_pad, 1 - plot_width, hs['height'].sum()]))
 
     return axes
