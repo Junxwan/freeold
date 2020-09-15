@@ -118,7 +118,7 @@ class main():
 
     # 抓取資料功能按鈕組群
     def dataButonGroup(self):
-        btn = tk.Button(self.btnGroupFrame, text='tick', command=lambda: self.switchArg(cmoney.stock))
+        btn = tk.Button(self.btnGroupFrame, text='trend', command=lambda: self.switchArg(cmoney.stock))
         btn.place(x=5, y=5)
 
         btn = tk.Button(self.btnGroupFrame, text='市場', command=lambda: self.switchArg(cmoney.market))
@@ -167,14 +167,14 @@ class main():
 
         tk.Button(
             self.btnGroupFrame,
-            text='個股tick轉csv',
-            command=lambda: self.switchArg(cmoney.stock_tick_to_csv)
+            text='個股trend轉csv',
+            command=lambda: self.switchArg(cmoney.StockTrendToCsv)
         ).place(x=5, y=self.h * 18)
 
         tk.Button(
             self.btnGroupFrame,
-            text='市場tick轉csv',
-            command=lambda: self.switchArg(cmoney.MarKetTickToCsv)
+            text='市場trend轉csv',
+            command=lambda: self.switchArg(cmoney.MarKetTrendToCsv)
         ).place(x=5, y=self.h * 24)
 
         self.setLog('cmoney')

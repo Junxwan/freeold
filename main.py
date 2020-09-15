@@ -22,7 +22,7 @@ class app(tk.Tk):
         return {
             'data': '',
             'json': '',
-            'tick': '',
+            'trend': '',
             'output': '',
             'code': '',
             'open': '',

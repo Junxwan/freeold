@@ -9,7 +9,7 @@ import openpyxl
 from datetime import datetime
 
 
-class tick():
+class Trend():
     def __init__(self, ck, session, dir):
         self.dir = dir
         self.api = api(ck, session)
@@ -29,9 +29,9 @@ class tick():
         return True
 
 
-class stock(tick):
+class stock(Trend):
     def __init__(self, ck, session, code, dir):
-        tick.__init__(self, ck, session, dir)
+        Trend.__init__(self, ck, session, dir)
         self.code = self.readCode(code)
 
     def readCode(self, path):
@@ -72,7 +72,7 @@ class stock(tick):
                 logging.info(f'code: {code} date: {date} exists - {str(count)}')
                 continue
 
-            tData = self.api.tick(code, t)
+            tData = self.api.trend(code, t)
 
             time.sleep(1.5)
 
@@ -85,7 +85,7 @@ class stock(tick):
 
             if self.save(tData, code, date, filePath):
                 ok += 1
-                logging.info(f'code: {code} date: {date} save tick - {str(count)}')
+                logging.info(f'code: {code} date: {date} save trend - {str(count)}')
             else:
                 failure += 1
                 logging.info(f'code: {code} date: {date} save failure - {str(count)}')
@@ -96,9 +96,9 @@ class stock(tick):
         logging.info(f"empty: {emy.__len__()} {emy.__str__()}")
 
 
-class market(tick):
+class market(Trend):
     def __init__(self, ck, session, dir):
-        tick.__init__(self, ck, session, dir)
+        Trend.__init__(self, ck, session, dir)
 
         tseDir = os.path.join(dir, 'tse')
         otcDir = os.path.join(dir, 'otc')
@@ -126,19 +126,19 @@ class market(tick):
                 logging.info(f'code: {code} date: {date} exists')
                 continue
 
-            tick = self.api.tick(code, t)
+            trend = self.api.trend(code, t)
 
             time.sleep(1)
 
-            if tick == None:
+            if trend == None:
                 logging.info(f'code: {code} date: {date} empty')
                 continue
 
-            date = datetime.fromtimestamp(tick[0]['time']).date().__str__()
+            date = datetime.fromtimestamp(trend[0]['time']).date().__str__()
 
-            self.save(tick, code, date, filePath)
+            self.save(trend, code, date, filePath)
 
-            logging.info(f'code: {code} date: {date} save tick')
+            logging.info(f'code: {code} date: {date} save trend')
 
 
 class api():
@@ -147,8 +147,8 @@ class api():
         self.__session = session
         self.__time = int(time.time())
 
-    # 抓取某個股某日tick
-    def tick(self, code, date):
+    # 抓取某個股某日trend
+    def trend(self, code, date):
         resp = requests.get('https://www.cmoney.tw/notice/chart/stock-chart-service.ashx', params={
             'action': 'r',
             'id': code,
@@ -175,7 +175,7 @@ class api():
 
         context = []
 
-        # 將原始tick name重新命名
+        # 將原始trend name重新命名
         for t in tData:
             if t[0] < 1300000000000:
                 return None

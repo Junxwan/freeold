@@ -28,7 +28,7 @@ class Watch():
 
         self.k_watch = data.K(other.stock_csv_path(self.config))
         self.k = None
-        self.trend_watch = data.Tick(other.stock_tick_csv_path(self.config))
+        self.trend_watch = data.Trend(other.stock_trend_csv_path(self.config))
         self.trend = None
 
         self._use_style()

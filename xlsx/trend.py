@@ -14,15 +14,15 @@ class ToCsv():
 
     def __init__(self, dir):
         self.dir = dir
-        self.ticks = {}
+        self.trends = {}
 
-        tick_files = glob.glob(os.path.join(dir, '*.json'))
-        if len(tick_files) == 0:
+        trend_files = glob.glob(os.path.join(dir, '*.json'))
+        if len(trend_files) == 0:
             for dir in glob.glob(os.path.join(dir, '*')):
                 if os.path.isdir(dir):
-                    self.ticks[os.path.basename(dir)] = glob.glob(os.path.join(dir, '*.json'))
+                    self.trends[os.path.basename(dir)] = glob.glob(os.path.join(dir, '*.json'))
         else:
-            self.ticks[os.path.basename(dir)] = tick_files
+            self.trends[os.path.basename(dir)] = trend_files
 
     def output(self, output):
         name = os.path.basename(self.dir)
@@ -38,7 +38,7 @@ class ToCsv():
 
 class StockToCsv(ToCsv):
     def to_csv(self, output):
-        for date, paths in self.ticks.items():
+        for date, paths in self.trends.items():
             self._to_csv(date, paths, output)
 
     def _to_csv(self, date, paths, output):
@@ -78,7 +78,7 @@ class StockToCsv(ToCsv):
 
 class MarketToCsv(ToCsv):
     def to_csv(self, output):
-        for date, paths in self.ticks.items():
+        for date, paths in self.trends.items():
             for path in paths:
                 self._to_csv(path, output)
 

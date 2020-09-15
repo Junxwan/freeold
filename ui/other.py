@@ -45,5 +45,9 @@ def stock_csv_path(config):
     return os.path.join(config['data'], 'csv', 'stock')
 
 
-def stock_tick_csv_path(config):
-    return os.path.join(config['data'], 'csv', 'tick', 'stock')
+def trend_csv_path(config):
+    return os.path.join(config['data'], 'csv', 'trend')
+
+
+def stock_trend_csv_path(config):
+    return os.path.join(trend_csv_path(config), 'stock')

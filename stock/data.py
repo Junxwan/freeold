@@ -58,7 +58,6 @@ STOCK_COLUMNS = [
 class Stock():
     data = pd.DataFrame()
     stock = pd.DataFrame()
-    tick = pd.DataFrame()
     csv = []
     dk = {}
 
@@ -213,7 +212,7 @@ class Stock():
                 frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
 
 
-class Tick():
+class Trend():
     data = {}
     dk = {}
 

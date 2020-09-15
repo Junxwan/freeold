@@ -6,11 +6,11 @@ import time
 import tkinter as tk
 import openpyxl
 from crawler import cmoney as crawler
-from xlsx import cmoney as xlsx, tick
-from . import ui
+from xlsx import cmoney as xlsx, trend
+from . import ui, other
 
 
-class Tick(ui.process):
+class Trend(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
@@ -22,7 +22,7 @@ class Tick(ui.process):
 
         if config != None:
             self.date.set(config['open'])
-            self.output.set(os.path.join(config['tick']))
+            self.output.set(os.path.join(config['trend']))
 
         self.default_output()
         tk.Label(master, text='CK:', font=ui.FONT).place(x=10, y=10)
@@ -76,16 +76,16 @@ class Tick(ui.process):
         pass
 
 
-# 抓取tick
-class stock(Tick):
+# 抓取trend
+class stock(Trend):
     def __init__(self, root, master, w, h, config=None):
-        Tick.__init__(self, root, master, w, h, config=config)
+        Trend.__init__(self, root, master, w, h, config=config)
 
         self.code = tk.StringVar()
 
         if config != None:
             self.code.set(config['code'])
-            self.output.set(os.path.join(config['tick'], 'stock'))
+            self.output.set(os.path.join(config['trend'], 'stock'))
 
         tk.Label(master, text='個股清單:', font=ui.FONT).place(x=10, y=self.ey * 4)
         tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=self.ey * 4)
@@ -115,7 +115,7 @@ class stock(Tick):
         logging.info('======================= end ' + date + ' =======================')
 
 
-class market(Tick):
+class market(Trend):
     def call(self, date):
         if self.crawler == None:
             self.crawler = crawler.market(self.ck.get(), self.session.get(), self.output.get())
@@ -229,7 +229,7 @@ class stockToData(toData):
         self.showSuccess()
 
 
-class stock_tick_to_csv(ui.process):
+class StockTrendToCsv(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
@@ -237,7 +237,7 @@ class stock_tick_to_csv(ui.process):
         self.output = tk.StringVar()
 
         if config != None:
-            self.output.set(os.path.join(config['data'], 'csv', 'tick', 'stock'))
+            self.output.set(other.stock_trend_csv_path(config))
 
         tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
@@ -260,11 +260,11 @@ class stock_tick_to_csv(ui.process):
         self.addRunBtn(master)
 
     def run(self):
-        tick.StockToCsv(self.input.get()).output(self.output.get())
+        trend.StockToCsv(self.input.get()).output(self.output.get())
         self.showSuccess()
 
 
-class MarKetTickToCsv(ui.process):
+class MarKetTrendToCsv(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
@@ -272,7 +272,7 @@ class MarKetTickToCsv(ui.process):
         self.output = tk.StringVar()
 
         if config != None:
-            self.output.set(os.path.join(config['data'], 'csv', 'tick'))
+            self.output.set(other.trend_csv_path(config))
 
         tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
@@ -295,5 +295,5 @@ class MarKetTickToCsv(ui.process):
         self.addRunBtn(master)
 
     def run(self):
-        tick.MarketToCsv(self.input.get()).output(self.output.get())
+        trend.MarketToCsv(self.input.get()).output(self.output.get())
         self.showSuccess()
