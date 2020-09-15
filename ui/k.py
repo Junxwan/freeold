@@ -8,6 +8,7 @@ from stock import data
 from datetime import datetime
 from matplotlib.backend_bases import MouseButton
 
+
 # 即時數據
 class DataLabel():
     title_font_size = 28
@@ -81,7 +82,7 @@ class DataLabel():
 
 
 class SubAxes():
-    xy_font_size = 25
+    xy_font_size = 15
 
     def __init__(self):
         self._sup = {}
@@ -91,38 +92,48 @@ class SubAxes():
         self._c_watch = None
         self.axes = None
 
-    def draw(self, code, axes, text, c_watch, watch, **kwargs):
+    def draw(self, code, axes, text, c_watch, watch, **kwargs) -> bool:
         self.code = code
         self.axes = axes
         self._c_watch = c_watch
         self._watch = watch
 
-        self._plot(**kwargs)
+        if self._plot(**kwargs) == False:
+            return False
+
         self._plot_text(text, **kwargs)
-        self._load_sup(text, **kwargs)
 
-    def re_draw(self, code, axes, text, c_watch, watch, **kwargs):
+        if self._load_sup(text, **kwargs) == False:
+            return False
+
+        return True
+
+    def re_draw(self, code, axes, text, c_watch, watch, **kwargs) -> bool:
         self.clear()
-        self.draw(code, axes, text, c_watch, watch, **kwargs)
+        return self.draw(code, axes, text, c_watch, watch, **kwargs)
 
-    def _plot(self, **kwargs):
-        pass
+    def _plot(self, **kwargs) -> bool:
+        return True
 
     def _plot_text(self, text, **kwargs):
         pass
 
-    def _load_sup(self, text, **kwargs):
+    def _load_sup(self, text, **kwargs) -> bool:
         for name, o in self._sup_axes().items():
-            if isinstance(o, SubAxes):
-                o.draw(self.code, self.axes, text, self._c_watch, self._watch, **kwargs)
-                self._sup[name] = o
+            if isinstance(o, SubAxes) == False:
+                return False
+
+            if o.draw(self.code, self.axes, text, self._c_watch, self._watch, **kwargs) == False:
+                return False
+            self._sup[name] = o
+
+        return True
 
     def _sup_axes(self):
         return {}
 
     # 更新label
     def _update_label(self):
-        self.axes.yaxis.tick_right()
         self.axes.tick_params(axis='y', labelsize=self.xy_font_size)
         self.axes.tick_params(axis='x', labelsize=self.xy_font_size)
 
@@ -176,11 +187,14 @@ class Watch(SubAxes):
         y_max, y_min = self._c_watch.get_y_max_min()
         self.axes.set_xlim(-2, self._c_watch.range)
         self.axes.set_ylim(y_min, y_max)
+        self.axes.yaxis.tick_right()
         self.axes.tick_params(axis='x', rotation=90)
         self.axes.grid(True)
 
         self._plot_k()
         self._update_label()
+
+        return True
 
     # 繪製文案
     def _plot_text(self, text, **kwargs):
@@ -300,6 +314,7 @@ class Volume(SubAxes):
     def _plot(self, **kwargs):
         self.axes.name = data.VOLUME
         self.axes.grid(True)
+        self.axes.yaxis.tick_right()
 
         if len(self.axes.containers) > 0:
             self.axes.containers[0].remove()

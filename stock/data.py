@@ -212,47 +212,6 @@ class Stock():
                 frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
 
 
-class Trend():
-    data = {}
-    dk = {}
-
-    def __init__(self, dir):
-        self.dir = dir
-
-    def month(self, month):
-        dates = [
-            os.path.basename(p).split('.')[0] for p in
-            glob.glob(os.path.join(self.dir, month[:4], f'{month[:4]}-{month[4:6]}-*.csv'))
-        ]
-
-        data = {}
-        for date in dates:
-            data[date] = self.read(date)
-
-        return data
-
-    def date(self, date):
-        self.read(date)
-
-    def code(self, code, date):
-        if date is None:
-            date = self.now_date()
-
-        self.read(date)
-        return self.data[date].loc[code]
-
-    def read(self, date):
-        if date not in self.data:
-            self.data[date] = pd.read_csv(os.path.join(self.dir, date[:4], f'{date}.csv'), index_col=[0, 1], header=[0])
-
-        return self.data[date]
-
-    def now_date(self):
-        return os.path.basename(
-            glob.glob(os.path.join(self.dir, str(datetime.now().year), '*.csv'))[-1]
-        ).split('.')[0]
-
-
 class K():
     def __init__(self, dir):
         self._dir = dir
@@ -427,3 +386,86 @@ class KData():
     # 最低y座標
     def get_y_min(self):
         return self.low().min()
+
+
+class Trend():
+    data = {}
+    dk = {}
+
+    def __init__(self, dir):
+        self.dir = dir
+
+    def month(self, month):
+        dates = [
+            os.path.basename(p).split('.')[0] for p in
+            glob.glob(os.path.join(self.dir, month[:4], f'{month[:4]}-{month[4:6]}-*.csv'))
+        ]
+
+        data = {}
+        for date in dates:
+            data[date] = self.read(date)
+
+        return data
+
+    def date(self, date):
+        self.read(date)
+
+    def code(self, code, date):
+        if date is None:
+            date = self.now_date()
+
+        self.read(date)
+        return self.data[date].loc[code]
+
+    def get(self, code, date):
+        return TrendData(code, self.code(code, date))
+
+    def read(self, date):
+        if date not in self.data:
+            self.data[date] = pd.read_csv(os.path.join(self.dir, date[:4], f'{date}.csv'), index_col=[0, 1], header=[0])
+
+        return self.data[date]
+
+    def now_date(self):
+        return os.path.basename(
+            glob.glob(os.path.join(self.dir, str(datetime.now().year), '*.csv'))[-1]
+        ).split('.')[0]
+
+
+class TrendData():
+    def __init__(self, code, data):
+        self.code = code
+        self._data = data.dropna(axis='columns')
+        self.date = ''
+
+        self.format()
+
+        date_times = pd.date_range(start='2020-01-01 09:00:00', end=f'2020-01-01 13:33:00', freq='min')
+        for i in range(4):
+            date_times = date_times.delete(266)
+
+        self.times = {t.strftime('%H:%M:%S'): i for i, t in enumerate(date_times)}
+
+    def format(self):
+        self.date = self._data.loc['time'][0][:10]
+        data = self._data.dropna(axis='columns').copy()
+        data.loc[VOLUME] = self._data.loc[VOLUME].astype(int)
+        data.loc['price'] = self._data.loc['price'].astype(float)
+        data.loc['time'] = self._data.loc['time'].transform(lambda x: x[11:])
+        data.columns = self._data.columns.astype(int)
+        self._data = data
+
+    def all(self):
+        return self._data
+
+    def time(self):
+        return self._data.loc['time']
+
+    def price(self):
+        return self._data.loc['price']
+
+    def volume(self):
+        return self._data.loc[VOLUME]
+
+    def first(self):
+        return self._data[0]

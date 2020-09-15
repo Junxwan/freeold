@@ -458,6 +458,7 @@ class Watch():
         self._buttonLayout()
 
         self._plot_trend()
+        # self._plot_k()
         self.watch.pack()
 
     def _mainLayout(self):
