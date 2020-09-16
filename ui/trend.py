@@ -67,6 +67,17 @@ class Watch(k.SubAxes):
         self.line[0].set_data(self._x_data, self._y_data)
 
     def _plot_text(self, text, **kwargs):
+        _y_max = self.axes.yaxis.major.locator.max
+        _y_tick = self.axes.yaxis.major.locator.get_tick(_y_max)
+
+        self.info = self.axes.text(
+            -1,
+            _y_max + _y_tick / 2,
+            self.info(),
+            fontsize=self.xy_font_size,
+            color='white'
+        )
+
         text.add('日', 'date', self._c_watch.date, offset_x=0.5)
 
         first = self._c_watch.first()

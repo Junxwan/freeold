@@ -142,7 +142,7 @@ class Stock():
 
         return self.data.iloc[:, int(r.index[0]):(r.index[-1])]
 
-    def code(self, code):
+    def info(self, code):
         return self.stock[self.stock['code'] == code].iloc[0]
 
     def dates(self):
@@ -272,7 +272,7 @@ class K():
         return KData(code, c_data)
 
     def info(self, code):
-        return self._stock.code(code)
+        return self._stock.info(code)
 
     def get_stock(self):
         return self._stock

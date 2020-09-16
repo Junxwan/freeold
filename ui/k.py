@@ -73,6 +73,16 @@ class SubAxes():
         self.axes.tick_params(axis='y', labelsize=self.xy_font_size)
         self.axes.tick_params(axis='x', labelsize=self.xy_font_size)
 
+    def info(self):
+        info = self._watch.info(self.code)
+
+        if info.on == 1:
+            on = '上市'
+        else:
+            on = '上櫃'
+
+        return f"{info['name']}({info.code}) - {info.industry}({on}) - {info.title} - [{info.revenue}]"
+
     def clear_sup(self):
         for a in self._sup.values():
             if isinstance(a, SubAxes):
@@ -258,21 +268,14 @@ class Watch(SubAxes):
 
     # 繪製文案
     def _plot_text(self, text, **kwargs):
-        info = self._watch.info(self.code)
-
-        if info.on == 1:
-            on = '上市'
-        else:
-            on = '上櫃'
-
         _y_tick = self.axes.yaxis.major.locator.tick
         _y_max = self.axes.yaxis.major.locator.get_ticks()[-1]
 
         self.info = self.axes.text(
             -1,
             _y_max + _y_tick / 2,
-            f"{info['name']}({info.code}) - {info.industry}({on}) - {info.title} - [{info.revenue}]",
-            fontsize=40,
+            self.info(),
+            fontsize=self.xy_font_size,
             color='white'
         )
 
