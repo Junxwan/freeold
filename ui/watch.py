@@ -121,6 +121,8 @@ class Watch():
 
 
 class Plot():
+    name = ''
+
     def __init__(self, fig, canvas, watch):
         self._fig = fig
         self.watch = watch
@@ -139,7 +141,10 @@ class Plot():
             self._build_text(axes_list[-1])
 
             i = 0
-            for name, object in self._master_axse().items():
+            for name, object in self._master_axes().items():
+                if (name != self.name) & (kwargs.get(name) is None):
+                    continue
+
                 if object.draw(code, axes_list[i], self._data_text, c_watch, self._get_watch(), **kwargs) == False:
                     return False
                 self._axes[name] = object
@@ -174,7 +179,7 @@ class Plot():
         return k.MoveEvent(self.canvas, c_watch, [a.axes for a in self._axes.values()])
 
     # 主圖清單
-    def _master_axse(self) -> dict:
+    def _master_axes(self) -> dict:
         return {}
 
     def _get_watch(self):
@@ -203,6 +208,7 @@ class Plot():
 class KWatch(Plot):
     def __init__(self, fig, canvas, watch):
         Plot.__init__(self, fig, canvas, watch)
+        self.name = 'k'
         self._c_watch = None
 
     def _build_axes(self, fig, **kwargs) -> list:
@@ -215,7 +221,7 @@ class KWatch(Plot):
         return self.watch
 
     # 主圖清單
-    def _master_axse(self):
+    def _master_axes(self):
         return {
             'k': k.Watch(),
             data.VOLUME: k.Volume(),
@@ -226,7 +232,7 @@ class KWatch(Plot):
 class TrendWatch(Plot):
     def __init__(self, fig, canvas, watch, stock):
         Plot.__init__(self, fig, canvas, watch)
-
+        self.name = 'trend'
         self.stock = stock
 
     def _build_axes(self, fig, **kwargs) -> list:
@@ -253,7 +259,7 @@ class TrendWatch(Plot):
         return c_watch.value()
 
     # 主圖清單
-    def _master_axse(self):
+    def _master_axes(self):
         return {
             'trend': trend.Watch(),
             data.VOLUME: trend.Volume(),

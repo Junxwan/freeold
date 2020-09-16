@@ -443,6 +443,8 @@ class Watch():
         # self.root.attributes('-fullscreen', True)
         self.config = config
         self.plot_config = dict(
+            volume=True,
+            max_min=True,
             panel_ratios=(4, 1),
             ma=[5, 10, 20]
         )
