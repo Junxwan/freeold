@@ -5,6 +5,7 @@ import os
 import time
 import tkinter as tk
 import openpyxl
+from auto import cmoney as cm
 from crawler import cmoney as crawler
 from xlsx import cmoney as xlsx, trend
 from . import ui, other
@@ -74,6 +75,56 @@ class Trend(ui.process):
 
     def call(self, date):
         pass
+
+
+class Tick(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.code = tk.StringVar()
+        self.date = tk.StringVar()
+        self.output = tk.StringVar()
+
+        if config is not None:
+            self.code.set(config['code'])
+            self.date.set(config['open'])
+            self.output.set(other.tick_csv_path(config))
+
+        tk.Label(master, text='代碼:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇檔案',
+            font=ui.BTN_FONT,
+            command=lambda:
+            self.code.set(ui.openFile())
+        ).place(x=self.w * 50, y=5)
+
+        tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇檔案',
+            font=ui.BTN_FONT,
+            command=lambda:
+            self.date.set(ui.openFile())
+        ).place(x=self.w * 50, y=self.h * 8)
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey * 2)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey * 2)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda:
+            self.output.set(ui.openDir())
+        ).place(x=self.w * 50, y=self.h * 18)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        cm.Tick(self.output.get()).run(self.code.get(), self.date.get())
+        self.showSuccess()
 
 
 # 抓取trend

@@ -61,7 +61,7 @@ class main():
         btn = tk.Button(self.btnFrame, text='爬', command=lambda: self.switchBtn(self.dataButonGroup))
         btn.place(x=5, y=5)
 
-        btn = tk.Button(self.btnFrame, text='xq', command=lambda: self.switchBtn(self.xqButtonGroup))
+        btn = tk.Button(self.btnFrame, text='auto', command=lambda: self.switchBtn(self.auto_button_group))
         btn.place(x=self.w * 5, y=5)
 
         btn = tk.Button(self.btnFrame, text='cmoney', command=lambda: self.switchBtn(self.cmoneyButtonGroup))
@@ -130,24 +130,27 @@ class main():
 
         self.setLog('data')
 
-    # xq功能按鈕組群
-    def xqButtonGroup(self):
-        btn = tk.Button(self.btnGroupFrame, text='當日走勢與技術分析截圖', command=lambda: self.switchArg(xq.stockImageDay))
+    # 自動化功能按鈕組群
+    def auto_button_group(self):
+        btn = tk.Button(self.btnGroupFrame, text='xq當日走勢與K截圖', command=lambda: self.switchArg(xq.stockImageDay))
         btn.place(x=5, y=5)
 
-        btn = tk.Button(self.btnGroupFrame, text='歷史走勢與技術分析截圖', command=lambda: self.switchArg(xq.stockImageHistory))
+        btn = tk.Button(self.btnGroupFrame, text='xq歷史走勢與K截圖', command=lambda: self.switchArg(xq.stockImageHistory))
+        btn.place(x=self.w * 13, y=5)
+
+        btn = tk.Button(self.btnGroupFrame, text='xq大盤截圖', command=lambda: self.switchArg(xq.marketImage))
         btn.place(x=5, y=self.h * 6)
 
-        btn = tk.Button(self.btnGroupFrame, text='大盤截圖', command=lambda: self.switchArg(xq.marketImage))
+        btn = tk.Button(self.btnGroupFrame, text='xq歷史大盤截圖', command=lambda: self.switchArg(xq.marketImageHistory))
+        btn.place(x=self.w*8, y=self.h * 6)
+
+        btn = tk.Button(self.btnGroupFrame, text='xq定位', command=lambda: self.switchArg(xq.move))
+        btn.place(x=self.w*19, y=self.h * 6)
+
+        btn = tk.Button(self.btnGroupFrame, text='cmoney tick', command=lambda: self.switchArg(cmoney.Tick))
         btn.place(x=5, y=self.h * 12)
 
-        btn = tk.Button(self.btnGroupFrame, text='歷史大盤截圖', command=lambda: self.switchArg(xq.marketImageHistory))
-        btn.place(x=5, y=self.h * 18)
-
-        btn = tk.Button(self.btnGroupFrame, text='定位', command=lambda: self.switchArg(xq.move))
-        btn.place(x=5, y=self.h * 24)
-
-        self.setLog('xq')
+        self.setLog('auto')
 
     # cmoney功能按鈕組群
     def cmoneyButtonGroup(self):

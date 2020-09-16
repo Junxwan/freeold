@@ -4,7 +4,7 @@ import os
 import tkinter as tk
 import openpyxl
 from . import ui
-from xq import image as xq
+from auto import xq as xq
 
 
 class stockImage(ui.process):
@@ -44,7 +44,7 @@ class stockImage(ui.process):
         return codes
 
 
-# xq 自動擷取當日走勢與技術分析圖參數
+# auto 自動擷取當日走勢與技術分析圖參數
 class stockImageDay(stockImage):
     def __init__(self, root, master, w, h, config=None):
         stockImage.__init__(self, root, master, w, h, config)
@@ -53,7 +53,7 @@ class stockImageDay(stockImage):
         xq.stockNow().start(self.getCodes(), self.outputPath())
 
 
-# xq 自動擷取歷史走勢與技術分析圖參數
+# auto 自動擷取歷史走勢與技術分析圖參數
 class stockImageHistory(stockImage):
     def __init__(self, root, master, w, h, config=None):
         stockImage.__init__(self, root, master, w, h, config)
@@ -81,7 +81,7 @@ class stockImageHistory(stockImage):
         )
 
 
-# xq 大盤圖參數
+# auto 大盤圖參數
 class marketImage(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
@@ -106,7 +106,7 @@ class marketImage(ui.process):
         xq.marketNow().start(self.output.get())
 
 
-# xq 歷史大盤圖參數
+# auto 歷史大盤圖參數
 class marketImageHistory(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
