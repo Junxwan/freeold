@@ -53,7 +53,7 @@ class app(tk.Tk):
         self.run(lambda: frame.image(self, config=self.configs))
 
     def runWatch(self):
-        self.run(lambda: frame.Watch(self, config=self.configs))
+        self.run(lambda: frame.Watch(self, config=self.configs, path=self.currentPath))
 
 
-app().runWatch()
+app().runDate()

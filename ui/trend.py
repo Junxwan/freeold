@@ -73,7 +73,7 @@ class Watch(k.SubAxes):
         self.info = self.axes.text(
             -1,
             _y_max + _y_tick / 2,
-            self.info(),
+            self._stock_info(),
             fontsize=self.xy_font_size,
             color='white'
         )

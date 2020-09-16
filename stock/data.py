@@ -59,10 +59,10 @@ class Stock():
     data = pd.DataFrame()
     stock = pd.DataFrame()
     csv = []
-    dk = {}
 
     def __init__(self, dir):
         self.dir = dir
+        self.dk = {}
 
         if self.stock.empty:
             self.stock = pd.read_csv(os.path.join(dir, INFO_FILE_NAME) + '.csv')
@@ -140,7 +140,7 @@ class Stock():
         if r.empty:
             return r
 
-        return self.data.iloc[:, int(r.index[0]):(r.index[-1])]
+        return self.data.iloc[:, int(r.index[0]):(r.index[-1])+1]
 
     def info(self, code):
         return self.stock[self.stock['code'] == code].iloc[0]
@@ -190,7 +190,7 @@ class Stock():
                 if query.exec(v):
                     d = v[index][1:].tolist()
                     d.insert(0, code)
-                    d.insert(1, self.code(code)['name'])
+                    d.insert(1, self.info(code)['name'])
                     result.append(d)
 
             frame = pd.DataFrame(result, columns=columns)

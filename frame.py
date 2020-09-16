@@ -6,9 +6,10 @@ import sys
 import tkinter as tk
 import logging
 import traceback
-from datetime import datetime
+import pandas as pd
 import openpyxl
 import pyautogui
+from datetime import datetime
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from ui import cmoney, xq, stock, log, other, ui, watch
@@ -434,11 +435,12 @@ class image():
 
 
 class Watch():
-    def __init__(self, root, config=None):
+    def __init__(self, root, config=None, path=None):
         self.root = root
         self.size = pyautogui.size()
         self.width = self.size.width
         self.height = self.size.height
+        self.type = None
 
         # self.root.attributes('-fullscreen', True)
         self.config = config
@@ -459,11 +461,18 @@ class Watch():
             config=config,
         )
 
-        self._buttonLayout()
+        self._button_layout()
+        self._list_layout()
 
         self._plot_trend()
         # self._plot_k()
         self.watch.pack()
+
+        filename = os.path.join(path, datetime.now().strftime(f"%Y-%m-%d-watch.log"))
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s [%(levelname)s] %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S',
+                            filename=filename)
 
     def _mainLayout(self):
         self.watch_frame = tk.Frame(self.root, width=int(self.width * 0.9), height=self.height)
@@ -484,7 +493,7 @@ class Watch():
         self.bottom_frame.pack(side=tk.BOTTOM)
         self.bottom_frame.pack_propagate(0)
 
-    def _buttonLayout(self):
+    def _button_layout(self):
         self.code = tk.StringVar()
         self.date = tk.StringVar()
 
@@ -493,10 +502,10 @@ class Watch():
         tk.Label(self.bottom_frame, text='個股:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(self.bottom_frame, width=8, textvariable=self.code, font=ui.FONT).place(x=130, y=10)
         tk.Label(self.bottom_frame, text='日期:', font=ui.FONT).place(x=10, y=100)
-        tk.Entry(self.bottom_frame, width=8, textvariable=self.date, font=ui.FONT).place(x=130, y=100)
+        tk.Entry(self.bottom_frame, width=10, textvariable=self.date, font=ui.BTN_FONT).place(x=130, y=100)
         tk.Button(
             self.bottom_frame,
-            text='切換',
+            text='切',
             font=ui.SMALL_FONT,
             command=self._update_plot,
         ).place(x=10, y=200)
@@ -505,13 +514,85 @@ class Watch():
             text='K',
             font=ui.SMALL_FONT,
             command=self._plot_k,
-        ).place(x=140, y=200)
+        ).place(x=100, y=200)
         tk.Button(
             self.bottom_frame,
             text='勢',
             font=ui.SMALL_FONT,
             command=self._plot_trend,
-        ).place(x=220, y=200)
+        ).place(x=180, y=200)
+        tk.Button(
+            self.bottom_frame,
+            text='載',
+            font=ui.SMALL_FONT,
+            command=self._open_dir_stock,
+        ).place(x=260, y=200)
+
+    def _list_layout(self):
+        date_list = tk.Frame(self.top_frame, width=self.right_width, height=int(self.height * 0.15))
+        date_list.pack(side=tk.TOP)
+        date_list.pack_propagate(0)
+
+        stock_list = tk.Frame(self.top_frame, width=self.right_width, height=int(self.height * 0.35))
+        stock_list.pack(side=tk.TOP)
+        stock_list.pack_propagate(0)
+
+        date_Scrollbar = tk.Scrollbar(date_list)
+        date_Scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self._date_listbox = tk.Listbox(
+            date_list,
+            bg='#eeeeee',
+            font=ui.FONT,
+            selectbackground="orange",
+            yscrollcommand=date_Scrollbar.set,
+        )
+
+        stock_Scrollbar = tk.Scrollbar(stock_list)
+        stock_Scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self._stock_listbox = tk.Listbox(
+            stock_list,
+            bg='#eeeeee',
+            font=ui.FONT,
+            selectbackground="orange",
+            yscrollcommand=stock_Scrollbar.set,
+        )
+
+        self._date_listbox.bind('<KeyRelease-Up>', self._date_event)
+        self._date_listbox.bind('<KeyRelease-Down>', self._date_event)
+        self._date_listbox.bind('<Button-1>', self._date_event)
+
+        self._stock_listbox.bind('<KeyRelease-Up>', self._stock_event)
+        self._stock_listbox.bind('<KeyRelease-Down>', self._stock_event)
+        self._stock_listbox.bind('<Button-1>', self._stock_event)
+
+        date_Scrollbar.config(command=self._date_listbox.yview)
+        stock_Scrollbar.config(command=self._stock_listbox.yview)
+        self._date_listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self._stock_listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
+
+    def _open_dir_stock(self):
+        self._date_list = {}
+        for path in glob.glob(os.path.join(ui.openDir(), '*.csv')):
+            name = os.path.basename(path).split('.')[0]
+            self._date_listbox.insert(tk.END, name)
+            self._date_list[name] = pd.read_csv(path)
+
+    def _date_event(self, event):
+        date = self._date_listbox.get(tk.ACTIVE)
+
+        self.date.set(date)
+
+        for index, row in self._date_list[date].iterrows():
+            self._stock_listbox.insert(tk.END, f"{row['code']}-{row['name']}")
+
+    def _stock_event(self, event):
+        value = self._stock_listbox.get(tk.ACTIVE)
+        self.code.set(value.split('-')[0])
+
+        if self.type == 'k':
+            self._plot_k()
+        elif self.type == 'trend':
+            self._plot_trend()
 
     def _plot_k(self):
         self._plot('k')
@@ -520,6 +601,7 @@ class Watch():
         self._plot('trend')
 
     def _plot(self, type):
+        self.type = type
         try:
             date = self.date.get()
             if date == '':

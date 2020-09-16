@@ -73,7 +73,7 @@ class SubAxes():
         self.axes.tick_params(axis='y', labelsize=self.xy_font_size)
         self.axes.tick_params(axis='x', labelsize=self.xy_font_size)
 
-    def info(self):
+    def _stock_info(self):
         info = self._watch.info(self.code)
 
         if info.on == 1:
@@ -274,7 +274,7 @@ class Watch(SubAxes):
         self.info = self.axes.text(
             -1,
             _y_max + _y_tick / 2,
-            self.info(),
+            self._stock_info(),
             fontsize=self.xy_font_size,
             color='white'
         )
@@ -554,8 +554,14 @@ class DateLocator(mticks.Locator):
             if d.month not in monthFirstWorkDay:
                 monthFirstWorkDay[d.month] = i
 
-        self.loc = list(monthFirstWorkDay.values())
-        self.loc.append(len(self.data) - 1)
+        loc = list(monthFirstWorkDay.values())
+        last = len(self.data) - 1
+
+        if last - loc[-1] < 5:
+            del loc[-1]
+
+        loc.append(last)
+        self.loc = loc
 
         return self.loc
 
