@@ -523,7 +523,7 @@ class Watch():
             if date == '':
                 date = None
 
-            self.watch.plot(int(self.code.get()), date=date, type=type, **self.plot_config)
+            self.watch.plot(int(self.code.get()), date=date, type=type, show_animation=False, **self.plot_config)
         except Exception as err:
             error_class = err.__class__.__name__  # 取得錯誤類型
             detail = err.args[0]  # 取得詳細內容

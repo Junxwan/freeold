@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import math
-import tkinter as tk
 import matplotlib.ticker as mticks
+import matplotlib.animation as animation
 from . import k
 from stock import data
-from matplotlib.backend_bases import MouseButton
+
 
 # 日內走勢
 class Watch(k.SubAxes):
@@ -30,21 +30,41 @@ class Watch(k.SubAxes):
         self.axes.axhline(y=(close), color='#335867')
         self.axes.grid(True)
 
-        self._plot_trend(close)
+        self._plot_trend(close, show_animation=kwargs.get('show_animation'))
         self._update_label()
 
         return True
 
-    def _plot_trend(self, close):
+    def _plot_trend(self, close, show_animation=False):
         x = [i - 5 for i in range(6)]
         y = [close for i in range(6)]
 
+        time = self._c_watch.time()
         price = self._c_watch.price()
-        for i, t in enumerate(self._c_watch.time()):
+        for i, t in enumerate(time):
             x.append(self._c_watch.times[t])
             y.append(price[i])
 
-        self.axes.plot(x, y, color='#FFFF00')
+        self.x = x
+        self.y = y
+
+        if show_animation:
+            self.ani = animation.FuncAnimation(
+                self.axes.figure,
+                self.animation,
+                frames=len(time),
+                interval=20,
+                repeat=False
+            )
+
+            self.line = self.axes.plot([], [], color='#FFFF00')
+        else:
+            self.axes.plot(x, y, color='#FFFF00')
+
+    def animation(self, i):
+        self._x_data.append(self.x[i])
+        self._y_data.append(self.y[i])
+        self.line[0].set_data(self._x_data, self._y_data)
 
     def _plot_text(self, text, **kwargs):
         text.add('日', 'date', self._c_watch.date, offset_x=0.5)

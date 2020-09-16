@@ -19,6 +19,11 @@ class SubAxes():
         self._watch = None
         self._c_watch = None
         self.axes = None
+        self.ani = None
+        self.x = []
+        self.y = []
+        self._x_data = []
+        self._y_data = []
 
     def draw(self, code, axes, text, c_watch, watch, **kwargs) -> bool:
         self.code = code
@@ -50,6 +55,9 @@ class SubAxes():
         for name, o in self._sup_axes().items():
             if isinstance(o, SubAxes) == False:
                 return False
+
+            if kwargs.get(name) is None:
+                continue
 
             if o.draw(self.code, self.axes, text, self._c_watch, self._watch, **kwargs) == False:
                 return False
