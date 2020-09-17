@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import calendar
 import logging
 import os
 import glob
@@ -140,7 +140,7 @@ class Stock():
         if r.empty:
             return r
 
-        return self.data.iloc[:, int(r.index[0]):(r.index[-1])+1]
+        return self.data.iloc[:, int(r.index[0]):(r.index[-1]) + 1]
 
     def info(self, code):
         return self.stock[self.stock['code'] == code].iloc[0]
@@ -482,3 +482,30 @@ class TrendData():
 
     def first(self):
         return self._data[0]
+
+
+def calendar_xy(date):
+    dateT = datetime.fromisoformat(date)
+    nM = datetime.now().month
+    nY = datetime.now().year
+
+    prevMonth = 0
+    dayX = 1
+    dayY = dateT.isocalendar()[1] % 6
+
+    if nY != dateT.year:
+        prevMonth += ((nY - dateT.year) * 12)
+
+    if nM != dateT.month:
+        prevMonth += abs(nM - dateT.month)
+
+    if dateT.isocalendar()[2] != 7:
+        dayX = dateT.isocalendar()[2] + 1
+
+    weeks = calendar.Calendar(calendar.SUNDAY).monthdayscalendar(dateT.year, dateT.month)
+
+    for index in range(weeks.__len__()):
+        if dateT.day in weeks[index]:
+            dayY = index + 1
+
+    return prevMonth, dayX, dayY

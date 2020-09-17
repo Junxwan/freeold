@@ -1,8 +1,8 @@
 import os
 import time
-
 import pandas as pd
 import pyautogui
+from stock import data as d
 
 pyautogui.FAILSAFE = True
 
@@ -33,24 +33,42 @@ class Tick():
         pyautogui.keyUp('ALT')
         pyautogui.press('n')
 
+    def move_date(self, date):
+        (m, x, y) = d.calendar_xy(date)
+
+        pyautogui.click(3630, 360)
+        time.sleep(0.1)
+        if m > 0:
+            pyautogui.click(3300, 480, m)
+            time.sleep(m * 0.1)
+
+        pyautogui.click(3255 + (75 * x), 532 + (48 * y))
+
     def run(self, code, date):
         if os.path.isfile(code):
-            data = pd.read_excel(code)
+            data = pd.read_csv(code, index_col=False, header=None)
             self.code = data[data.columns[0]]
         else:
             self.code.append(code)
 
         if os.path.isfile(date):
-            data = pd.read_excel(date)
+            data = pd.read_csv(date, index_col=False, header=None)
             self.date = data[data.columns[0]]
         else:
             self.date.append(date)
 
-        for d in date:
-            for c in code:
+        for d in self.date:
+            self.move_date(d)
+            time.sleep(0.5)
+
+            for c in self.code:
                 name = f'{d}-{c}'
-                self.get(code, name)
-                file = os.path.join(self.dir, name) + '.xls'
+                file = os.path.join(self.dir, name) + '.xlsx'
+
+                if os.path.exists(file):
+                    continue
+
+                self.get(str(c), name)
 
                 if os.path.exists(file) == False:
                     pyautogui.alert(

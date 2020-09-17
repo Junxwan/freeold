@@ -88,7 +88,7 @@ class Tick(ui.process):
         if config is not None:
             self.code.set(config['code'])
             self.date.set(config['open'])
-            self.output.set(other.tick_csv_path(config))
+            self.output.set(os.path.join(config['data'], 'tick'))
 
         tk.Label(master, text='代碼:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=10)
@@ -100,7 +100,7 @@ class Tick(ui.process):
         ).place(x=self.w * 50, y=5)
 
         tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.code, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex, y=self.ey)
         tk.Button(
             master,
             text='選擇檔案',
