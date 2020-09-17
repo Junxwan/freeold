@@ -20,7 +20,7 @@ TREND = 'trend'
 
 def openFile():
     return filedialog.askopenfile(
-        filetypes=(("xlsx File", "*.xlsx"), ("All Files", "*.*")),
+        filetypes=(("csv File", "*.csv"), ("xlsx File", "*.xlsx"), ("All Files", "*.*")),
         title="Choose a file."
     )
 
