@@ -325,8 +325,8 @@ class KTrendWatch(Plot):
 
 # 即時數據
 class DataLabel():
-    title_font_size = 15
-    value_font_size = 15
+    title_font_size = 28
+    value_font_size = 28
 
     x_max = 3
     y_max = 20
