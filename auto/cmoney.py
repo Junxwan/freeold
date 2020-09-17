@@ -48,4 +48,14 @@ class Tick():
 
         for d in date:
             for c in code:
-                self.get(code, f'{d}-{c}')
+                name = f'{d}-{c}'
+                self.get(code, name)
+                file = os.path.join(self.dir, name) + '.xls'
+
+                if os.path.exists(file) == False:
+                    pyautogui.alert(
+                        text=f'失敗:{file}',
+                        title='結果',
+                        button='OK'
+                    )
+                    return
