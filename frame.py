@@ -582,6 +582,8 @@ class Watch():
             self._date_list[name] = pd.read_csv(path)
 
     def _date_event(self, event):
+        self._stock_listbox.delete(0, tk.END)
+
         date = self._date_listbox.get(tk.ACTIVE)
 
         self.date.set(date)
