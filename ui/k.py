@@ -560,6 +560,9 @@ class DateLocator(mticks.Locator):
         if last - loc[-1] < 5:
             del loc[-1]
 
+        if loc[1] - loc[0] < 5:
+            del loc[1]
+
         loc.append(last)
         self.loc = loc
 
@@ -596,7 +599,7 @@ class PriceLocator(mticks.Locator):
 
         start = (self._mi - (self._mi % self.tick)) - self.tick
 
-        for i in range(25):
+        for i in range(30):
             p = start + (self.tick * i)
             self.ticks.append(start + (self.tick * i))
 
