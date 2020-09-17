@@ -142,10 +142,10 @@ class main():
         btn.place(x=5, y=self.h * 6)
 
         btn = tk.Button(self.btnGroupFrame, text='xq歷史大盤截圖', command=lambda: self.switchArg(xq.marketImageHistory))
-        btn.place(x=self.w*8, y=self.h * 6)
+        btn.place(x=self.w * 8, y=self.h * 6)
 
         btn = tk.Button(self.btnGroupFrame, text='xq定位', command=lambda: self.switchArg(xq.move))
-        btn.place(x=self.w*19, y=self.h * 6)
+        btn.place(x=self.w * 19, y=self.h * 6)
 
         btn = tk.Button(self.btnGroupFrame, text='cmoney tick', command=lambda: self.switchArg(cmoney.Tick))
         btn.place(x=5, y=self.h * 12)
@@ -467,7 +467,8 @@ class Watch():
         self._button_layout()
         self._list_layout()
 
-        self._plot_trend()
+        self._plot_k_trend()
+        # self._plot_trend()
         # self._plot_k()
         self.watch.pack()
 
@@ -602,6 +603,9 @@ class Watch():
 
     def _plot_trend(self):
         self._plot('trend')
+
+    def _plot_k_trend(self):
+        self._plot('k_trend')
 
     def _plot(self, type):
         self.type = type

@@ -28,6 +28,7 @@ class Watch():
         self.k = None
         self.trend_watch = data.Trend(other.stock_trend_csv_path(self.config))
         self.trend = None
+        self.k_trend = None
 
         self._use_style()
 
@@ -53,6 +54,8 @@ class Watch():
             self._plot_k(code, date=date, **self.kwargs)
         elif type == 'trend':
             self._plot_trend(code, date=date, **self.kwargs)
+        elif type == 'k_trend':
+            self._plot_k_trend(code, date=date, **self.kwargs)
 
         self.canvas.draw_idle()
 
@@ -80,6 +83,18 @@ class Watch():
             )
 
         self.trend.plot(code, date=date, **kwargs)
+
+    def _plot_k_trend(self, code, date=None, **kwargs):
+        if self.k_trend is None:
+            self.k_trend = KTrendWatch(
+                self._fig,
+                self.canvas,
+                self.k_watch,
+                self.trend_watch,
+                self.k_watch.get_stock(),
+            )
+
+        self.k_trend.plot(code, date=date, **kwargs)
 
     # 設定看盤樣式
     def _use_style(self):
@@ -123,9 +138,8 @@ class Watch():
 class Plot():
     name = ''
 
-    def __init__(self, fig, canvas, watch):
+    def __init__(self, fig, canvas):
         self._fig = fig
-        self.watch = watch
         self.canvas = canvas
         self._data_text = None
         self.event = None
@@ -138,7 +152,7 @@ class Plot():
 
         if len(self._axes) == 0:
             axes_list = self._build_axes(self._fig, **kwargs)
-            self._build_text(axes_list[-1])
+            self._build_text(axes_list)
 
             i = 0
             for name, object in self._master_axes().items():
@@ -166,7 +180,8 @@ class Plot():
     def _build_axes(self, fig, **kwargs) -> list:
         return []
 
-    def _build_text(self, axes):
+    def _build_text(self, axes_list):
+        axes = axes_list[-1]
         self._data_text = DataLabel(axes)
         axes.grid(False)
         axes.set_xlim((0, self._data_text.x_max))
@@ -207,7 +222,8 @@ class Plot():
 # K線看盤
 class KWatch(Plot):
     def __init__(self, fig, canvas, watch):
-        Plot.__init__(self, fig, canvas, watch)
+        Plot.__init__(self, fig, canvas)
+        self.watch = watch
         self.name = 'k'
         self._c_watch = None
 
@@ -231,7 +247,8 @@ class KWatch(Plot):
 # 日內趨勢看盤
 class TrendWatch(Plot):
     def __init__(self, fig, canvas, watch, stock):
-        Plot.__init__(self, fig, canvas, watch)
+        Plot.__init__(self, fig, canvas)
+        self.watch = watch
         self.name = 'trend'
         self.stock = stock
 
@@ -269,10 +286,47 @@ class TrendWatch(Plot):
         pass
 
 
+class KTrendWatch(Plot):
+    def __init__(self, fig, canvas, k_watch, trend_watch, stock):
+        Plot.__init__(self, fig, canvas)
+        self._k_watch = k_watch
+        self._trend_watch = trend_watch
+        self._stock = stock
+
+    def _build_axes(self, fig, **kwargs) -> list:
+        return _build_multi_axes(fig, panel_ratios=kwargs.get('panel_ratios'), cols=2)
+
+    def _build_text(self, axes_list):
+        pass
+
+    def _get(self, code, date):
+        k = self._k_watch.code(code, date=date)
+        if k is None:
+            return None
+
+        trend = self._trend_watch.get(code, date)
+        if trend is None:
+            return None
+
+        return {
+            'k': k,
+            'trend': trend
+        }
+
+    # 主圖清單
+    def master_axes(self):
+        return {
+            # 'trend': trend.Watch(),
+            # f'trend_{data.VOLUME}': trend.Volume(),
+            # 'k': k.Watch(),
+            # f'k_{data.VOLUME}': k.Volume(),
+        }
+
+
 # 即時數據
 class DataLabel():
-    title_font_size = 28
-    value_font_size = 28
+    title_font_size = 15
+    value_font_size = 15
 
     x_max = 3
     y_max = 20
@@ -387,5 +441,57 @@ def _build_axes(fig, panel_ratios=None, scale_left=0.0, left=True):
         axes.append(fig.add_axes([0, bot_pad, 1 - (plot_width + right_pad), hs['height'].sum()]))
     else:
         axes.append(fig.add_axes([plot_width + left_pad, bot_pad, 1 - plot_width, hs['height'].sum()]))
+
+    return axes
+
+
+# 繪製多層畫板
+def _build_multi_axes(fig, panel_ratios=None, rows=1, cols=1, scale_left=1.0, scale_right=1.0):
+    left_pad = (0.108 * scale_left) / cols
+    right_pad = 0.055 * scale_right
+    top_pad = 0.12
+    bot_pad = 0.036
+    plot_height = (1.0 - (bot_pad + top_pad)) / rows
+    plot_width = (1.0 - (left_pad + right_pad)) / cols
+
+    if panel_ratios is None:
+        p_len = 1
+    else:
+        p_len = len(panel_ratios)
+
+    style = []
+    for r in range(rows):
+        if r == 0:
+            tmp_bot_pad = bot_pad
+        else:
+            tmp_bot_pad = (bot_pad + plot_height) * 1.1
+
+        for c in range(cols):
+            if c == 0:
+                tmp_left_pad = left_pad
+            else:
+                tmp_left_pad = left_pad + plot_width
+
+            if panel_ratios is None:
+                style.append([tmp_left_pad, tmp_bot_pad, plot_width, plot_height])
+            else:
+                psum = sum(panel_ratios)
+
+                for panid, size in enumerate(panel_ratios):
+                    ratios_bot_pad = tmp_bot_pad
+                    if panid + 1 < len(panel_ratios):
+                        ratios_bot_pad = tmp_bot_pad + plot_height * panel_ratios[panid + 1] / psum
+
+                    style.append([tmp_left_pad, ratios_bot_pad, plot_width, plot_height * size / psum])
+
+    axes = []
+    for index, rows in enumerate(style):
+        if (index % p_len) == 0:
+            ax = fig.add_axes(rows)
+        else:
+            ax = fig.add_axes(rows, sharex=axes[0])
+
+        ax.set_axisbelow(True)
+        axes.append(ax)
 
     return axes
