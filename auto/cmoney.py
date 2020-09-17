@@ -1,3 +1,4 @@
+import glob
 import os
 import time
 import pandas as pd
@@ -45,6 +46,12 @@ class Tick():
         pyautogui.click(3255 + (75 * x), 532 + (48 * y))
 
     def run(self, code, date):
+        if os.path.isdir(date):
+            self._get_dir(date)
+        else:
+            self._get_file(code, date)
+
+    def _get_file(self, code, date):
         if os.path.isfile(code):
             data = pd.read_csv(code, index_col=False, header=None)
             self.code = data[data.columns[0]]
@@ -69,6 +76,30 @@ class Tick():
                     continue
 
                 self.get(str(c), name)
+
+                if os.path.exists(file) == False:
+                    pyautogui.alert(
+                        text=f'失敗:{file}',
+                        title='結果',
+                        button='OK'
+                    )
+                    return
+
+    def _get_dir(self, dir):
+        for path in glob.glob(os.path.join(dir, '*')):
+            date = os.path.basename(path).split('.')[0]
+
+            self.move_date(date)
+            time.sleep(0.5)
+
+            for code in pd.read_csv(path)['code']:
+                name = f'{date}-{code}'
+                file = os.path.join(self.dir, name) + '.xlsx'
+
+                if os.path.exists(file):
+                    continue
+
+                self.get(str(code), name)
 
                 if os.path.exists(file) == False:
                     pyautogui.alert(

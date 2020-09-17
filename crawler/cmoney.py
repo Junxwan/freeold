@@ -5,7 +5,7 @@ import logging
 import os
 import time
 import requests
-import openpyxl
+import pandas as pd
 from datetime import datetime
 
 
@@ -35,14 +35,7 @@ class stock(Trend):
         self.code = self.readCode(code)
 
     def readCode(self, path):
-        codes = []
-        xlsx = openpyxl.load_workbook(path)
-        for cell in xlsx.active:
-            if cell[0].value == None:
-                continue
-
-            codes.append(str(cell[0].value))
-        return codes
+        return [c[0] for c in pd.read_csv(path, index_col=False, header=None).to_numpy().tolist()]
 
     def get(self, date):
         if self.code.__len__() == 0:

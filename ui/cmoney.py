@@ -4,7 +4,7 @@ import logging
 import os
 import time
 import tkinter as tk
-import openpyxl
+import pandas as pd
 from auto import cmoney as cm
 from crawler import cmoney as crawler
 from xlsx import cmoney as xlsx, trend
@@ -59,12 +59,7 @@ class Trend(ui.process):
         dates = []
         date = self.date.get()
         if os.path.isfile(self.date.get()):
-            xlsx = openpyxl.load_workbook(date)
-            for cell in xlsx.active:
-                if cell[0].value == None:
-                    continue
-
-                dates.append(str(cell[0].value)[:10])
+            dates = [d[0] for i, d in pd.read_csv(date, index_col=False, header=None).iterrows()]
         else:
             dates.append(date)
 
