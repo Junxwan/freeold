@@ -360,7 +360,9 @@ class Watch(SubAxes):
         }
 
     def _clear(self):
-        self.info.set_text('')
+        if self.info is not None:
+            self.info.set_text('')
+
         if len(self.axes.collections) > 0:
             self.axes.collections[0].remove()
             self.axes.collections[0].remove()
