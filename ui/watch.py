@@ -454,42 +454,23 @@ class DataLabel():
 
 
 # 繪製畫板
-def _build_axes(fig, panel_ratios=None, scale_left=0.0, left=True):
-    left_pad = 0.108
-    right_pad = 0.055
-    top_pad = 0.12
-    bot_pad = 0.036
-    plot_height = 1.0 - (bot_pad + top_pad)
-    plot_width = 1.0 - (left_pad + right_pad)
-
-    if scale_left > 0:
-        left_pad *= scale_left
-        right_pad *= (scale_left * 5)
-
-    hs = pd.DataFrame({'height': []})
-    if panel_ratios is None:
-        hs.at[0, 'height'] = plot_height
+def _build_axes(fig, panel_ratios=None, scale_left=1.0, left=True):
+    if scale_left > 1:
+        scale_right = scale_left * 5
     else:
-        psum = sum(panel_ratios)
-        for panid, size in enumerate(panel_ratios):
-            hs.at[panid, 'height'] = plot_height * size / psum
+        scale_right = 1.0
 
-    axes = []
-    for index, row in hs.iterrows():
-        lift = hs['height'].loc[(index + 1):].sum()
+    axes = _build_multi_axes(fig, panel_ratios=panel_ratios, scale_left=scale_left, scale_right=scale_right)
 
-        if index == 0:
-            ax = fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height])
-        else:
-            ax = fig.add_axes([left_pad, bot_pad + lift, plot_width, row.height], sharex=axes[0])
-
-        ax.set_axisbelow(True)
-        axes.append(ax)
+    pos1 = axes[0].get_position()
+    pos2 = axes[1].get_position()
+    height = pos1.y1 - pos2.y0
+    width = (pos1.x1 + pos1.x0)
 
     if left:
-        axes.append(fig.add_axes([0, bot_pad, 1 - (plot_width + right_pad), hs['height'].sum()]))
+        axes.append(fig.add_axes([0, pos2.y0, pos2.x0, height]))
     else:
-        axes.append(fig.add_axes([plot_width + left_pad, bot_pad, 1 - plot_width, hs['height'].sum()]))
+        axes.append(fig.add_axes([width - pos1.x0, pos2.y0, 1 - width + pos1.x0, height]))
 
     return axes
 
