@@ -151,31 +151,45 @@ class Plot():
             return False
 
         if len(self._axes) == 0:
-            axes_list = self._build_axes(self._fig, **kwargs)
-            self._build_text(axes_list)
-
-            i = 0
-            for name, object in self._master_axes().items():
-                if (name != self.name) & (kwargs.get(name) is None):
-                    continue
-
-                if object.draw(code, axes_list[i], self._data_text, c_watch, self._get_watch(), **kwargs) == False:
-                    return False
-                self._axes[name] = object
-                i += 1
-
-            self.event = self._build_move_event(c_watch)
-            self.event.add_callback(self.event_show_data)
+            self._create_axes(code, c_watch, **kwargs)
         else:
-            self._data_text.clear()
+            self._update_axes(code, c_watch, **kwargs)
 
-            for object in self._axes.values():
-                if object.re_draw(code, object.axes, self._data_text, c_watch, self._get_watch(), **kwargs) == False:
-                    return False
+    def _create_axes(self, code, c_watch, **kwargs):
+        axes_list = self._build_axes(self._fig, **kwargs)
+        self._build_text(axes_list)
 
-            if self.event is not None:
-                self.event.clear()
-                self.event.set_data(self._get_data(c_watch))
+        i = 0
+        for name, object in self._master_axes().items():
+            if self._is_draw(name, **kwargs):
+                continue
+
+            if self._draw(code, object, axes_list[i], c_watch, **kwargs) == False:
+                return False
+
+            self._axes[name] = object
+            i += 1
+
+        self.event = self._build_move_event(c_watch)
+
+        if self.event is not None:
+            self.event.add_callback(self.event_show_data)
+
+    def _update_axes(self, code, c_watch, **kwargs):
+        self._clear_text()
+
+        for object in self._axes.values():
+            object.clear()
+
+            if self._draw(code, object, object.axes, c_watch, **kwargs) == False:
+                return False
+
+        if self.event is not None:
+            self.event.clear()
+            self.event.set_data(self._get_data(c_watch))
+
+    def _draw(self, code, object, axes, c_watch, **kwargs):
+        return object.draw(code, axes, self._data_text, c_watch, self._get_watch(), **kwargs)
 
     def _build_axes(self, fig, **kwargs) -> list:
         return []
@@ -193,6 +207,9 @@ class Plot():
     def _build_move_event(self, c_watch) -> k.MoveEvent:
         return k.MoveEvent(self.canvas, c_watch, [a.axes for a in self._axes.values()])
 
+    def _is_draw(self, name, **kwargs):
+        return (name != self.name) & (kwargs.get(name) is None)
+
     # 主圖清單
     def _master_axes(self) -> dict:
         return {}
@@ -208,6 +225,9 @@ class Plot():
 
     def _get(self, code, date):
         return None
+
+    def _clear_text(self):
+        self._data_text.clear()
 
     def remove(self):
         self._data_text.remove()
@@ -286,12 +306,38 @@ class TrendWatch(Plot):
         pass
 
 
+# K線跟日內趨勢看盤
 class KTrendWatch(Plot):
     def __init__(self, fig, canvas, k_watch, trend_watch, stock):
         Plot.__init__(self, fig, canvas)
+        self.name = ['k', 'trend']
         self._k_watch = k_watch
         self._trend_watch = trend_watch
         self._stock = stock
+
+    def _is_draw(self, name, **kwargs):
+        if name in self.name:
+            return False
+
+        return kwargs.get(name.split('_')[1]) is None
+
+    def _draw(self, code, object, axes, c_watch, **kwargs) -> bool:
+        if object.master_name == '':
+            name = object.name
+        else:
+            name = object.master_name
+
+        if name == '':
+            return False
+
+        if name == k.NAME:
+            watch = self._k_watch
+        elif name == trend.NAME:
+            watch = self._stock
+        else:
+            return False
+
+        return object.draw(code, axes, self._data_text, c_watch[name], watch, **kwargs)
 
     def _build_axes(self, fig, **kwargs) -> list:
         return _build_multi_axes(fig, panel_ratios=kwargs.get('panel_ratios'), cols=2)
@@ -300,12 +346,12 @@ class KTrendWatch(Plot):
         pass
 
     def _get(self, code, date):
-        k = self._k_watch.code(code, date=date)
-        if k is None:
-            return None
-
         trend = self._trend_watch.get(code, date)
         if trend is None:
+            return None
+
+        k = self._k_watch.code(code, date=trend.date)
+        if k is None:
             return None
 
         return {
@@ -313,13 +359,16 @@ class KTrendWatch(Plot):
             'trend': trend
         }
 
+    def _clear_text(self):
+        pass
+
     # 主圖清單
-    def master_axes(self):
+    def _master_axes(self):
         return {
-            # 'trend': trend.Watch(),
-            # f'trend_{data.VOLUME}': trend.Volume(),
-            # 'k': k.Watch(),
-            # f'k_{data.VOLUME}': k.Volume(),
+            'trend': trend.Watch(),
+            f'trend_{data.VOLUME}': trend.Volume(),
+            'k': k.Watch(),
+            f'k_{data.VOLUME}': k.Volume(),
         }
 
 
@@ -489,7 +538,7 @@ def _build_multi_axes(fig, panel_ratios=None, rows=1, cols=1, scale_left=1.0, sc
         if (index % p_len) == 0:
             ax = fig.add_axes(rows)
         else:
-            ax = fig.add_axes(rows, sharex=axes[0])
+            ax = fig.add_axes(rows, sharex=axes[index - (p_len - 1)])
 
         ax.set_axisbelow(True)
         axes.append(ax)

@@ -8,9 +8,15 @@ from stock import data
 from datetime import datetime
 from matplotlib.backend_bases import MouseButton
 
+NAME = 'k'
+
 
 class SubAxes():
     xy_font_size = 28
+
+    name = ''
+
+    master_name = ''
 
     def __init__(self):
         self._sup = {}
@@ -34,16 +40,13 @@ class SubAxes():
         if self._plot(**kwargs) == False:
             return False
 
-        self._plot_text(text, **kwargs)
+        if text is not None:
+            self._plot_text(text, **kwargs)
 
         if self._load_sup(text, **kwargs) == False:
             return False
 
         return True
-
-    def re_draw(self, code, axes, text, c_watch, watch, **kwargs) -> bool:
-        self.clear()
-        return self.draw(code, axes, text, c_watch, watch, **kwargs)
 
     def _plot(self, **kwargs) -> bool:
         return True
@@ -247,6 +250,8 @@ class Watch(SubAxes):
         '振': data.AMPLITUDE,
     }
 
+    name = NAME
+
     def __init__(self):
         SubAxes.__init__(self)
         self.info = None
@@ -372,7 +377,9 @@ class Volume(SubAxes):
     # 黑k
     down_color = '#23B100'
 
-    font_size = 25
+    name = 'volume'
+
+    master_name = NAME
 
     def _plot(self, **kwargs):
         self.axes.name = data.VOLUME
@@ -415,7 +422,7 @@ class Volume(SubAxes):
 
         for ticks in [self.axes.get_yticklabels(), self.axes.get_xticklabels()]:
             for tick in ticks:
-                tick.update({'fontsize': self.font_size, 'rotation': 0})
+                tick.update({'fontsize': self.xy_font_size, 'rotation': 0})
 
     def _clear(self):
         if len(self.axes.containers) > 0:
@@ -435,6 +442,10 @@ class MA(SubAxes):
     }
 
     line_width = 1.8
+
+    name = 'ma'
+
+    master_name = NAME
 
     def __init__(self):
         SubAxes.__init__(self)
@@ -491,8 +502,6 @@ class MA(SubAxes):
 
 # 最高價與最低價
 class MaxMin(SubAxes):
-    font_size = 25
-
     offset_x = {
         1: 1.35,
         2: 1,
@@ -502,6 +511,10 @@ class MaxMin(SubAxes):
         6: 1.35,
         7: 1.45,
     }
+
+    name = 'max_min'
+
+    master_name = NAME
 
     def __init__(self):
         SubAxes.__init__(self)
@@ -522,7 +535,7 @@ class MaxMin(SubAxes):
             xy=(x, y),
             xytext=(x - self.offset_x[len(str(y))], y + y_offset),
             color='black',
-            size=self.font_size,
+            size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple"),
             bbox=dict(boxstyle='square', fc="0.5")
         )

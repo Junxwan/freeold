@@ -5,6 +5,8 @@ import matplotlib.animation as animation
 from . import k
 from stock import data
 
+NAME = 'trend'
+
 
 # 日內走勢
 class Watch(k.SubAxes):
@@ -15,6 +17,8 @@ class Watch(k.SubAxes):
         '低': 'min',
         '量': data.VOLUME,
     }
+
+    name = NAME
 
     # 繪製主圖
     def _plot(self, **kwargs) -> bool:
@@ -129,6 +133,10 @@ class Watch(k.SubAxes):
 
 # 成交量
 class Volume(k.SubAxes):
+    name = 'volume'
+
+    master_name = NAME
+
     def _plot(self, **kwargs) -> bool:
         self.axes.name = data.VOLUME
         self.axes.grid(True)
@@ -167,6 +175,10 @@ class Volume(k.SubAxes):
 
 # 最高價與最低價
 class MaxMin(k.SubAxes):
+    name = 'max_min'
+
+    master_name = NAME
+
     def __init__(self):
         k.SubAxes.__init__(self)
         self._max = None
@@ -178,10 +190,12 @@ class MaxMin(k.SubAxes):
         y_max = price.max()
         x_max = int(price[price == y_max].index[0])
         tick = self.axes.yaxis.major.locator.get_tick(y_max)
+        x_text = x_max + 5
+        y_text = y_max + tick
         self._max = self.axes.annotate(
             y_max,
             xy=(x_max, y_max + tick * 2),
-            xytext=(x_max + 5, y_max + tick),
+            xytext=(x_text, y_text),
             color='#FF0000',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#FF0000'),
@@ -190,10 +204,16 @@ class MaxMin(k.SubAxes):
         y_min = price.min()
         x_min = int(price[price == y_min].index[0])
         tick = self.axes.yaxis.major.locator.get_tick(y_min)
+        x_text = x_min + 5
+        y_text = y_min - tick * 4
+
+        if x_text >= 265:
+            x_text = x_min - 30
+
         self._min = self.axes.annotate(
             y_min,
             xy=(x_min, y_min - tick * 2),
-            xytext=(x_min + 5, y_min - tick * 4),
+            xytext=(x_text, y_text),
             color='#51F069',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#51F069'),
