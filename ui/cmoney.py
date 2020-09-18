@@ -318,6 +318,7 @@ class StockTickToCsv(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
+        self.config = config
         self.input = tk.StringVar()
         self.output = tk.StringVar()
 
@@ -346,7 +347,7 @@ class StockTickToCsv(ui.process):
         self.addRunBtn(master)
 
     def run(self):
-        xlsx.Tick(self.input.get()).output(self.output.get())
+        xlsx.Tick(self.input.get(), other.stock_trend_csv_path(self.config)).output(self.output.get())
         self.showSuccess()
 
 

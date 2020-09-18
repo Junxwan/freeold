@@ -55,7 +55,7 @@ class StockToCsv(ToCsv):
             if data['date'] != date:
                 return
 
-            stock[data['code']] = data['tick']
+            stock[str(data['code'])] = data['tick']
 
         codes = sorted(list(stock.keys()))
 

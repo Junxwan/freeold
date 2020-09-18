@@ -12,14 +12,15 @@ from stock import data as dt
 
 
 class Tick():
-    def __init__(self, dir):
+    def __init__(self, dir, trend_dir):
         self.dir = dir
+        self.trend = dt.Trend(trend_dir)
 
         date_times = pd.date_range(start='2020-01-01 09:00:00', end=f'2020-01-01 13:25:00', freq='min')
         self.times = [t.strftime('%H:%M:%S') for i, t in enumerate(date_times)]
 
     def output(self, dir):
-        for file in glob.glob(os.path.join(self.dir, "*")):
+        for file in glob.glob(os.path.join(self.dir, "*.xlsx")):
             name = os.path.basename(file)
 
             names = name.split('.')
@@ -29,14 +30,41 @@ class Tick():
             code = names[0][11:]
             date = names[0][:10]
 
+            path = os.path.join(dir, date)
+            if os.path.exists(path) == False:
+                os.mkdir(path)
+
+            file_path = os.path.join(path, code) + '.csv'
+            if os.path.exists(file_path):
+                continue
+
             data = pd.read_excel(file)
             data.columns = ['time', 'buy', 'sell', 'price', 'volume', 'total_volume']
             data = data.reindex(index=data.index[::-1])
             data.insert(len(data.columns), 'amount', (data['price'] * data['volume']).to_numpy().tolist())
             data.insert(len(data.columns), 'avg', np.full([1, len(data)], np.nan).tolist()[0])
+            times = data['time']
+
+            # 檢查tick資料跟日內趨勢資料對比
+            trend = self.trend.code(code, date)
+            for i in np.random.randint(len(trend.dropna(axis='columns').columns), size=10):
+                d = trend[str(i)]
+
+                if d.empty:
+                    continue
+
+                start = d.time[11:]
+                end = f'{start[:6]}59'
+                v = data[times.between(start, end)]
+
+                if len(v) == 0:
+                    continue
+
+                if (v[dt.VOLUME].sum() != int(d[dt.VOLUME])) | (float(d['price']) != v.iloc[-1]['price']):
+                    logging.error(f'tick file data error: {file} time: {start}')
+                    return
 
             total_amount = 0
-            times = data['time']
             for index, time in enumerate(self.times[1:]):
                 q = data[(self.times[index] <= times) & (times < time)]
                 amount = q['amount'].sum()
@@ -57,11 +85,7 @@ class Tick():
 
                 data['avg'].loc[q.index[0]:q.index[-1]] = round(avg, l)
 
-            path = os.path.join(dir, date)
-            if os.path.exists(path) == False:
-                os.mkdir(path)
-
-            data.to_csv(os.path.join(path, code) + '.csv', index=False)
+            data.to_csv(file_path, index=False)
 
             logging.info(f'date:{date}   {code}.csv')
 

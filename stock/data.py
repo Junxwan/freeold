@@ -418,7 +418,7 @@ class Trend():
         if date not in self.data:
             return None
 
-        return self.data[date].loc[code]
+        return self.data[date].loc[int(code)]
 
     def get(self, code, date):
         data = self.code(code, date)

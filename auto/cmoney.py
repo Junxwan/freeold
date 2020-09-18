@@ -70,7 +70,7 @@ class Tick():
             return self._get([date], [code])
 
     def _get_dir(self, dir) -> bool:
-        for path in glob.glob(os.path.join(dir, '*')):
+        for path in glob.glob(os.path.join(dir, '*.csv')):
             if self._get(os.path.basename(path).split('.')[0], pd.read_csv(path)['code']) == False:
                 return False
 
