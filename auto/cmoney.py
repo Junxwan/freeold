@@ -46,69 +46,59 @@ class Tick():
         pyautogui.click(3255 + (75 * x), 532 + (48 * y))
 
     def run(self, code, date):
-        if os.path.isdir(date):
-            self._get_dir(date)
-        else:
-            self._get_file(code, date)
+        # 根據單一檔案 <path>/2020-08-14.csv
+        if (code == '') & os.path.isfile(date):
+            return self._get_file(date)
 
-    def _get_file(self, code, date):
-        if code != '':
-            if os.path.isfile(code):
-                data = pd.read_csv(code, index_col=False, header=None)
-                self.code = data[data.columns[0]]
-            else:
-                self.code.append(code)
+        # 　根據目錄檔案　<path>/2020-08-14.csv　<path>/2020-08-13.csv
+        elif os.path.isdir(date):
+            return self._get_dir(date)
 
-            if os.path.isfile(date):
-                data = pd.read_csv(date, index_col=False, header=None)
-                self.date = data[data.columns[0]]
-            else:
-                self.date.append(date)
-        elif os.path.isfile(date):
-            self.date.append(os.path.basename(date).split('.')[0])
-            self.code = pd.read_csv(date)['code']
+        # 根據code與date檔案清單
+        elif os.path.isfile(code) & os.path.isfile(date):
+            c_data = pd.read_csv(code, index_col=False, header=None)
+            d_date = pd.read_csv(date, index_col=False, header=None)
 
-        for d in self.date:
-            self.move_date(d)
-            time.sleep(0.5)
+            for date in d_date:
+                if self._get(date, c_data[c_data.columns[0]]) == False:
+                    return False
 
-            for c in self.code:
-                name = f'{d}-{c}'
-                file = os.path.join(self.dir, name) + '.xlsx'
+            return True
 
-                if os.path.exists(file):
-                    continue
+        # 指定code與date
+        elif (code != '') & (date != ''):
+            return self._get([date], [code])
 
-                self.get(str(c), name)
-
-                if os.path.exists(file) == False:
-                    pyautogui.alert(
-                        text=f'失敗:{file}',
-                        title='結果',
-                        button='OK'
-                    )
-                    return
-
-    def _get_dir(self, dir):
+    def _get_dir(self, dir) -> bool:
         for path in glob.glob(os.path.join(dir, '*')):
-            date = os.path.basename(path).split('.')[0]
+            if self._get(os.path.basename(path).split('.')[0], pd.read_csv(path)['code']) == False:
+                return False
 
-            self.move_date(date)
-            time.sleep(0.5)
+        return True
 
-            for code in pd.read_csv(path)['code']:
-                name = f'{date}-{code}'
-                file = os.path.join(self.dir, name) + '.xlsx'
+    def _get_file(self, file) -> bool:
+        return self._get(os.path.basename(file).split('.')[0], pd.read_csv(file)['code'])
 
-                if os.path.exists(file):
-                    continue
+    def _get(self, date, code) -> bool:
+        self.move_date(date)
+        time.sleep(0.5)
 
-                self.get(str(code), name)
+        for code in code:
+            name = f'{date}-{code}'
+            file = os.path.join(self.dir, name) + '.xlsx'
 
-                if os.path.exists(file) == False:
-                    pyautogui.alert(
-                        text=f'失敗:{file}',
-                        title='結果',
-                        button='OK'
-                    )
-                    return
+            if os.path.exists(file):
+                continue
+
+            self.get(str(code), name)
+
+            if os.path.exists(file) == False:
+                pyautogui.alert(
+                    text=f'失敗:{file}',
+                    title='結果',
+                    button='OK'
+                )
+
+                return False
+
+        return True
