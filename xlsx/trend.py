@@ -18,7 +18,7 @@ class ToCsv():
 
         trend_files = glob.glob(os.path.join(dir, '*.json'))
         if len(trend_files) == 0:
-            for dir in glob.glob(os.path.join(dir, '*')):
+            for dir in sorted(glob.glob(os.path.join(dir, '*')), reverse=True):
                 if os.path.isdir(dir):
                     self.trends[os.path.basename(dir)] = glob.glob(os.path.join(dir, '*.json'))
         else:
@@ -42,6 +42,11 @@ class StockToCsv(ToCsv):
             self._to_csv(date, paths, output)
 
     def _to_csv(self, date, paths, output):
+        file = os.path.join(output, date) + '.csv'
+
+        if os.path.exists(file):
+            return
+
         stock = {}
 
         for path in paths:
@@ -69,11 +74,12 @@ class StockToCsv(ToCsv):
 
             data[i] = values
 
-        index = pd.MultiIndex.from_product([codes, self.columns], names=['code', 'name'])
-        name = os.path.join(output, date) + '.csv'
-        pd.DataFrame(data, index=index).to_csv(name)
+        pd.DataFrame(
+            data,
+            index=(pd.MultiIndex.from_product([codes, self.columns], names=['code', 'name']))
+        ).to_csv(file)
 
-        logging.info(f'save {name}')
+        logging.info(f'save {file}')
 
 
 class MarketToCsv(ToCsv):
