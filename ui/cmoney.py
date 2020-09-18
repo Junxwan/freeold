@@ -91,7 +91,7 @@ class Tick(ui.process):
             master,
             text='選擇檔案',
             font=ui.BTN_FONT,
-            command=lambda: self.code.set(ui.openFile())
+            command=lambda: self.code.set(self._open_file())
         ).place(x=self.w * 50, y=5)
 
         tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=self.ey)
@@ -100,7 +100,7 @@ class Tick(ui.process):
             master,
             text='選擇檔案',
             font=ui.BTN_FONT,
-            command=lambda: self.date.set(ui.openFile())
+            command=lambda: self.date.set(self._open_file())
         ).place(x=self.w * 50, y=self.h * 8)
 
         tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey * 2)
@@ -114,9 +114,16 @@ class Tick(ui.process):
 
         self.addRunBtn(master)
 
+    def _open_file(self):
+        f = ui.openFile()
+        if f is None:
+            return None
+        return f.name
+
     def run(self):
         cm.Tick(self.output.get()).run(self.code.get(), self.date.get())
-        self.showSuccess()
+        now = time.time()
+        self.showMessageBox('時間:' + str(int((time.time() - now) / 60)) + ' 分')
 
 
 # 抓取trend

@@ -52,17 +52,21 @@ class Tick():
             self._get_file(code, date)
 
     def _get_file(self, code, date):
-        if os.path.isfile(code):
-            data = pd.read_csv(code, index_col=False, header=None)
-            self.code = data[data.columns[0]]
-        else:
-            self.code.append(code)
+        if code != '':
+            if os.path.isfile(code):
+                data = pd.read_csv(code, index_col=False, header=None)
+                self.code = data[data.columns[0]]
+            else:
+                self.code.append(code)
 
-        if os.path.isfile(date):
-            data = pd.read_csv(date, index_col=False, header=None)
-            self.date = data[data.columns[0]]
-        else:
-            self.date.append(date)
+            if os.path.isfile(date):
+                data = pd.read_csv(date, index_col=False, header=None)
+                self.date = data[data.columns[0]]
+            else:
+                self.date.append(date)
+        elif os.path.isfile(date):
+            self.date.append(os.path.basename(date).split('.')[0])
+            self.code = pd.read_csv(date)['code']
 
         for d in self.date:
             self.move_date(d)
