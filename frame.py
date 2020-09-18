@@ -184,6 +184,12 @@ class main():
             command=lambda: self.switchArg(cmoney.MarKetTrendToCsv)
         ).place(x=5, y=self.h * 24)
 
+        tk.Button(
+            self.btnGroupFrame,
+            text='個股tick轉csv',
+            command=lambda: self.switchArg(cmoney.StockTickToCsv)
+        ).place(x=5, y=self.h * 30)
+
         self.setLog('cmoney')
 
     # 選股功能按鈕組

@@ -11,6 +11,39 @@ import numpy as np
 from stock import data as dt
 
 
+class Tick():
+    def __init__(self, dir):
+        self.dir = dir
+        self.data = {}
+
+        for file in glob.glob(os.path.join(dir, "*")):
+            name = os.path.basename(file)
+
+            names = name.split('.')
+            if names[1] != 'xlsx':
+                continue
+
+            code = names[0][11:]
+            date = names[0][:10]
+
+            if code not in self.data:
+                self.data[code] = {}
+
+            data = pd.read_excel(file)
+            data.columns = ['time', 'buy', 'sell', 'price', 'volume', 'total_volume']
+            self.data[code][date] = data.reindex(index=data.index[::-1])
+
+    def output(self, dir):
+        for code, data in self.data.items():
+            for date, value in data.items():
+                path = os.path.join(dir, date)
+
+                if os.path.exists(path) == False:
+                    os.mkdir(path)
+
+                value.to_csv(os.path.join(path, code) + '.csv', index=False)
+
+
 # 個股基本資料
 class stock():
     def __init__(self, file):

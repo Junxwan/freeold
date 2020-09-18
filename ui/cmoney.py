@@ -307,6 +307,42 @@ class StockTrendToCsv(ui.process):
         self.showSuccess()
 
 
+class StockTickToCsv(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.input = tk.StringVar()
+        self.output = tk.StringVar()
+
+        if config != None:
+            self.input.set(os.path.join(config['data'], 'tick'))
+            self.output.set(other.tick_csv_path(config))
+
+        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.input.set(ui.openDir())
+        ).place(x=w * 50, y=10)
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=h * 8)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        xlsx.Tick(self.input.get()).output(self.output.get())
+        self.showSuccess()
+
+
 class MarKetTrendToCsv(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
