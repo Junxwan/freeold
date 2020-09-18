@@ -14,9 +14,12 @@ from stock import data as dt
 class Tick():
     def __init__(self, dir):
         self.dir = dir
-        self.data = {}
 
-        for file in glob.glob(os.path.join(dir, "*")):
+        date_times = pd.date_range(start='2020-01-01 09:00:00', end=f'2020-01-01 13:25:00', freq='min')
+        self.times = [t.strftime('%H:%M:%S') for i, t in enumerate(date_times)]
+
+    def output(self, dir):
+        for file in glob.glob(os.path.join(self.dir, "*")):
             name = os.path.basename(file)
 
             names = name.split('.')
@@ -26,22 +29,41 @@ class Tick():
             code = names[0][11:]
             date = names[0][:10]
 
-            if code not in self.data:
-                self.data[code] = {}
-
             data = pd.read_excel(file)
             data.columns = ['time', 'buy', 'sell', 'price', 'volume', 'total_volume']
-            self.data[code][date] = data.reindex(index=data.index[::-1])
+            data = data.reindex(index=data.index[::-1])
+            data.insert(len(data.columns), 'amount', (data['price'] * data['volume']).to_numpy().tolist())
+            data.insert(len(data.columns), 'avg', np.full([1, len(data)], np.nan).tolist()[0])
 
-    def output(self, dir):
-        for code, data in self.data.items():
-            for date, value in data.items():
-                path = os.path.join(dir, date)
+            total_amount = 0
+            times = data['time']
+            for index, time in enumerate(self.times[1:]):
+                q = data[(self.times[index] <= times) & (times < time)]
+                amount = q['amount'].sum()
 
-                if os.path.exists(path) == False:
-                    os.mkdir(path)
+                if amount == 0:
+                    continue
 
-                value.to_csv(os.path.join(path, code) + '.csv', index=False)
+                total_amount += amount
+
+                avg = total_amount / q['total_volume'].iloc[-1]
+
+                if avg < 50:
+                    l = 2
+                elif avg < 500:
+                    l = 1
+                else:
+                    l = 0
+
+                data['avg'].loc[q.index[0]:q.index[-1]] = round(avg, l)
+
+            path = os.path.join(dir, date)
+            if os.path.exists(path) == False:
+                os.mkdir(path)
+
+            data.to_csv(os.path.join(path, code) + '.csv', index=False)
+
+            logging.info(f'date:{date}   {code}.csv')
 
 
 # 個股基本資料
