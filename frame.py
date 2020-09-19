@@ -591,7 +591,7 @@ class Watch():
 
     def _open_dir_stock(self):
         self._date_list = {}
-        for path in glob.glob(os.path.join(ui.openDir(), '*.csv')):
+        for path in sorted(glob.glob(os.path.join(ui.openDir(), '*.csv')), reverse=True):
             name = os.path.basename(path).split('.')[0]
             self._date_listbox.insert(tk.END, name)
             self._date_list[name] = pd.read_csv(path)
