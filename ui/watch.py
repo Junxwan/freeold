@@ -282,7 +282,7 @@ class TrendWatch(Plot):
     def _build_move_event(self, c_watch):
         return trend.MoveEvent(
             self.canvas,
-            c_watch.value(),
+            c_watch,
             [a.axes for a in self._axes.values()],
             show_date=False,
             color='#00FFFF'

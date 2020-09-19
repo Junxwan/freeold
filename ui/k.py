@@ -126,7 +126,7 @@ class MoveEvent(tk.Frame):
     def __init__(self, canvas, c_watch, axs, show_date=True, color='#FFFF66'):
         tk.Frame.__init__(self)
 
-        self._data = c_watch
+        self.set_data(c_watch)
         self.canvas = canvas
         self._axs = axs
         self.is_show_date = show_date
@@ -158,6 +158,9 @@ class MoveEvent(tk.Frame):
         x = round(event.xdata)
         y = event.ydata
         p = self.get(x)
+
+        if p is None:
+            return
 
         if len(self._vax) == 0:
             for ax in self._axs:

@@ -255,8 +255,16 @@ class Avg(k.SubAxes):
 
 # 日內走勢事件
 class MoveEvent(k.MoveEvent):
+    def set_data(self, c_watch):
+        self._data = c_watch.value()
+        self._times = [v for v in c_watch.times]
+
     def get(self, x):
-        return self._data[x]
+        for i, b in enumerate((self._data.loc['time'] == self._times[x])):
+            if b:
+                return self._data[i]
+
+        return None
 
 
 # 日期塞選
