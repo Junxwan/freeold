@@ -5,7 +5,7 @@ import pandas as pd
 import mplfinance as mpf
 import matplotlib.pyplot as plt
 from stock import data
-from . import other, k, trend
+from . import other, k, trend, k_trend
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
@@ -369,7 +369,7 @@ class KTrendWatch(Plot):
         return {
             'trend': trend.Watch(),
             f'trend_{data.VOLUME}': trend.Volume(),
-            'k': k.Watch(),
+            'k': k_trend.KWatch(),
             f'k_{data.VOLUME}': k.Volume(),
         }
 

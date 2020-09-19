@@ -22,7 +22,7 @@ class Watch(k.SubAxes):
     name = NAME
 
     # 繪製主圖
-    def _plot(self, **kwargs) -> bool:
+    def plot(self, **kwargs) -> bool:
         close = self._close()
         if close is None:
             return False
@@ -71,23 +71,24 @@ class Watch(k.SubAxes):
         self._y_data.append(self.y[i])
         self.line[0].set_data(self._x_data, self._y_data)
 
-    def _plot_text(self, text, **kwargs):
-        _y_max = self.axes.yaxis.major.locator.max
-        _y_tick = self.axes.yaxis.major.locator.get_tick(_y_max)
-
-        self.info = self.axes.text(
-            -1,
-            _y_max + _y_tick / 2,
-            self._stock_info(),
-            fontsize=self.xy_font_size,
-            color='white'
-        )
-
+    def plot_text(self, text, **kwargs):
         text.add('日', 'date', self._c_watch.date, offset_x=0.5)
 
         first = self._c_watch.first()
         for name, c in self.text.items():
             text.add(name, c, first[c], offset_x=0.5)
+
+    def plot_info(self):
+        _y_max = self.axes.yaxis.major.locator.max
+        _y_tick = self.axes.yaxis.major.locator.get_tick(_y_max)
+
+        self.info = self.axes.text(
+            -1,
+            _y_max + _y_tick*2,
+            self.stock_info(),
+            fontsize=self.xy_font_size,
+            color='white'
+        )
 
     def _close(self):
         yesterday = self._watch.yesterday(self.code, self._c_watch.date)
@@ -139,7 +140,7 @@ class Volume(k.SubAxes):
 
     master_name = NAME
 
-    def _plot(self, **kwargs) -> bool:
+    def plot(self, **kwargs) -> bool:
         self.axes.name = data.VOLUME
         self.axes.grid(True)
         self.axes.set_ylim(0, 1.1 * self._c_watch.volume().max())
@@ -184,7 +185,7 @@ class MaxMin(k.SubAxes):
         self._max = None
         self._min = None
 
-    def _plot(self, **kwargs) -> bool:
+    def plot(self, **kwargs) -> bool:
         value = self._c_watch.value()
         price = value.loc['price']
 
@@ -235,7 +236,7 @@ class Avg(k.SubAxes):
         k.SubAxes.__init__(self)
         self.line = None
 
-    def _plot(self, **kwargs) -> bool:
+    def plot(self, **kwargs) -> bool:
         tick = self._c_watch.tick()
 
         self.line = self.axes.plot(

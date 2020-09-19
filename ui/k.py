@@ -38,21 +38,26 @@ class SubAxes():
         self._watch = watch
         self.info = None
 
-        if self._plot(**kwargs) == False:
+        if self.plot(**kwargs) == False:
             return False
 
         if text is not None:
-            self._plot_text(text, **kwargs)
+            self.plot_text(text, **kwargs)
+
+        self.plot_info()
 
         if self._load_sup(text, **kwargs) == False:
             return False
 
         return True
 
-    def _plot(self, **kwargs) -> bool:
+    def plot(self, **kwargs) -> bool:
         return True
 
-    def _plot_text(self, text, **kwargs):
+    def plot_text(self, text, **kwargs):
+        pass
+
+    def plot_info(self):
         pass
 
     def _load_sup(self, text, **kwargs) -> bool:
@@ -77,7 +82,7 @@ class SubAxes():
         self.axes.tick_params(axis='y', labelsize=self.xy_font_size)
         self.axes.tick_params(axis='x', labelsize=self.xy_font_size)
 
-    def _stock_info(self):
+    def stock_info(self):
         info = self._watch.info(self.code)
 
         if info.on == 1:
@@ -268,7 +273,7 @@ class Watch(SubAxes):
         self.info = None
 
     # 繪製主圖
-    def _plot(self, **kwargs):
+    def plot(self, **kwargs):
         self.axes.name = data.CLOSE
         y_max, y_min = self._c_watch.get_y_max_min()
         self.axes.set_xlim(-2, self._c_watch.range)
@@ -283,21 +288,22 @@ class Watch(SubAxes):
         return True
 
     # 繪製文案
-    def _plot_text(self, text, **kwargs):
+    def plot_text(self, text, **kwargs):
+        last = self._c_watch.get_last()
+        for name, c in self.text.items():
+            text.add(name, c, last[c], offset_x=0.7)
+
+    def plot_info(self):
         _y_tick = self.axes.yaxis.major.locator.tick
         _y_max = self.axes.yaxis.major.locator.get_ticks()[-1]
 
         self.info = self.axes.text(
             -1,
             _y_max + _y_tick / 2,
-            self._stock_info(),
+            self.stock_info(),
             fontsize=self.xy_font_size,
             color='white'
         )
-
-        last = self._c_watch.get_last()
-        for name, c in self.text.items():
-            text.add(name, c, last[c], offset_x=0.7)
 
     # 繪製K線
     def _plot_k(self):
@@ -391,7 +397,7 @@ class Volume(SubAxes):
 
     master_name = NAME
 
-    def _plot(self, **kwargs):
+    def plot(self, **kwargs):
         self.axes.name = data.VOLUME
         self.axes.grid(True)
         self.axes.yaxis.tick_right()
@@ -458,7 +464,7 @@ class MA(SubAxes):
         SubAxes.__init__(self)
         self.day = []
 
-    def _plot(self, **kwargs):
+    def plot(self, **kwargs):
         day = kwargs.get('ma')
 
         if day is None:
@@ -478,7 +484,7 @@ class MA(SubAxes):
                 v.remove()
                 del self._line[d]
 
-    def _plot_text(self, text, **kwargs):
+    def plot_text(self, text, **kwargs):
         for name, line in self._line.items():
             key = f'{name}ma'
             text.add(key, key, self._line[name][0].get_ydata()[-1], color=self.color[name], offset_x=1.2)
@@ -528,7 +534,7 @@ class MaxMin(SubAxes):
         self._max = None
         self._min = None
 
-    def _plot(self, **kwargs):
+    def plot(self, **kwargs):
         y_tick = self.axes.yaxis.major.locator.tick
         (x_max, y_max) = self._c_watch.get_xy_max()
         (x_min, y_min) = self._c_watch.get_xy_min()
