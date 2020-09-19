@@ -444,6 +444,8 @@ class image():
 
 
 class Watch():
+    default_code = 6123
+
     def __init__(self, root, config=None, path=None):
         self.root = root
         self.size = pyautogui.size()
@@ -474,8 +476,8 @@ class Watch():
         self._button_layout()
         self._list_layout()
 
-        self._plot_k_trend()
-        # self._plot_trend()
+        # self._plot_k_trend()
+        self._plot_trend()
         # self._plot_k()
         self.watch.pack()
 
@@ -508,7 +510,7 @@ class Watch():
         self.code = tk.StringVar()
         self.date = tk.StringVar()
 
-        self.code.set(2330)
+        self.code.set(self.default_code)
 
         tk.Label(self.bottom_frame, text='個股:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(self.bottom_frame, width=8, textvariable=self.code, font=ui.FONT).place(x=130, y=10)

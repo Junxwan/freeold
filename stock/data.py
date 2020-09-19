@@ -483,14 +483,14 @@ class TrendData():
         self._data = data.dropna(axis='columns')
         self.date = ''
 
-        self._format()
-        self._format_tick(tick)
-
         date_times = pd.date_range(start='2020-01-01 09:00:00', end=f'2020-01-01 13:33:00', freq='min')
         for i in range(4):
             date_times = date_times.delete(266)
 
         self.times = {t.strftime('%H:%M:%S'): i for i, t in enumerate(date_times)}
+
+        self._format()
+        self._format_tick(tick)
 
     def _format(self):
         self.date = self._data.loc['time'][0][:10]
@@ -503,22 +503,25 @@ class TrendData():
 
     def _format_tick(self, tick):
         avg = []
-        times = self._data.loc['time']
 
         if tick is None:
-            avg = np.full([1, len(times)], np.nan).tolist()[0]
+            avg = np.full([1, len(self._data.loc['time'])], np.nan).tolist()[0]
         else:
             q = tick['time']
+            times = list(self.times)
 
-            for i, time in enumerate(times.tolist()[1:]):
+            for i, time in enumerate(times[1:-4]):
                 d = tick[q.between(times[i], time)]
 
                 if d.empty:
-                    avg.append(np.nan)
+                    if len(avg) == 0:
+                        avg.append(tick.loc[0]['buy'])
+                    else:
+                        avg.append(avg[-1])
                 else:
                     avg.append(d.dropna().iloc[-1]['avg'])
 
-            avg.append(np.nan)
+            avg.append(avg[-1])
             pd.DataFrame([avg], index=['avg'])
 
         self._data = self._data.append(pd.DataFrame([avg], index=['avg']))
@@ -527,7 +530,7 @@ class TrendData():
         return self._data
 
     def time(self):
-        return self._data.loc['time']
+        return self._data.loc['time'].dropna()
 
     def price(self):
         return self._data.loc['price']
