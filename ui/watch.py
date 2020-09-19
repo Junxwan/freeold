@@ -342,7 +342,14 @@ class KTrendWatch(Plot):
         return object.draw(code, axes, self._data_text, c_watch[name], watch, **kwargs)
 
     def _build_axes(self, fig, **kwargs) -> list:
-        return _build_multi_axes(fig, panel_ratios=kwargs.get('panel_ratios'), cols=2, scale_bot=3)
+        return _build_multi_axes(
+            fig,
+            panel_ratios=kwargs.get('panel_ratios'),
+            scale_left=0.75,
+            scale_right=0.8,
+            cols=2,
+            scale_bot=3
+        )
 
     def _build_text(self, axes_list):
         pass
