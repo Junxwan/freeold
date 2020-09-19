@@ -225,6 +225,7 @@ class K():
         [self._stock.read(n) for n in sorted(ready, reverse=True)]
 
         self._data = {}
+        self._k_data = {}
 
     def code(self, code, range=60, date=None):
         if code not in self._data:
@@ -269,7 +270,11 @@ class K():
         c_data[DATE] = pd.to_datetime(c_data[DATE])
         c_data = c_data.set_index(DATE).sort_index()
         c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
-        return KData(code, c_data)
+
+        if code not in self._k_data:
+            self._k_data[code] = KData(code, c_data)
+
+        return self._k_data[code]
 
     def info(self, code):
         return self._stock.info(code)

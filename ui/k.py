@@ -368,7 +368,8 @@ class Watch(SubAxes):
             self.axes.collections[0].remove()
 
     def _remove(self):
-        self.info.remove()
+        if self.info is not None:
+            self.info.remove()
 
 
 # 成交量

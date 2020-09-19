@@ -122,7 +122,7 @@ class Watch():
         })
 
     def clear(self):
-        for ax in [self.k, self.trend]:
+        for ax in [self.k, self.trend, self.k_trend]:
             if ax is not None:
                 ax.remove()
 
@@ -230,7 +230,9 @@ class Plot():
         self._data_text.clear()
 
     def remove(self):
-        self._data_text.remove()
+        if self._data_text is not None:
+            self._clear_text()
+
         for n, o in self._axes.items():
             o.remove()
             o.axes.remove()

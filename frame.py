@@ -474,8 +474,8 @@ class Watch():
         self._button_layout()
         self._list_layout()
 
-        # self._plot_k_trend()
-        self._plot_trend()
+        self._plot_k_trend()
+        # self._plot_trend()
         # self._plot_k()
         self.watch.pack()
 
@@ -534,10 +534,16 @@ class Watch():
         ).place(x=180, y=200)
         tk.Button(
             self.bottom_frame,
+            text='k勢',
+            font=ui.SMALL_FONT,
+            command=self._plot_k_trend,
+        ).place(x=270, y=200)
+        tk.Button(
+            self.bottom_frame,
             text='載',
             font=ui.SMALL_FONT,
             command=self._open_dir_stock,
-        ).place(x=260, y=200)
+        ).place(x=10, y=280)
 
     def _list_layout(self):
         date_list = tk.Frame(self.top_frame, width=self.right_width, height=int(self.height * 0.15))
@@ -606,6 +612,8 @@ class Watch():
             self._plot_k()
         elif self.type == 'trend':
             self._plot_trend()
+        elif self.type == 'k_trend':
+            self._plot_k_trend()
 
     def _plot_k(self):
         self._plot('k')
