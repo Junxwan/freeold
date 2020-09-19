@@ -540,11 +540,12 @@ class MaxMin(SubAxes):
         return self.axes.annotate(
             y,
             xy=(x, y),
-            xytext=(x - self.offset_x[len(str(y))], y + y_offset),
+            xytext=(x, y + y_offset),
             color='black',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple"),
-            bbox=dict(boxstyle='square', fc="0.5")
+            bbox=dict(boxstyle='square', fc="0.5"),
+            ha='center'
         )
 
     def _clear(self):

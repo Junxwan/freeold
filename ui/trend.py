@@ -187,38 +187,35 @@ class MaxMin(k.SubAxes):
         self._min = None
 
     def _plot(self, **kwargs) -> bool:
-        price = self._c_watch.price()
+        value = self._c_watch.value()
+        price = value.loc['price']
 
         y_max = price.max()
-        x_max = int(price[price == y_max].index[0])
+        x_max = self._c_watch.times[value.loc['time'][price == y_max].iloc[0]]
         tick = self.axes.yaxis.major.locator.get_tick(y_max)
-        x_text = x_max + 5
-        y_text = y_max + tick
+
         self._max = self.axes.annotate(
             y_max,
-            xy=(x_max, y_max + tick * 2),
-            xytext=(x_text, y_text),
+            xy=(x_max, y_max),
+            xytext=(x_max, y_max + (tick * 8)),
             color='#FF0000',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#FF0000'),
+            ha='center'
         )
 
         y_min = price.min()
-        x_min = int(price[price == y_min].index[0])
+        x_min = self._c_watch.times[value.loc['time'][price == y_min].iloc[0]]
         tick = self.axes.yaxis.major.locator.get_tick(y_min)
-        x_text = x_min + 5
-        y_text = y_min - tick * 4
-
-        if x_text >= 265:
-            x_text = x_min - 30
 
         self._min = self.axes.annotate(
             y_min,
-            xy=(x_min, y_min - tick * 2),
-            xytext=(x_text, y_text),
+            xy=(x_min, y_min),
+            xytext=(x_min, y_min - (tick * 10)),
             color='#51F069',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#51F069'),
+            ha='center'
         )
 
         return True
