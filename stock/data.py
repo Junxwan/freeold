@@ -392,6 +392,7 @@ class Trend():
     data = {}
     ticks = {}
     dk = {}
+    _date = {}
 
     def __init__(self, dir):
         self.trend_dir = os.path.join(dir, 'trend', 'stock')
@@ -446,7 +447,13 @@ class Trend():
         if data is None:
             return None
 
-        return TrendData(code, data, tick=self.tick(code, data['0']['time'][:10]))
+        if code not in self._date:
+            self._date[code] = {}
+
+        if date not in self._date[code]:
+            self._date[code][date] = TrendData(code, data, tick=self.tick(code, data['0']['time'][:10]))
+
+        return self._date[code][date]
 
     def read(self, date):
         if date not in self.data:
