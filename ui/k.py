@@ -407,7 +407,7 @@ class Volume(SubAxes):
             use_prev_close=True
         )
 
-        self.axes.set_ylim(0.3 * np.nanmin(volumes), 1.1 * np.nanmax(volumes))
+        self.axes.set_ylim(np.nanmin(volumes), 1.1 * np.nanmax(volumes))
         self.axes.bar(
             x_data,
             volumes,
@@ -421,11 +421,8 @@ class Volume(SubAxes):
         self._update_label()
 
     def _major(self, volume):
-        fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
-                x * 1e-3) if x >= 1e3 else '%1.0f' % x
-
         self.axes.yaxis.set_major_locator(VolumeLocator(volume))
-        self.axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
+        self.axes.yaxis.set_major_formatter(VolumeFormatter())
 
         for ticks in [self.axes.get_yticklabels(), self.axes.get_xticklabels()]:
             for tick in ticks:
@@ -651,10 +648,17 @@ class VolumeLocator(mticks.Locator):
         mx = self._c_watch.max()
         mi = self._c_watch.min()
         step = 10 ** (len(str(int((mx - mi) / 3))) - 1)
-        diff = (mx - mi) / 3
+        diff = (mx - mi) / self.len
         step = int((diff - diff % step) + step)
 
-        self.locs = [step * i for i in range(self.len)]
+        self.locs.append(0)
+
+        for i in range(10):
+            v = step * (i + 1)
+            self.locs.append(v)
+
+            if v > mx:
+                break
 
         return self.locs
 
@@ -680,3 +684,15 @@ class PriceFormatter(mticks.Formatter):
             return ''
 
         return '%1.2f' % x
+
+
+# 交易量格式
+class VolumeFormatter(mticks.Formatter):
+    def __call__(self, x, pos=None):
+        if len(self.locs) != (pos + 1):
+            return self.format(x)
+        return ''
+
+    def format(self, x):
+        return '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
+                x * 1e-3) if x >= 1e3 else '%1.0f' % x

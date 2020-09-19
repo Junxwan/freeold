@@ -153,6 +153,7 @@ class Volume(k.SubAxes):
             y.append(volume[i])
 
         self.axes.bar(x, y, color='#FF00FF', width=0.2)
+        self._major()
         self._update_label()
 
         return True
@@ -160,11 +161,8 @@ class Volume(k.SubAxes):
     def _major(self):
         self.axes.xaxis.set_major_locator(TimeLocator())
         self.axes.xaxis.set_major_formatter(TimeFormatter())
-        self.axes.yaxis.set_major_locator(k.VolumeLocator(self._c_watch.volume(), len=3))
-
-        fun = lambda x, pos: '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
-                x * 1e-3) if x >= 1e3 else '%1.0f' % x
-        self.axes.yaxis.set_major_formatter(mticks.FuncFormatter(fun))
+        self.axes.yaxis.set_major_locator(k.VolumeLocator(self._c_watch.volume()))
+        self.axes.yaxis.set_major_formatter(k.VolumeFormatter())
 
     def _update_label(self):
         self.axes.tick_params(axis='y', labelsize=self.xy_font_size)
