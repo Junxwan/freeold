@@ -36,6 +36,7 @@ class SubAxes():
         self.axes = axes
         self._c_watch = c_watch
         self._watch = watch
+        self.info = None
 
         if self._plot(**kwargs) == False:
             return False
@@ -95,6 +96,9 @@ class SubAxes():
         self.clear_sup()
         self._clear()
 
+        if self.info is not None:
+            self.info.remove()
+
     def _clear(self):
         pass
 
@@ -105,6 +109,10 @@ class SubAxes():
             o.remove()
         for n, o in self._line.items():
             o[0].remove()
+
+        if self.info is not None:
+            self.info.remove()
+            self.info = None
 
         self._line.clear()
         self._sup.clear()
@@ -366,10 +374,6 @@ class Watch(SubAxes):
         if len(self.axes.collections) > 0:
             self.axes.collections[0].remove()
             self.axes.collections[0].remove()
-
-    def _remove(self):
-        if self.info is not None:
-            self.info.remove()
 
 
 # 成交量
