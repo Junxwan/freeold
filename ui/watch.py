@@ -26,7 +26,7 @@ class Watch():
 
         self.k_watch = data.K(other.stock_csv_path(self.config))
         self.k = None
-        self.trend_watch = data.Trend(other.stock_trend_csv_path(self.config))
+        self.trend_watch = data.Trend(other.csv_path(self.config))
         self.trend = None
         self.k_trend = None
 
@@ -455,7 +455,7 @@ class DataLabel():
 
 # 繪製畫板
 def _build_axes(fig, panel_ratios=None, scale_left=1.0, left=True):
-    if scale_left > 1:
+    if scale_left != 1:
         scale_right = scale_left * 5
     else:
         scale_right = 1.0

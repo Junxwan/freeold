@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+import numpy as np
 import matplotlib.ticker as mticks
 import matplotlib.animation as animation
 from . import k
@@ -107,6 +108,7 @@ class Watch(k.SubAxes):
     def _sup_axes(self):
         return {
             'max_min': MaxMin(),
+            'avg': Avg(),
         }
 
     def _update_label(self):
@@ -227,6 +229,33 @@ class MaxMin(k.SubAxes):
 
         if self._min is not None:
             self._min.remove()
+
+
+class Avg(k.SubAxes):
+    name = 'avg'
+
+    master_name = NAME
+
+    def __init__(self):
+        k.SubAxes.__init__(self)
+        self.line = None
+
+    def _plot(self, **kwargs) -> bool:
+        tick = self._c_watch.tick()
+
+        self.line = self.axes.plot(
+            np.arange(len(tick)),
+            tick,
+            linewidth=1,
+            color='#22AC38',
+        )
+
+        return True
+
+    def _clear(self):
+        if self.line is not None:
+            self.line[0].remove()
+            self.line = None
 
 
 # 日內走勢事件

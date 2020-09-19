@@ -41,15 +41,21 @@ class stockInfo(ui.process):
         self.showSuccess()
 
 
+def csv_path(config):
+    return os.path.join(config['data'], 'csv')
+
+
 def stock_csv_path(config):
-    return os.path.join(config['data'], 'csv', 'stock')
+    return os.path.join(csv_path(config), 'stock')
 
 
 def trend_csv_path(config):
-    return os.path.join(config['data'], 'csv', 'trend')
+    return os.path.join(csv_path(config), 'trend')
+
 
 def tick_csv_path(config):
-    return os.path.join(config['data'], 'csv', 'tick')
+    return os.path.join(csv_path(config), 'tick')
+
 
 def stock_trend_csv_path(config):
     return os.path.join(trend_csv_path(config), 'stock')

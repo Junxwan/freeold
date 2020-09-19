@@ -62,13 +62,17 @@ class Tick():
         # 根據code與date檔案清單
         elif os.path.isfile(code) & os.path.isfile(date):
             c_data = pd.read_csv(code, index_col=False, header=None)
-            d_date = pd.read_csv(date, index_col=False, header=None)
+            d_date = [d[0] for d in pd.read_csv(date, index_col=False, header=None).to_numpy().tolist()]
 
             for date in d_date:
                 if self._get(date, c_data[c_data.columns[0]]) == False:
                     return False
 
             return True
+        elif (code != '') & (os.path.isfile(date)):
+            return self._get_date(code, [
+                d[0] for d in pd.read_csv(date, index_col=False, header=None).to_numpy().tolist()
+            ])
 
         # 指定code與date
         elif (code != '') & (date != ''):
@@ -99,8 +103,24 @@ class Tick():
 
         return self._get(date, pd.read_csv(file)['code'])
 
-    def _get(self, date, code) -> bool:
-        for code in code:
+    def _get_date(self, code, dates) -> bool:
+        year = datetime.now().year
+        month = datetime.now().month
+
+        for date in dates:
+            self.move_date(date, year=year, month=month)
+            time.sleep(2)
+
+            if self._get(date, [code]) == False:
+                return False
+
+            year = int(date[:4])
+            month = int(date[5:7])
+
+        return True
+
+    def _get(self, date, codes) -> bool:
+        for code in codes:
             name = f'{date}-{code}'
             file = os.path.join(self.dir, name) + '.xlsx'
 

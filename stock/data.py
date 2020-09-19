@@ -390,15 +390,17 @@ class KData():
 
 class Trend():
     data = {}
+    ticks = {}
     dk = {}
 
     def __init__(self, dir):
-        self.dir = dir
+        self.trend_dir = os.path.join(dir, 'trend', 'stock')
+        self.tick_dir = os.path.join(dir, 'tick')
 
     def month(self, month):
         dates = [
             os.path.basename(p).split('.')[0] for p in
-            glob.glob(os.path.join(self.dir, month[:4], f'{month[:4]}-{month[4:6]}-*.csv'))
+            glob.glob(os.path.join(self.trend_dir, month[:4], f'{month[:4]}-{month[4:6]}-*.csv'))
         ]
 
         data = {}
@@ -409,6 +411,24 @@ class Trend():
 
     def date(self, date):
         self.read(date)
+
+    def tick(self, code, date):
+        if date in self.ticks:
+            if code in self.ticks[date]:
+                return self.ticks[date][code]
+
+        tick_file = os.path.join(self.tick_dir, date, str(code)) + '.csv'
+
+        if os.path.exists(tick_file):
+            if date not in self.ticks:
+                self.ticks[date] = {}
+
+            if code not in self.ticks[date]:
+                self.ticks[date][code] = pd.read_csv(tick_file)
+
+            return self.ticks[date][code]
+
+        return None
 
     def code(self, code, date):
         if date is None:
@@ -426,11 +446,11 @@ class Trend():
         if data is None:
             return None
 
-        return TrendData(code, data)
+        return TrendData(code, data, tick=self.tick(code, data['0']['time'][:10]))
 
     def read(self, date):
         if date not in self.data:
-            file = os.path.join(self.dir, date[:4], f'{date}.csv')
+            file = os.path.join(self.trend_dir, date[:4], f'{date}.csv')
 
             if os.path.exists(file) == False:
                 return None
@@ -441,17 +461,18 @@ class Trend():
 
     def now_date(self):
         return os.path.basename(
-            glob.glob(os.path.join(self.dir, str(datetime.now().year), '*.csv'))[-1]
+            glob.glob(os.path.join(self.trend_dir, str(datetime.now().year), '*.csv'))[-1]
         ).split('.')[0]
 
 
 class TrendData():
-    def __init__(self, code, data):
+    def __init__(self, code, data, tick=None):
         self.code = code
         self._data = data.dropna(axis='columns')
         self.date = ''
 
-        self.format()
+        self._format()
+        self._format_tick(tick)
 
         date_times = pd.date_range(start='2020-01-01 09:00:00', end=f'2020-01-01 13:33:00', freq='min')
         for i in range(4):
@@ -459,7 +480,7 @@ class TrendData():
 
         self.times = {t.strftime('%H:%M:%S'): i for i, t in enumerate(date_times)}
 
-    def format(self):
+    def _format(self):
         self.date = self._data.loc['time'][0][:10]
         data = self._data.dropna(axis='columns').copy()
         data.loc[VOLUME] = self._data.loc[VOLUME].astype(int)
@@ -467,6 +488,28 @@ class TrendData():
         data.loc['time'] = self._data.loc['time'].transform(lambda x: x[11:])
         data.columns = self._data.columns.astype(int)
         self._data = data
+
+    def _format_tick(self, tick):
+        avg = []
+        times = self._data.loc['time']
+
+        if tick is None:
+            avg = np.full([1, len(times)], np.nan).tolist()[0]
+        else:
+            q = tick['time']
+
+            for i, time in enumerate(times.tolist()[1:]):
+                d = tick[q.between(times[i], time)]
+
+                if d.empty:
+                    avg.append(np.nan)
+                else:
+                    avg.append(d.dropna().iloc[-1]['avg'])
+
+            avg.append(np.nan)
+            pd.DataFrame([avg], index=['avg'])
+
+        self._data = self._data.append(pd.DataFrame([avg], index=['avg']))
 
     def value(self):
         return self._data
@@ -479,6 +522,9 @@ class TrendData():
 
     def volume(self):
         return self._data.loc[VOLUME]
+
+    def tick(self):
+        return self._data.loc['avg']
 
     def first(self):
         return self._data[0]
