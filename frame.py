@@ -473,8 +473,8 @@ class Watch():
         self._button_layout()
         self._list_layout()
 
-        self._plot_k_trend()
-        # self._plot_trend()
+        # self._plot_k_trend()
+        self._plot_trend()
         # self._plot_k()
         self.watch.pack()
 

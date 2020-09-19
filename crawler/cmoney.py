@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import glob
 import json
 import logging
 import os
@@ -14,7 +14,7 @@ class Trend():
         self.dir = dir
         self.api = api(ck, session)
 
-    def get(self, date):
+    def get(self, date, code=None):
         pass
 
     def save(self, context, code, date, filePath):
@@ -30,17 +30,31 @@ class Trend():
 
 
 class stock(Trend):
-    def __init__(self, ck, session, code, dir):
-        Trend.__init__(self, ck, session, dir)
-        self.code = self.readCode(code)
-
-    def readCode(self, path):
+    def read(self, path):
         return [c[0] for c in pd.read_csv(path, index_col=False, header=None).to_numpy().tolist()]
 
-    def get(self, date):
-        if self.code.__len__() == 0:
+    def get(self, date, code=None):
+        if (date == '') & (os.path.isdir(code)):
+            for path in sorted(glob.glob(os.path.join(code, '*.csv')), reverse=True):
+                if self._get(os.path.basename(path).split('.')[0], self.read(path)) == False:
+                    return False
+
+            return True
+        elif (os.path.isfile(code)) & (os.path.isfile(date)):
+            for date in self.read(date):
+                if self._get(date, self.read(code)) == False:
+                    return False
+
+            return True
+        elif (code != '') & (date != ''):
+            return self._get(date, [code])
+
+        return False
+
+    def _get(self, date, codes) -> bool:
+        if len(codes) == 0:
             logging.info('無個股代碼')
-            return
+            return False
 
         count = 0
         ok = 0
@@ -55,7 +69,7 @@ class stock(Trend):
         if os.path.exists(dir) == False:
             os.makedirs(dir)
 
-        for code in self.code:
+        for code in codes:
             filePath = os.path.join(dir, str(code)) + ".json"
 
             count += 1
@@ -84,9 +98,11 @@ class stock(Trend):
                 logging.info(f'code: {code} date: {date} save failure - {str(count)}')
 
         logging.info(
-            f"total: {self.code.__len__()} result: {ok + failure + exists + emy.__len__()} ok: {ok} failure: {failure} exists: {exists}"
+            f"total: {len(codes)} result: {ok + failure + exists + emy.__len__()} ok: {ok} failure: {failure} exists: {exists}"
         )
         logging.info(f"empty: {emy.__len__()} {emy.__str__()}")
+
+        return True
 
 
 class market(Trend):
@@ -104,7 +120,7 @@ class market(Trend):
             if os.path.exists(p) == False:
                 os.makedirs(p)
 
-    def get(self, date):
+    def get(self, date, code=None):
         t = str(date).replace('-', '')
 
         for code, dir in self.code.items():

@@ -156,11 +156,10 @@ class stock(Trend):
             self.crawler = crawler.stock(
                 self.ck.get(),
                 self.session.get(),
-                self.code.get(),
                 self.output.get()
             )
 
-        self.crawler.get(date)
+        self.crawler.get(date, self.code.get())
 
         logging.info('======================= end ' + date + ' =======================')
 

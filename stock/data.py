@@ -484,20 +484,24 @@ class TrendData():
         return self._data[0]
 
 
-def calendar_xy(date):
+def calendar_xy(date, year=None, month=None):
     dateT = datetime.fromisoformat(date)
-    nM = datetime.now().month
-    nY = datetime.now().year
+
+    if month is None:
+        month = datetime.now().month
+
+    if year is None:
+        year = datetime.now().year
 
     prevMonth = 0
     dayX = 1
     dayY = dateT.isocalendar()[1] % 6
 
-    if nY != dateT.year:
-        prevMonth += ((nY - dateT.year) * 12)
+    if year != dateT.year:
+        prevMonth += ((year - dateT.year) * 12)
 
-    if nM != dateT.month:
-        prevMonth += abs(nM - dateT.month)
+    if month != dateT.month:
+        prevMonth += abs(month - dateT.month)
 
     if dateT.isocalendar()[2] != 7:
         dayX = dateT.isocalendar()[2] + 1

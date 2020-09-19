@@ -1,6 +1,8 @@
 import glob
 import os
 import time
+from datetime import datetime
+
 import pandas as pd
 import pyautogui
 from stock import data as d
@@ -24,24 +26,27 @@ class Tick():
         # 匯出
         pyautogui.click(3000, 1500, button='right')
         pyautogui.click(3050, 1580)
+        time.sleep(0.5)
         pyautogui.write(name)
+        time.sleep(1)
         pyautogui.press('enter')
-        time.sleep(8)
+        time.sleep(9)
 
         # 關閉execl
         pyautogui.keyDown('ALT')
         pyautogui.press('F4')
         pyautogui.keyUp('ALT')
         pyautogui.press('n')
+        time.sleep(1)
 
-    def move_date(self, date):
-        (m, x, y) = d.calendar_xy(date)
+    def move_date(self, date, year=None, month=None):
+        (m, x, y) = d.calendar_xy(date, year, month)
 
         pyautogui.click(3630, 360)
-        time.sleep(0.1)
+        time.sleep(1)
         if m > 0:
             pyautogui.click(3300, 480, m)
-            time.sleep(m * 0.1)
+            time.sleep(m * 1)
 
         pyautogui.click(3255 + (75 * x), 532 + (48 * y))
 
@@ -70,19 +75,31 @@ class Tick():
             return self._get([date], [code])
 
     def _get_dir(self, dir) -> bool:
-        for path in glob.glob(os.path.join(dir, '*.csv')):
-            if self._get(os.path.basename(path).split('.')[0], pd.read_csv(path)['code']) == False:
+        year = datetime.now().year
+        month = datetime.now().month
+
+        for path in sorted(glob.glob(os.path.join(dir, '*.csv')), reverse=True):
+            date = os.path.basename(path).split('.')[0]
+
+            self.move_date(date, year=year, month=month)
+            time.sleep(2)
+
+            if self._get(date, pd.read_csv(path)['code']) == False:
                 return False
+
+            year = int(date[:4])
+            month = int(date[5:7])
 
         return True
 
     def _get_file(self, file) -> bool:
-        return self._get(os.path.basename(file).split('.')[0], pd.read_csv(file)['code'])
+        date = os.path.basename(file).split('.')[0]
+        self.move_date(date)
+        time.sleep(2)
+
+        return self._get(date, pd.read_csv(file)['code'])
 
     def _get(self, date, code) -> bool:
-        self.move_date(date)
-        time.sleep(0.5)
-
         for code in code:
             name = f'{date}-{code}'
             file = os.path.join(self.dir, name) + '.xlsx'
