@@ -79,6 +79,7 @@ class Tick(ui.process):
         self.code = tk.StringVar()
         self.date = tk.StringVar()
         self.output = tk.StringVar()
+        self.csv_dir = other.tick_csv_path(config)
 
         if config is not None:
             self.code.set(config['code'])
@@ -121,8 +122,8 @@ class Tick(ui.process):
         return f.name
 
     def run(self):
-        cm.Tick(self.output.get()).run(self.code.get(), self.date.get())
         now = time.time()
+        cm.Tick(self.output.get(), self.csv_dir).run(self.code.get(), self.date.get())
         self.showMessageBox('時間:' + str(int((time.time() - now) / 60)) + ' 分')
 
 
@@ -346,7 +347,7 @@ class StockTickToCsv(ui.process):
         self.addRunBtn(master)
 
     def run(self):
-        xlsx.Tick(self.input.get(), other.stock_trend_csv_path(self.config)).output(self.output.get())
+        xlsx.Tick(self.input.get(), other.csv_path(self.config)).output(self.output.get())
         self.showSuccess()
 
 

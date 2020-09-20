@@ -11,10 +11,11 @@ pyautogui.FAILSAFE = True
 
 
 class Tick():
-    def __init__(self, dir):
+    def __init__(self, dir, csv_dir):
         self.dir = dir
         self.code = []
         self.date = []
+        self.csv_dir = csv_dir
 
     def get(self, code, name):
         # 選擇個股
@@ -120,11 +121,13 @@ class Tick():
         return True
 
     def _get(self, date, codes) -> bool:
+        csv = os.path.join(self.csv_dir, date)
+
         for code in codes:
             name = f'{date}-{code}'
             file = os.path.join(self.dir, name) + '.xlsx'
 
-            if os.path.exists(file):
+            if (os.path.exists(file)) | (os.path.exists(os.path.join(csv, str(code)) + '.csv')):
                 continue
 
             self.get(str(code), name)
