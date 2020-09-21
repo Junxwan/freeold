@@ -34,8 +34,8 @@ class stock(Trend):
         return [c[0] for c in pd.read_csv(path, index_col=False, header=None).to_numpy().tolist()]
 
     def get(self, date, code=None):
-        if (date == '') & (os.path.isdir(code)):
-            for path in sorted(glob.glob(os.path.join(code, '*.csv')), reverse=True):
+        if (code == '') & (os.path.isdir(date)):
+            for path in sorted(glob.glob(os.path.join(date, '*.csv')), reverse=True):
                 if self._get(os.path.basename(path).split('.')[0], self.read(path)) == False:
                     return False
 
@@ -46,12 +46,18 @@ class stock(Trend):
                     return False
 
             return True
+        elif (code == '') and (os.path.isfile(date)):
+            return self._get(os.path.basename(date).split('.')[0], self.read(date))
+        elif (os.path.isfile(code)) and (date != ''):
+            return self._get(date, self.read(code))
         elif (code != '') & (date != ''):
             return self._get(date, [code])
 
         return False
 
     def _get(self, date, codes) -> bool:
+        logging.info('======================= start ' + date + ' =======================')
+
         if len(codes) == 0:
             logging.info('無個股代碼')
             return False
@@ -101,6 +107,8 @@ class stock(Trend):
             f"total: {len(codes)} result: {ok + failure + exists + emy.__len__()} ok: {ok} failure: {failure} exists: {exists}"
         )
         logging.info(f"empty: {emy.__len__()} {emy.__str__()}")
+
+        logging.info('======================= end ' + date + ' =======================')
 
         return True
 
@@ -162,7 +170,7 @@ class api():
             'action': 'r',
             'id': code,
             'ck': self.__ck,
-            'date': date,
+            'date': '',
             '_': self.__time,
         }, headers={
             'Referer': 'www.cmoney.tw',

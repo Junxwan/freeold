@@ -56,19 +56,6 @@ class Trend(ui.process):
         pass
 
     def run(self):
-        dates = []
-        date = self.date.get()
-        if os.path.isfile(self.date.get()):
-            dates = [d[0] for i, d in pd.read_csv(date, index_col=False, header=None).iterrows()]
-        else:
-            dates.append(date)
-
-        for date in dates:
-            self.call(date)
-
-        self.showSuccess()
-
-    def call(self, date):
         pass
 
 
@@ -150,9 +137,7 @@ class stock(Trend):
     def default_output(self):
         self.output.set(os.path.join(self.output.get(), 'stock'))
 
-    def call(self, date):
-        logging.info('======================= start ' + date + ' =======================')
-
+    def run(self):
         if self.crawler == None:
             self.crawler = crawler.stock(
                 self.ck.get(),
@@ -160,9 +145,7 @@ class stock(Trend):
                 self.output.get()
             )
 
-        self.crawler.get(date, self.code.get())
-
-        logging.info('======================= end ' + date + ' =======================')
+        self.crawler.get(self.date.get(), self.code.get())
 
 
 class market(Trend):
