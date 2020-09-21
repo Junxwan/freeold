@@ -212,6 +212,55 @@ class Stock():
                 frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
 
 
+class Dealer():
+    def __init__(self, dir):
+        self._data = {}
+        data = []
+        master = ''
+
+        for index, rows in pd.read_csv(os.path.join(dir, 'dealer.csv')).iterrows():
+            names = rows[1].split('-')
+            names[0] = names[0].strip()
+
+            if len(names) > 1:
+                rows[1] = f'{names[0]}-{names[1].strip()}'
+            else:
+                rows[1] = names[0]
+                master = rows[0]
+
+            rows = rows.tolist()
+            rows.append(master)
+            data.append(rows)
+
+        self._data = pd.DataFrame(
+            data,
+            columns=['code', 'name', 'open_date', 'address', 'iphone', 'master']
+        )
+
+    def code(self, code):
+        d = self._data[self._data['code'] == code]
+
+        if d.empty:
+            return None
+
+        return d.iloc[0]
+
+    def name(self, name):
+        d = self._data[self._data['name'] == name]
+
+        if d.empty:
+            return None
+
+        return d.iloc[0]
+
+    def group_code(self):
+        group = {}
+        for code, rows in self._data.groupby('master'):
+            group[code] = rows['code'].tolist()
+
+        return group
+
+
 class K():
     def __init__(self, dir):
         self._dir = dir
