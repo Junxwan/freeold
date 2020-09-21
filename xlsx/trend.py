@@ -26,7 +26,7 @@ class ToCsv():
 
     def output(self, output):
         name = os.path.basename(self.dir)
-        output = os.path.join(output, name)
+        output = os.path.join(output, name[:4])
         if os.path.exists(output) == False:
             os.makedirs(output)
 
