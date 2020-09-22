@@ -124,7 +124,7 @@ class Stock():
             self.dk[dk] = True
 
     def query(self, start, end=None):
-        self.read('202007')
+        self.readAll()
 
         q = self.qDate()
 
