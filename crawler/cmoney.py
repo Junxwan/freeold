@@ -10,9 +10,9 @@ from datetime import datetime
 
 
 class Trend():
-    def __init__(self, ck, session, dir):
+    def __init__(self, dir):
         self.dir = dir
-        self.api = api(ck, session)
+        self.api = api()
 
     def get(self, date, code=None):
         pass
@@ -106,8 +106,8 @@ class stock(Trend):
 
 
 class market(Trend):
-    def __init__(self, ck, session, dir):
-        Trend.__init__(self, ck, session, dir)
+    def __init__(self, dir):
+        Trend.__init__(self, dir)
 
         tseDir = os.path.join(dir, 'tse')
         otcDir = os.path.join(dir, 'otc')
@@ -151,23 +151,28 @@ class market(Trend):
 
 
 class api():
-    def __init__(self, ck, session):
-        self.__ck = ck
-        self.__session = session
-        self.__time = int(time.time())
+    def __init__(self):
+        s = requests.session()
+        resp = s.get('https://www.cmoney.tw')
+        self._session = resp.cookies.get('AspSession')
+
+        resp = s.get('https://www.cmoney.tw/notice/chart/stockchart.aspx?action=l&id=2330')
+        self._ck = resp.text.split(';')[5].split('= ')[1]
+
+        self._time = int(time.time())
 
     # 抓取某個股某日trend
     def trend(self, code, date):
         resp = requests.get('https://www.cmoney.tw/notice/chart/stock-chart-service.ashx', params={
             'action': 'r',
             'id': code,
-            'ck': self.__ck,
+            'ck': self._ck,
             'date': date,
-            '_': self.__time,
+            '_': self._time,
         }, headers={
             'Referer': 'www.cmoney.tw',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36',
-            'Cookie': 'AspSession=' + self.__session
+            'Cookie': 'AspSession=' + self._session
         })
 
         tData = []
