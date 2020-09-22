@@ -20,7 +20,7 @@ class Tick():
         self.times = [t.strftime('%H:%M:%S') for i, t in enumerate(date_times)]
 
     def output(self, dir):
-        for file in glob.glob(os.path.join(self.dir, "*.xlsx")):
+        for file in sorted(glob.glob(os.path.join(self.dir, "*.xlsx")), reverse=True):
             name = os.path.basename(file)
 
             names = name.split('.')
@@ -47,6 +47,11 @@ class Tick():
 
             # 檢查tick資料跟日內趨勢資料對比
             trend = self.trend.code(code, date)
+
+            if trend is None:
+                logging.error(f'tick file data error: {file} not trend')
+                return
+
             for i in np.random.randint(len(trend.dropna(axis='columns').columns), size=10):
                 d = trend[str(i)]
 
