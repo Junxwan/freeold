@@ -53,7 +53,7 @@ class select(ui.process):
 
     def run(self):
         if self.query == None:
-            self.query = data.Query(self.dir)
+            self.query = data.Query(self.dir.get())
 
         self.query.run(
             os.path.basename(self.output.get()),
