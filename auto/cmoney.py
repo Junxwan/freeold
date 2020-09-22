@@ -1,10 +1,13 @@
 import glob
 import os
 import time
+import win32con
 from datetime import datetime
 
 import pandas as pd
 import pyautogui
+import win32gui
+
 from stock import data as d
 
 pyautogui.FAILSAFE = True
@@ -16,6 +19,7 @@ class Tick():
         self.code = []
         self.date = []
         self.csv_dir = csv_dir
+        self.windown_name = {}
 
     def get(self, code, name):
         # 選擇個股
@@ -32,13 +36,6 @@ class Tick():
         time.sleep(1)
         pyautogui.press('enter')
         time.sleep(9)
-
-        # 關閉execl
-        pyautogui.keyDown('ALT')
-        pyautogui.press('F4')
-        pyautogui.keyUp('ALT')
-        pyautogui.press('n')
-        time.sleep(1)
 
     def move_date(self, date, year=None, month=None):
         (m, x, y) = d.calendar_xy(date, year, month)
@@ -123,6 +120,7 @@ class Tick():
     def _get(self, date, codes) -> bool:
         csv = os.path.join(self.csv_dir, date)
 
+        i = 0
         for code in codes:
             name = f'{date}-{code}'
             file = os.path.join(self.dir, name) + '.xlsx'
@@ -131,6 +129,11 @@ class Tick():
                 continue
 
             self.get(str(code), name)
+
+            i += 1
+
+            if i % 10 == 0:
+                self.close_execl()
 
             if os.path.exists(file) == False:
                 pyautogui.alert(
@@ -142,3 +145,16 @@ class Tick():
                 return False
 
         return True
+
+    def close_execl(self):
+        self.windown_name = {}
+        win32gui.EnumWindows(self.get_all_hwnd, 0)
+
+        for index, name in self.windown_name.items():
+            if len(name.split('Excel')) == 2:
+                win32gui.PostMessage(index, win32con.WM_QUIT, 0, 0)
+
+    def get_all_hwnd(self, hwnd, mouse):
+
+        if win32gui.IsWindow(hwnd) and win32gui.IsWindowEnabled(hwnd) and win32gui.IsWindowVisible(hwnd):
+            self.windown_name.update({hwnd: win32gui.GetWindowText(hwnd)})
