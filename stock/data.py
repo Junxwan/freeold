@@ -3,35 +3,34 @@ import calendar
 import logging
 import os
 import glob
-from datetime import datetime
 import pandas as pd
 import numpy as np
+from datetime import datetime
+from . import query, name
 
 # 日期
-from ui import other
-
-DATE = 'date'
+DATE = name.DATE
 
 # 開盤價
-OPEN = 'open'
+OPEN = name.OPEN
 
 # 收盤價
-CLOSE = 'close'
+CLOSE = name.CLOSE
 
 # 最高價
-HIGH = 'high'
+HIGH = name.HIGH
 
 # 最低價
-LOW = 'low'
+LOW = name.LOW
 
 # 漲幅
-INCREASE = 'increase'
+INCREASE = name.INCREASE
 
 # 震幅
-AMPLITUDE = 'amplitude'
+AMPLITUDE = name.AMPLITUDE
 
 # 成交量
-VOLUME = 'volume'
+VOLUME = name.VOLUME
 
 COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, AMPLITUDE, VOLUME]
 
@@ -125,7 +124,7 @@ class Stock():
             self.dk[dk] = True
 
     def query(self, start, end=None):
-        self.readAll()
+        self.read('202007')
 
         q = self.qDate()
 
@@ -158,58 +157,54 @@ class Stock():
     def qDate(self, code=2330):
         return self.data.loc[code].loc[DATE]
 
-    def run(self, query, start, end=None, output=None, codes=None):
-        data = self.date(start, end)
 
-        if data.empty:
-            logging.info(f'======= not data for {start} to {end} =======')
-            return
+class Dealer():
+    def __init__(self, dir):
+        self._data = {}
+        data = []
+        master = ''
 
-        if codes == None:
-            codes = data.index.levels[0]
+        for index, rows in pd.read_csv(os.path.join(dir, 'dealer.csv')).iterrows():
+            names = rows[1].split('-')
+            names[0] = names[0].strip()
 
-        logging.info(f'======= exec {query.name} =======')
+            if len(names) > 1:
+                rows[1] = f'{names[0]}-{names[1].strip()}'
+            else:
+                rows[1] = names[0]
+                master = rows[0]
 
-        columns = COLUMNS.copy()
-        columns.insert(0, 'code')
-        columns.insert(1, 'name')
+            rows = rows.tolist()
+            rows.append(master)
+            data.append(rows)
 
-        if data.ndim == 1:
-            data = pd.DataFrame(data)
+        self._data = pd.DataFrame(
+            data,
+            columns=['code', 'name', 'open_date', 'address', 'iphone', 'master']
+        )
 
-        for i, index in enumerate(data.columns):
-            result = []
-            date = data[index].iloc[0]
+    def code(self, code):
+        d = self._data[self._data['code'] == code]
 
-            for code in codes:
-                value = data.loc[code]
-                v = value.iloc[:, i:]
+        if d.empty:
+            return None
 
-                logging.info(f"exec code: {code} date: {date}")
+        return d.iloc[0]
 
-                if query.exec(v):
-                    d = v[index][1:].tolist()
-                    d.insert(0, code)
-                    d.insert(1, self.info(code)['name'])
-                    result.append(d)
+    def name(self, name):
+        d = self._data[self._data['name'] == name]
 
-            frame = pd.DataFrame(result, columns=columns)
+        if d.empty:
+            return None
 
-            if query.sort != '':
-                frame = frame.sort_values(by=query.sort, ascending=query.asc)
+        return d.iloc[0]
 
-            if query.num > 0:
-                frame = frame[:query.num]
+    def group_code(self):
+        group = {}
+        for code, rows in self._data.groupby('master'):
+            group[code] = rows['code'].tolist()
 
-            if (output != None) & (os.path.exists(output) == True):
-                dir = os.path.join(output, date[:4] + date[5:7])
-
-                if os.path.exists(dir) == False:
-                    os.mkdir(dir)
-
-                logging.info(f'======= save {query.name} - {date} =======')
-
-                frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
+        return group
 
 
 class K():
@@ -444,7 +439,10 @@ class Trend():
         if date not in self.data:
             return None
 
-        return self.data[date].loc[int(code)]
+        try:
+            return self.data[date].loc[int(code)]
+        except KeyError:
+            return None
 
     def get(self, code, date):
         data = self.code(code, date)
@@ -542,6 +540,66 @@ class TrendData():
 
     def first(self):
         return self._data[0]
+
+
+class Query():
+    q = {
+        'weak': query.WeaK(),
+        'open_high_close_low': query.OpenHighCloseLow()
+    }
+
+    def __init__(self, csv_dir):
+        self._stock = Stock(os.path.join(csv_dir, 'stock'))
+        self._trend = Trend(csv_dir)
+
+    def run(self, name, start, end=None, output=None, codes=None):
+        stock = self._stock.date(start, end)
+        query = self.q[name]
+
+        if stock.empty:
+            logging.info(f'======= not data for {start} to {end} =======')
+            return
+
+        if codes == None:
+            codes = stock.index.levels[0]
+
+        logging.info(f'======= exec {name} =======')
+
+        columns = COLUMNS.copy()
+        columns.insert(0, 'code')
+        columns.insert(1, 'name')
+
+        if stock.ndim == 1:
+            stock = pd.DataFrame(stock)
+
+        for i, index in enumerate(stock.columns):
+            result = []
+            date = stock[index].iloc[0]
+
+            for code in codes:
+                value = stock.loc[code].iloc[:, i:]
+
+                logging.info(f"exec code: {code} date: {date}")
+
+                if query.run(value, self._trend.code(code, date)):
+                    d = value[index][1:].tolist()
+                    d.insert(0, code)
+                    d.insert(1, self._stock.info(code)['name'])
+                    result.append(d)
+
+            frame = pd.DataFrame(result, columns=columns)
+            frame = query.sort(frame)
+            frame = query.limit(frame)
+
+            if (output != None) & (os.path.exists(output) == True):
+                dir = os.path.join(output, date[:4] + date[5:7])
+
+                if os.path.exists(dir) == False:
+                    os.mkdir(dir)
+
+                logging.info(f'======= save {name} - {date} =======')
+
+                frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
 
 
 def calendar_xy(date, year=None, month=None):
