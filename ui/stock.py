@@ -4,11 +4,11 @@ import os
 import tkinter as tk
 from datetime import datetime
 from . import ui, other
-from stock import data, builder as sql
+from stock import data
 
 
 class select(ui.process):
-    stock = None
+    query = None
 
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
@@ -21,7 +21,7 @@ class select(ui.process):
         self.startDate.set(datetime.now().date())
 
         if config != None:
-            self.dir.set(other.stock_csv_path(config))
+            self.dir.set(other.csv_path(config))
 
         tk.Label(master, text='開始日期:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(master, textvariable=self.startDate, font=ui.FONT).place(x=self.ex, y=10)
@@ -52,14 +52,14 @@ class select(ui.process):
         self.addRunBtn(master)
 
     def run(self):
-        query = sql.query().read(
-            os.path.join(
-                self.output.get(),
-                os.path.basename(self.output.get())
-            ) + '.json'
-        )
-        if self.stock == None:
-            self.stock = data.Stock(self.dir.get())
+        if self.query == None:
+            self.query = data.Query(self.dir)
 
-        self.stock.run(query, self.startDate.get(), end=self.endDate.get(), output=self.output.get())
+        self.query.run(
+            os.path.basename(self.output.get()),
+            self.startDate.get(),
+            end=self.endDate.get(),
+            output=self.output.get()
+        )
+
         self.showSuccess()
