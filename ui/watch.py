@@ -299,7 +299,7 @@ class TrendWatch(Plot):
         return self.stock
 
     def _get_data(self, c_watch):
-        return c_watch.value()
+        return c_watch
 
     # 主圖清單
     def _master_axes(self):
@@ -425,10 +425,7 @@ class KTrendWatch(Plot):
 
     def _clear_event(self):
         if self.event is not None:
-            for e in self.event:
-                e.remove()
-
-            self.event.clear()
+            self.event.remove()
 
     # 主圖清單
     def _master_axes(self):
@@ -558,7 +555,8 @@ class MoveEvent(tk.Frame):
             self._axes.add_callback(fun)
 
     def set_data(self, c_watch):
-        self._axes.set_data(c_watch)
+        for name,value in c_watch.items():
+            self._axes[name].set_data(value)
 
     # 移動
     def move(self, event):
