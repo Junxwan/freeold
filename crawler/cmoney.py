@@ -165,7 +165,8 @@ class api():
         self._session = resp.cookies.get('AspSession')
 
         resp = s.get('https://www.cmoney.tw/notice/chart/stockchart.aspx?action=l&id=2330')
-        self._ck = resp.text.split(';')[5].split('= ')[1]
+        ck = resp.text.split(';')[5].split('= ')[1]
+        self._ck = ck[1:-1]
 
         self._time = int(time.time())
 
