@@ -19,6 +19,8 @@ class Watch(k.SubAxes):
 
     name = NAME
 
+    x_text_offset = 0.5
+
     # 繪製主圖
     def plot(self, **kwargs) -> bool:
         close = self._close()
@@ -70,11 +72,11 @@ class Watch(k.SubAxes):
         self.line[0].set_data(self._x_data, self._y_data)
 
     def plot_text(self, text, **kwargs):
-        text.add('日', 'date', self._c_watch.date, offset_x=0.5)
+        text.add('日', 'date', self._c_watch.date, offset_x=self.x_text_offset)
 
         first = self._c_watch.first()
         for name, c in self.text.items():
-            text.add(name, c, first[c], offset_x=0.5)
+            text.add(name, c, first[c], offset_x=self.x_text_offset)
 
     def plot_info(self):
         _y_max = self.axes.yaxis.major.locator.max
@@ -82,7 +84,7 @@ class Watch(k.SubAxes):
 
         self.info = self.axes.text(
             -1,
-            _y_max + _y_tick*2,
+            _y_max + _y_tick * 2,
             self.stock_info(),
             fontsize=self.xy_font_size,
             color='white'

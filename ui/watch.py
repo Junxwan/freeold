@@ -334,25 +334,47 @@ class KTrendWatch(Plot):
 
         if name == k.NAME:
             watch = self._k_watch
+            text = self._data_text[0]
         elif name == trend.NAME:
             watch = self._stock
+            text = self._data_text[1]
         else:
             return False
 
-        return object.draw(code, axes, self._data_text, c_watch[name], watch, **kwargs)
+        return object.draw(code, axes, text, c_watch[name], watch, **kwargs)
 
     def _build_axes(self, fig, **kwargs) -> list:
-        return _build_multi_axes(
+        axes_list = _build_multi_axes(
             fig,
             panel_ratios=kwargs.get('panel_ratios'),
             scale_left=0.75,
             scale_right=0.8,
             cols=2,
-            scale_bot=3
+            scale_top=0.5,
+            scale_bot=5
         )
 
+        pos1 = axes_list[0].get_position()
+        pos2 = axes_list[1].get_position()
+        h = pos2.y1 - pos2.y0 - 0.01
+
+        axes_list.append(fig.add_axes([0, 0, pos1.x1, h]))
+        axes_list.append(fig.add_axes([pos1.x1, 0, pos2.x1, h]))
+        return axes_list
+
     def _build_text(self, axes_list):
-        pass
+        self._data_text = []
+        for i, axes in enumerate(axes_list[-2:]):
+            text = DataLabel(axes)
+            text.x_max = 5
+            text.y_max = 3
+            axes.grid(False)
+            axes.set_xlim((0, text.x_max))
+            axes.set_ylim((0, text.y_max))
+            axes.set_xticks(np.arange(text.x_max))
+            axes.set_yticks(np.arange(text.y_max))
+            axes.set_xticklabels(['' for i in range(text.x_max)])
+            self._data_text.append(text)
 
     def _get(self, code, date):
         trend = self._trend_watch.get(code, date)
@@ -369,12 +391,13 @@ class KTrendWatch(Plot):
         }
 
     def _clear_text(self):
-        pass
+        for text in self._data_text:
+            text.clear()
 
     # 主圖清單
     def _master_axes(self):
         return {
-            'trend': trend.Watch(),
+            'trend': k_trend.TrendWatch(),
             f'trend_{data.VOLUME}': trend.Volume(),
             'k': k_trend.KWatch(),
             f'k_{data.VOLUME}': k.Volume(),
@@ -383,8 +406,8 @@ class KTrendWatch(Plot):
 
 # 即時數據
 class DataLabel():
-    title_font_size = 28
-    value_font_size = 28
+    title_font_size = 15
+    value_font_size = 15
 
     x_max = 3
     y_max = 20
@@ -399,13 +422,15 @@ class DataLabel():
         self.set_value(key, value, offset_x=offset_x)
 
     def set_title(self, name, key, color='white'):
-        self._title[key] = self._axes.text(
-            0.1,
-            (self.y_max - 0.5) - len(self._title) - 0.2,
-            name,
-            fontsize=self.title_font_size,
-            color=color
-        )
+        y = (self.y_max - 0.5) - len(self._title) - 0.2
+        x = 0.1
+
+        if y < 0:
+            l = int((len(self._title) / self.y_max))
+            y += self.y_max * l
+            x += 1 * l
+
+        self._title[key] = self._axes.text(x, y, name, fontsize=self.title_font_size, color=color)
 
     def set_value(self, name, value, color='black', offset_x=0.0):
         if name not in self._title:
@@ -414,7 +439,7 @@ class DataLabel():
         title = self._title[name]
 
         self._value[name] = self._axes.text(
-            0.1 + offset_x,
+            title._x + offset_x,
             title._y,
             value,
             fontsize=self.value_font_size,

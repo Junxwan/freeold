@@ -1,14 +1,16 @@
 import glob
 import os
 import time
-import win32con
-from datetime import datetime
-
 import pandas as pd
 import pyautogui
-import win32gui
-
+from datetime import datetime
 from stock import data as d
+
+try:
+    import win32con
+    import win32gui
+except:
+    pass
 
 pyautogui.FAILSAFE = True
 

@@ -12,7 +12,7 @@ NAME = 'k'
 
 
 class SubAxes():
-    xy_font_size = 28
+    xy_font_size = 15
 
     name = ''
 
@@ -268,6 +268,8 @@ class Watch(SubAxes):
 
     name = NAME
 
+    x_text_offset = 0.7
+
     def __init__(self):
         SubAxes.__init__(self)
         self.info = None
@@ -291,7 +293,7 @@ class Watch(SubAxes):
     def plot_text(self, text, **kwargs):
         last = self._c_watch.get_last()
         for name, c in self.text.items():
-            text.add(name, c, last[c], offset_x=0.7)
+            text.add(name, c, last[c], offset_x=self.x_text_offset)
 
     def plot_info(self):
         _y_tick = self.axes.yaxis.major.locator.tick
@@ -460,6 +462,8 @@ class MA(SubAxes):
 
     master_name = NAME
 
+    x_text_offset = 1.2
+
     def __init__(self):
         SubAxes.__init__(self)
         self.day = []
@@ -487,7 +491,7 @@ class MA(SubAxes):
     def plot_text(self, text, **kwargs):
         for name, line in self._line.items():
             key = f'{name}ma'
-            text.add(key, key, self._line[name][0].get_ydata()[-1], color=self.color[name], offset_x=1.2)
+            text.add(key, key, self._line[name][0].get_ydata()[-1], color=self.color[name], offset_x=self.x_text_offset)
 
     def _add(self, day, price):
         if day in self.color:
