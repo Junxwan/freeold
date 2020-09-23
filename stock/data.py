@@ -211,6 +211,7 @@ class K():
     def __init__(self, dir):
         self._dir = dir
         self._stock = Stock(dir)
+        # self._stock.readAll()
 
         ready = [
             os.path.basename(p).split('.')[0] for p in
@@ -479,7 +480,7 @@ class TrendData():
     def __init__(self, code, data, tick=None):
         self.code = code
         self._data = data.dropna(axis='columns')
-        self.date = data.loc['time'][0][:10]
+        self.date = data.loc[name.TIME][0][:10]
 
         date_times = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:33:00', freq='min')
         for i in range(4):
@@ -493,8 +494,10 @@ class TrendData():
     def _format(self):
         data = self._data.dropna(axis='columns').copy()
         data.loc[VOLUME] = self._data.loc[VOLUME].astype(int)
-        data.loc['price'] = self._data.loc['price'].astype(float)
-        data.loc['time'] = self._data.loc['time'].transform(lambda x: x[11:])
+        data.loc[name.PRICE] = self._data.loc[name.PRICE].astype(float)
+        data.loc[name.HIGH] = self._data.loc[name.HIGH].astype(float)
+        data.loc[name.LOW] = self._data.loc[name.LOW].astype(float)
+        data.loc[name.TIME] = self._data.loc[name.TIME].transform(lambda x: x[11:])
         data.columns = self._data.columns.astype(int)
         self._data = data
 
@@ -502,7 +505,7 @@ class TrendData():
         avg = []
 
         if tick is None:
-            avg = np.full([1, len(self._data.loc['time'])], np.nan).tolist()[0]
+            avg = np.full([1, len(self._data.loc[name.TIME])], np.nan).tolist()[0]
         else:
             q = tick['time']
             times = list(self.times)
@@ -527,10 +530,10 @@ class TrendData():
         return self._data
 
     def time(self):
-        return self._data.loc['time'].dropna()
+        return self._data.loc[name.TIME].dropna()
 
     def price(self):
-        return self._data.loc['price']
+        return self._data.loc[name.PRICE]
 
     def volume(self):
         return self._data.loc[VOLUME]
