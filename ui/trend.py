@@ -14,8 +14,6 @@ class Watch(k.SubAxes):
     text = {
         '時': 'time',
         '成': 'price',
-        '高': 'max',
-        '低': 'min',
         '量': data.VOLUME,
     }
 
