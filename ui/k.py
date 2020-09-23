@@ -60,6 +60,12 @@ class SubAxes():
     def plot_info(self):
         pass
 
+    def get_master_name(self):
+        if self.master_name == '':
+            return self.name
+
+        return self.master_name
+
     def _load_sup(self, text, **kwargs) -> bool:
         for name, o in self._sup_axes().items():
             if isinstance(o, SubAxes) == False:
@@ -127,12 +133,9 @@ class SubAxes():
 
 
 # 事件
-class MoveEvent(tk.Frame):
-    def __init__(self, canvas, c_watch, axs, show_date=True, color='#FFFF66'):
-        tk.Frame.__init__(self)
-
+class MoveEvent():
+    def __init__(self, c_watch, axs, show_date=True, color='#FFFF66'):
         self.set_data(c_watch)
-        self.canvas = canvas
         self._axs = axs
         self.is_show_date = show_date
         self._date = None
@@ -141,12 +144,7 @@ class MoveEvent(tk.Frame):
         self._hax = {}
         self._callbacks = []
 
-        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
-        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
-        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
-
         self._style = dict(color=color, linewidth=2)
-        self._isPress = False
 
     def set_data(self, c_watch):
         self._data = c_watch
@@ -196,28 +194,8 @@ class MoveEvent(tk.Frame):
         for fun in self._callbacks:
             fun(event, p)
 
-        self.canvas.draw_idle()
-
     def get(self, x):
         return self._data.index(x)
-
-    # 點擊
-    def on_press(self, event):
-        if event.button == MouseButton.LEFT:
-            self._isPress = True
-            self.draw(event)
-        elif event.button == MouseButton.RIGHT:
-            self.clear()
-            self.canvas.draw_idle()
-
-    # 釋放
-    def on_release(self, event):
-        self._isPress = False
-
-    # 移動
-    def move(self, event):
-        if self._isPress:
-            self.draw(event)
 
     def remove(self):
         for ax in self._vax.values():
@@ -231,10 +209,6 @@ class MoveEvent(tk.Frame):
         if self._date is not None:
             if self._date.axes is not None:
                 self._date.remove()
-
-        self.canvas.mpl_disconnect(self.moveEvent)
-        self.canvas.mpl_disconnect(self.clickEvent)
-        self.canvas.mpl_disconnect(self.releaseEvent)
 
     # 清空游標
     def clear(self):

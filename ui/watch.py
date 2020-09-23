@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 import mplfinance as mpf
 import matplotlib.pyplot as plt
-from stock import data
+from stock import data, name
 from . import other, k, trend, k_trend
+from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
@@ -139,24 +140,24 @@ class Plot():
     name = ''
 
     def __init__(self, fig, canvas):
-        self._fig = fig
+        self.fig = fig
         self.canvas = canvas
         self._data_text = None
         self.event = None
-        self._axes = {}
+        self.axes = {}
 
     def plot(self, code, date=None, **kwargs):
         c_watch = self._get(code, date)
         if c_watch is None:
             return False
 
-        if len(self._axes) == 0:
+        if len(self.axes) == 0:
             self._create_axes(code, c_watch, **kwargs)
         else:
             self._update_axes(code, c_watch, **kwargs)
 
     def _create_axes(self, code, c_watch, **kwargs):
-        axes_list = self._build_axes(self._fig, **kwargs)
+        axes_list = self._build_axes(self.fig, **kwargs)
         self._build_text(axes_list)
 
         i = 0
@@ -167,7 +168,7 @@ class Plot():
             if self._draw(code, object, axes_list[i], c_watch, **kwargs) == False:
                 return False
 
-            self._axes[name] = object
+            self.axes[name] = object
             i += 1
 
         self.event = self._build_move_event(c_watch)
@@ -178,7 +179,7 @@ class Plot():
     def _update_axes(self, code, c_watch, **kwargs):
         self._clear_text()
 
-        for object in self._axes.values():
+        for object in self.axes.values():
             object.clear()
 
             if self._draw(code, object, object.axes, c_watch, **kwargs) == False:
@@ -204,8 +205,8 @@ class Plot():
         axes.set_yticks(np.arange(self._data_text.y_max))
         axes.set_xticklabels(['' for i in range(self._data_text.x_max)])
 
-    def _build_move_event(self, c_watch) -> k.MoveEvent:
-        return k.MoveEvent(self.canvas, c_watch, [a.axes for a in self._axes.values()])
+    def _build_move_event(self, c_watch):
+        pass
 
     def _is_draw(self, name, **kwargs):
         return (name != self.name) & (kwargs.get(name) is None)
@@ -229,16 +230,19 @@ class Plot():
     def _clear_text(self):
         self._data_text.clear()
 
+    def _clear_event(self):
+        self.event.remove()
+
     def remove(self):
         if self._data_text is not None:
             self._clear_text()
 
-        for n, o in self._axes.items():
+        for n, o in self.axes.items():
             o.remove()
             o.axes.remove()
 
-        self.event.remove()
-        self._axes.clear()
+        self._clear_event()
+        self.axes.clear()
 
 
 # K線看盤
@@ -251,6 +255,9 @@ class KWatch(Plot):
 
     def _build_axes(self, fig, **kwargs) -> list:
         return _build_axes(fig, panel_ratios=kwargs.get('panel_ratios'))
+
+    def _build_move_event(self, c_watch):
+        return MoveEvent(self.canvas, k.MoveEvent(c_watch, [a.axes for a in self.axes.values()]))
 
     def _get(self, code, date=None):
         return self.watch.code(code, date=date)
@@ -275,17 +282,14 @@ class TrendWatch(Plot):
         self.stock = stock
 
     def _build_axes(self, fig, **kwargs) -> list:
-        axes = _build_axes(self._fig, panel_ratios=kwargs.get('panel_ratios'), scale_left=0.4, left=False)
+        axes = _build_axes(self.fig, panel_ratios=kwargs.get('panel_ratios'), scale_left=0.4, left=False)
         axes[-1].yaxis.tick_right()
         return axes
 
     def _build_move_event(self, c_watch):
-        return trend.MoveEvent(
+        return MoveEvent(
             self.canvas,
-            c_watch,
-            [a.axes for a in self._axes.values()],
-            show_date=False,
-            color='#00FFFF'
+            trend.MoveEvent(c_watch, [a.axes for a in self.axes.values()], show_date=False, color='#00FFFF')
         )
 
     def _get(self, code, date=None):
@@ -334,10 +338,10 @@ class KTrendWatch(Plot):
 
         if name == k.NAME:
             watch = self._k_watch
-            text = self._data_text[0]
+            text = self._data_text[1]
         elif name == trend.NAME:
             watch = self._stock
-            text = self._data_text[1]
+            text = self._data_text[0]
         else:
             return False
 
@@ -376,31 +380,63 @@ class KTrendWatch(Plot):
             axes.set_xticklabels(['' for i in range(text.x_max)])
             self._data_text.append(text)
 
+        axes_list[-1].yaxis.tick_right()
+
+    def _build_move_event(self, c_watch):
+        k_axes = []
+        trend_axes = []
+
+        for object in self.axes.values():
+            if object.get_master_name() == k.NAME:
+                k_axes.append(object.axes)
+            else:
+                trend_axes.append(object.axes)
+
+        return MoveEvent(
+            self.canvas, {
+                trend.NAME: trend.MoveEvent(c_watch[trend.NAME], trend_axes, show_date=False, color='#00FFFF'),
+                k.NAME: k.MoveEvent(c_watch[k.NAME], k_axes)
+            }
+        )
+
+    def event_show_data(self, event, d):
+        if event.inaxes.name == name.PRICE:
+            self._data_text[0].update(d)
+        elif event.inaxes.name == name.CLOSE:
+            self._data_text[1].update(d)
+
     def _get(self, code, date):
-        trend = self._trend_watch.get(code, date)
-        if trend is None:
+        _trend = self._trend_watch.get(code, date)
+        if _trend is None:
             return None
 
-        k = self._k_watch.code(code, date=trend.date)
-        if k is None:
+        _k = self._k_watch.code(code, date=_trend.date)
+        if _k is None:
             return None
 
         return {
-            'k': k,
-            'trend': trend
+            k.NAME: _k,
+            trend.NAME: _trend
         }
 
     def _clear_text(self):
         for text in self._data_text:
             text.clear()
 
+    def _clear_event(self):
+        if self.event is not None:
+            for e in self.event:
+                e.remove()
+
+            self.event.clear()
+
     # 主圖清單
     def _master_axes(self):
         return {
-            'trend': k_trend.TrendWatch(),
-            f'trend_{data.VOLUME}': trend.Volume(),
-            'k': k_trend.KWatch(),
-            f'k_{data.VOLUME}': k.Volume(),
+            trend.NAME: k_trend.TrendWatch(),
+            f'{trend.NAME}_{data.VOLUME}': trend.Volume(),
+            k.NAME: k_trend.KWatch(),
+            f'{k.NAME}_{data.VOLUME}': k.Volume(),
         }
 
 
@@ -485,6 +521,81 @@ class DataLabel():
                     p = '%1.1f' % p
 
             ax.set_text(p)
+
+
+class MoveEvent(tk.Frame):
+    def __init__(self, canvas, axes):
+        tk.Frame.__init__(self)
+        self.canvas = canvas
+        self._isPress = False
+        self.init_axes(axes)
+
+        self.moveEvent = self.canvas.mpl_connect('motion_notify_event', self.move)
+        self.clickEvent = self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
+
+    def init_axes(self, axes):
+        self._axes = axes
+
+    # 重畫
+    def draw(self, event):
+        if type(self._axes) is dict:
+            if event.inaxes.name == name.PRICE:
+                self._axes[trend.NAME].draw(event)
+            elif event.inaxes.name == name.CLOSE:
+                self._axes[k.NAME].draw(event)
+        else:
+            self._axes.draw(event)
+
+        self.canvas.draw_idle()
+
+    # 事件
+    def add_callback(self, fun):
+        if type(self._axes) is dict:
+            for name, object in self._axes.items():
+                object.add_callback(fun)
+        else:
+            self._axes.add_callback(fun)
+
+    def set_data(self, c_watch):
+        self._axes.set_data(c_watch)
+
+    # 移動
+    def move(self, event):
+        if self._isPress:
+            self.draw(event)
+
+    # 點擊
+    def on_press(self, event):
+        if event.button == MouseButton.LEFT:
+            self._isPress = True
+            self.draw(event)
+        elif event.button == MouseButton.RIGHT:
+            self.clear()
+            self.canvas.draw_idle()
+
+    # 釋放
+    def on_release(self, event):
+        self._isPress = False
+
+    # 清空游標
+    def clear(self):
+        if type(self._axes) is dict:
+            for name, object in self._axes.items():
+                object.clear()
+        else:
+            self._axes.clear()
+
+    def remove(self):
+        if type(self._axes) is dict:
+            for name, object in self._axes.items():
+                object.remove()
+        else:
+            self._axes.remove()
+
+        self.canvas.mpl_disconnect(self.moveEvent)
+        self.canvas.mpl_disconnect(self.clickEvent)
+        self.canvas.mpl_disconnect(self.releaseEvent)
 
 
 # 繪製畫板

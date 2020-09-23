@@ -23,3 +23,7 @@ class MA(k.MA):
 
 class TrendWatch(trend.Watch):
     x_text_offset = 0.2
+
+
+class MoveEvent(k.MoveEvent):
+    pass
