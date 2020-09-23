@@ -4,13 +4,17 @@ import json
 import os
 import tkinter as tk
 import frame
+import configparser
 
 
 class app(tk.Tk):
     def __init__(self):
         super(app, self).__init__()
         self.currentPath = os.path.dirname(os.path.abspath(__file__))
-        self.configs = self.readConfig()
+
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        self.configs = dict(config['path'])
         self.title('股票')
 
     def readConfig(self):
@@ -56,4 +60,4 @@ class app(tk.Tk):
         self.run(lambda: frame.Watch(self, config=self.configs, path=self.currentPath))
 
 
-app().runDate()
+app().runWatch()

@@ -476,9 +476,9 @@ class Watch():
         self._button_layout()
         self._list_layout()
 
-        # self._plot_k_trend()
+        self._plot_k_trend()
         # self._plot_trend()
-        self._plot_k()
+        # self._plot_k()
         self.watch.pack()
 
         filename = os.path.join(path, datetime.now().strftime(f"%Y-%m-%d-watch.log"))
