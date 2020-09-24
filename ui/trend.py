@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.ticker as mticks
 import matplotlib.animation as animation
 from . import k
-from stock import data
+from stock import data, name
 
 NAME = 'trend'
 
@@ -187,10 +187,11 @@ class MaxMin(k.SubAxes):
 
     def plot(self, **kwargs) -> bool:
         value = self._c_watch.value()
-        price = value.loc['price']
+        max = value.loc[name.HIGH]
+        min = value.loc[name.LOW]
 
-        y_max = price.max()
-        x_max = self._c_watch.times[value.loc['time'][price == y_max].iloc[0]]
+        y_max = max.max()
+        x_max = self._c_watch.times[value.loc['time'][max == y_max].iloc[0]]
         tick = self.axes.yaxis.major.locator.get_tick(y_max)
 
         self._max = self.axes.annotate(
@@ -203,8 +204,8 @@ class MaxMin(k.SubAxes):
             ha='center'
         )
 
-        y_min = price.min()
-        x_min = self._c_watch.times[value.loc['time'][price == y_min].iloc[0]]
+        y_min = min.min()
+        x_min = self._c_watch.times[value.loc['time'][min == y_min].iloc[0]]
         tick = self.axes.yaxis.major.locator.get_tick(y_min)
 
         self._min = self.axes.annotate(

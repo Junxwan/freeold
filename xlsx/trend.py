@@ -7,10 +7,11 @@ import logging
 import os
 import pandas as pd
 import numpy as np
+from stock import name
 
 
 class ToCsv():
-    columns = ['time', 'price', 'volume', 'max', 'min']
+    columns = [name.TIME, name.PRICE, name.VOLUME, 'max', 'min']
 
     def __init__(self, dir):
         self.dir = dir
@@ -76,7 +77,12 @@ class StockToCsv(ToCsv):
 
         pd.DataFrame(
             data,
-            index=(pd.MultiIndex.from_product([codes, self.columns], names=['code', 'name']))
+            index=(
+                pd.MultiIndex.from_product(
+                    [codes, [name.TIME, name.PRICE, name.VOLUME, name.HIGH, name.LOW]],
+                    names=['code', 'name']
+                )
+            )
         ).to_csv(file)
 
         logging.info(f'save {file}')

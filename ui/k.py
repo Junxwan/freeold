@@ -12,7 +12,7 @@ NAME = 'k'
 
 
 class SubAxes():
-    xy_font_size = 15
+    xy_font_size = 28
 
     name = ''
 

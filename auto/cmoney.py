@@ -43,12 +43,13 @@ class Tick():
         (m, x, y) = d.calendar_xy(date, year, month)
 
         pyautogui.click(3630, 360)
-        time.sleep(1)
+        time.sleep(2)
         if m > 0:
             pyautogui.click(3300, 480, m)
             time.sleep(m * 1)
 
         pyautogui.click(3255 + (75 * x), 532 + (48 * y))
+        time.sleep(2)
 
     def run(self, code, date):
         # 根據單一檔案 <path>/2020-08-14.csv
