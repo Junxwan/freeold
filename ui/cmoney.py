@@ -103,8 +103,18 @@ class Tick(ui.process):
 
     def run(self):
         now = time.time()
-        cm.Tick(self.output.get(), self.csv_dir).run(self.code.get(), self.date.get())
-        self.showMessageBox('時間:' + str(int((time.time() - now) / 60)) + ' 分')
+        end = 0
+
+        try:
+            cm.Tick(self.output.get(), self.csv_dir).run(self.code.get(), self.date.get())
+        except FileNotFoundError as err:
+            end = time.time()
+            self.showMessageBox(err.__str__())
+
+        if end == 0:
+            end = time.time()
+
+        self.showMessageBox('時間:' + str(int((end - now) / 60)) + ' 分')
 
 
 # 抓取trend

@@ -23,7 +23,7 @@ class Tick():
         self.csv_dir = csv_dir
         self.windown_name = {}
 
-    def get(self, code, name):
+    def _to_execl(self, code, name):
         # 選擇個股
         pyautogui.click(250, 240)
         pyautogui.write(code)
@@ -119,32 +119,36 @@ class Tick():
 
         return True
 
-    def _get(self, date, codes) -> bool:
-        csv = os.path.join(self.csv_dir, date)
+    def _get_code(self, date, code):
+        name = f'{date}-{code}'
+        file = os.path.join(self.dir, name) + '.xlsx'
 
+        if (os.path.exists(file)) | (os.path.exists(os.path.join(self.csv_dir, date, code) + '.csv')):
+            return True
+
+        self._to_execl(code, name)
+
+        if os.path.exists(file) == False:
+            self.close_execl()
+
+            time.sleep(2)
+            self._to_execl(code, name)
+            time.sleep(10)
+
+            if os.path.exists(file) == False:
+                raise FileNotFoundError(file)
+
+        return True
+
+    def _get(self, date, codes) -> bool:
         i = 0
         for code in codes:
-            name = f'{date}-{code}'
-            file = os.path.join(self.dir, name) + '.xlsx'
-
-            if (os.path.exists(file)) | (os.path.exists(os.path.join(csv, str(code)) + '.csv')):
-                continue
-
-            self.get(str(code), name)
+            self._get_code(date, str(code), dir)
 
             i += 1
 
             if i % 10 == 0:
                 self.close_execl()
-
-            if os.path.exists(file) == False:
-                pyautogui.alert(
-                    text=f'失敗:{file}',
-                    title='結果',
-                    button='OK'
-                )
-
-                return False
 
         return True
 
