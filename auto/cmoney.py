@@ -144,7 +144,7 @@ class Tick():
     def _get(self, date, codes) -> bool:
         i = 0
         for code in codes:
-            self._get_code(date, str(code), dir)
+            self._get_code(date, str(code))
 
             i += 1
 
