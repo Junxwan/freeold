@@ -193,29 +193,44 @@ class MaxMin(k.SubAxes):
         y_max = max.max()
         x_max = self._c_watch.times[value.loc['time'][max == y_max].iloc[0]]
         tick = self.axes.yaxis.major.locator.get_tick(y_max)
+        ticks = self.axes.yaxis.major.locator.ticks
+
+        if y_max == ticks[-1]:
+            ha = 'right'
+            y_text = y_max - (tick * 8)
+        else:
+            ha = 'center'
+            y_text = y_max + (tick * 8)
 
         self._max = self.axes.annotate(
             y_max,
             xy=(x_max, y_max),
-            xytext=(x_max, y_max + (tick * 8)),
+            xytext=(x_max, y_text),
             color='#FF0000',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#FF0000'),
-            ha='center'
+            ha=ha
         )
 
         y_min = min.min()
         x_min = self._c_watch.times[value.loc['time'][min == y_min].iloc[0]]
         tick = self.axes.yaxis.major.locator.get_tick(y_min)
 
+        if ((y_min - ticks[0]) / tick) < 10:
+            ha = 'right'
+            y_text = y_min + (tick * 4)
+        else:
+            ha = 'center'
+            y_text = y_min - (tick * 8)
+
         self._min = self.axes.annotate(
             y_min,
             xy=(x_min, y_min),
-            xytext=(x_min, y_min - (tick * 10)),
+            xytext=(x_min, y_text),
             color='#51F069',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#51F069'),
-            ha='center'
+            ha=ha
         )
 
         return True
