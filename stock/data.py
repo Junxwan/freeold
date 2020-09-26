@@ -479,8 +479,9 @@ class Trend():
 class TrendData():
     def __init__(self, code, data, tick=None):
         self.code = code
-        self._data = data.dropna(axis='columns')
+        self._data = data.dropna(axis='columns', how='all')
         self.date = data.loc[name.TIME][0][:10]
+        self._tick = tick
 
         date_times = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:33:00', freq='min')
         for i in range(4):
@@ -492,7 +493,7 @@ class TrendData():
         self._format_tick(tick)
 
     def _format(self):
-        data = self._data.dropna(axis='columns').copy()
+        data = self._data.copy()
         data.loc[VOLUME] = self._data.loc[VOLUME].astype(int)
         data.loc[name.PRICE] = self._data.loc[name.PRICE].astype(float)
         data.loc[name.HIGH] = self._data.loc[name.HIGH].astype(float)

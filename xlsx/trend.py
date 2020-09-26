@@ -43,7 +43,7 @@ class StockToCsv(ToCsv):
             self._to_csv(date, paths, output)
 
     def _to_csv(self, date, paths, output):
-        columns = [name.TIME, name.PRICE, name.VOLUME, name.HIGH, name.LOW, name.CLOSE, name.OPEN]
+        columns = [name.TIME, name.PRICE, name.VOLUME, name.HIGH, name.LOW, name.CLOSE, name.OPEN, name.AVG]
         file = os.path.join(output, date) + '.csv'
 
         if os.path.exists(file):
@@ -65,6 +65,7 @@ class StockToCsv(ToCsv):
             stock[code][0][name.CLOSE] = rows[0][name.PRICE]
             stock[code][0][name.PRICE] = rows[0][name.PRICE]
             stock[code][0][name.OPEN] = np.nan
+            stock[code][0][name.AVG] = np.nan
 
             for i, value in enumerate(rows[1:]):
                 p = value[name.PRICE]
@@ -79,6 +80,7 @@ class StockToCsv(ToCsv):
                 stock[code][i + 1][name.CLOSE] = value[name.PRICE]
                 stock[code][i + 1][name.PRICE] = p
                 stock[code][i + 1][name.OPEN] = np.nan
+                stock[code][i + 1][name.AVG] = np.nan
 
         codes = sorted(list(stock.keys()))
 

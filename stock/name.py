@@ -27,3 +27,6 @@ TIME = 'time'
 
 # 成交價
 PRICE = 'price'
+
+# 均價
+AVG = 'avg'
