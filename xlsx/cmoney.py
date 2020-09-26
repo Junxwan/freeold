@@ -5,10 +5,11 @@ import glob
 import json
 import logging
 import os
+import time
 import openpyxl
 import pandas as pd
 import numpy as np
-from stock import data as dt
+from stock import data as dt, name
 
 
 class Tick():
@@ -21,9 +22,7 @@ class Tick():
 
     def output(self, dir):
         for file in sorted(glob.glob(os.path.join(self.dir, "*.xlsx")), reverse=True):
-            name = os.path.basename(file)
-
-            names = name.split('.')
+            names = os.path.basename(file).split('.')
             if names[1] != 'xlsx':
                 continue
 
@@ -36,6 +35,7 @@ class Tick():
 
             file_path = os.path.join(path, code) + '.csv'
             if os.path.exists(file_path):
+                self.apply_trend(code, date)
                 continue
 
             data = pd.read_excel(file)
@@ -52,7 +52,13 @@ class Tick():
                 logging.error(f'tick file data error: {file} not trend')
                 return
 
-            for i in np.random.randint(len(trend.dropna(axis='columns').columns), size=10):
+            column_ary = np.random.randint(len(trend.dropna(axis='columns', how='all').columns), size=10)
+
+            if len(column_ary) == 0:
+                logging.error(f'tick file data error: {file} not column trend')
+                return
+
+            for i in column_ary:
                 d = trend[str(i)]
 
                 if d.empty:
@@ -65,13 +71,13 @@ class Tick():
                 if len(v) == 0:
                     continue
 
-                if (v[dt.VOLUME].sum() != int(d[dt.VOLUME])) | (float(d['price']) != v.iloc[-1]['price']):
+                if (v[dt.VOLUME].sum() != int(d[dt.VOLUME])) | (float(d[name.CLOSE]) != v.iloc[-1]['price']):
                     logging.error(f'tick file data error: {file} time: {start}')
                     return
 
             total_amount = 0
-            for index, time in enumerate(self.times[1:]):
-                q = data[(self.times[index] <= times) & (times < time)]
+            for index, t in enumerate(self.times[1:]):
+                q = data[(self.times[index] <= times) & (times < t)]
                 amount = q['amount'].sum()
 
                 if amount == 0:
@@ -91,8 +97,42 @@ class Tick():
                 data['avg'].loc[q.index[0]:q.index[-1]] = round(avg, l)
 
             data.to_csv(file_path, index=False)
+            logging.info(f'tick date:{date} {code}.csv')
 
-            logging.info(f'date:{date}   {code}.csv')
+            self.apply_trend(code, date)
+
+    def apply_trend(self, code, date):
+        code = int(code)
+        tick = self.trend.tick(code, date)
+        all_trend = self.trend.read(date)
+        trend = all_trend.loc[code]
+
+        if trend.loc[name.OPEN].dropna().empty == False & trend.loc[name.AVG].dropna().empty == False:
+            return True
+
+        times = [t[11:] for t in trend.loc[name.TIME].dropna()]
+        q = tick[name.TIME]
+        avg = []
+        open = []
+
+        for i, time in enumerate(times):
+            d = tick[q.between(times[i - 1], time)]
+
+            if d.empty == False:
+                d = d.dropna()
+                open.append(d.iloc[0][name.PRICE])
+                avg.append(d.iloc[-1][name.AVG])
+
+        [avg.append(np.nan) for _ in range(len(trend.loc[name.TIME]) - len(avg))]
+        [open.append(np.nan) for _ in range(len(trend.loc[name.TIME]) - len(open))]
+
+        tmp = all_trend.copy()
+        tmp.loc[(int(code), name.AVG), :] = avg
+        tmp.loc[(int(code), name.OPEN), :] = open
+
+        tmp.to_csv(self.trend.file_name(date))
+        self.trend.data[date] = tmp
+        logging.info(f'update tick date:{date} {code}.csv')
 
 
 # 個股基本資料

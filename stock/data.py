@@ -461,7 +461,7 @@ class Trend():
 
     def read(self, date):
         if date not in self.data:
-            file = os.path.join(self.trend_dir, date[:4], f'{date}.csv')
+            file = self.file_name(date)
 
             if os.path.exists(file) == False:
                 return None
@@ -474,6 +474,9 @@ class Trend():
         return os.path.basename(
             glob.glob(os.path.join(self.trend_dir, str(datetime.now().year), '*.csv'))[-1]
         ).split('.')[0]
+
+    def file_name(self, date):
+        return os.path.join(self.trend_dir, date[:4], f'{date}.csv')
 
 
 class TrendData():
