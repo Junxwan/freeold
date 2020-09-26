@@ -633,7 +633,7 @@ class Watch():
         if date == '':
             date = None
 
-        self.watch.plot(int(self.code.get()), date=date, type=type, show_animation=False, **self.plot_config)
+        self.watch.plot(int(self.code.get()), date=date, type=type, **self.plot_config)
 
     def _update_plot(self):
         if self.watch.update_plot(int(self.code.get()), date=self.date.get()) == False:

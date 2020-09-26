@@ -35,12 +35,12 @@ class Watch(k.SubAxes):
         self.axes.axhline(y=(close), color='#335867')
         self.axes.grid(True)
 
-        self._plot_trend(close, show_animation=kwargs.get('show_animation'))
+        self._plot_trend(close)
         self._update_label()
 
         return True
 
-    def _plot_trend(self, close, show_animation=False):
+    def _plot_trend(self, close):
         x = [i - 5 for i in range(6)]
         y = [close for i in range(6)]
 
@@ -50,26 +50,7 @@ class Watch(k.SubAxes):
             x.append(self._c_watch.times[t])
             y.append(price[i])
 
-        self.x = x
-        self.y = y
-
-        if show_animation:
-            self.ani = animation.FuncAnimation(
-                self.axes.figure,
-                self.animation,
-                frames=len(time),
-                interval=20,
-                repeat=False
-            )
-
-            self.line = self.axes.plot([], [], color='#FFFF00')
-        else:
-            self.axes.plot(x, y, color='#FFFF00')
-
-    def animation(self, i):
-        self._x_data.append(self.x[i])
-        self._y_data.append(self.y[i])
-        self.line[0].set_data(self._x_data, self._y_data)
+        self.axes.plot(x, y, color='#FFFF00')
 
     def plot_text(self, text, **kwargs):
         text.add('日', 'date', self._c_watch.date, offset_x=self.x_text_offset)
