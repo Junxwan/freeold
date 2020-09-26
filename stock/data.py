@@ -535,8 +535,17 @@ class TrendData():
     def price(self):
         return self._data.loc[name.PRICE]
 
+    def high(self):
+        return self._data.loc[name.HIGH]
+
+    def low(self):
+        return self._data.loc[name.LOW]
+
+    def close(self):
+        return self._data.loc[name.CLOSE]
+
     def volume(self):
-        return self._data.loc[VOLUME]
+        return self._data.loc[name.VOLUME]
 
     def tick(self):
         return self._data.loc['avg']

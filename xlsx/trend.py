@@ -43,6 +43,7 @@ class StockToCsv(ToCsv):
             self._to_csv(date, paths, output)
 
     def _to_csv(self, date, paths, output):
+        columns = [name.TIME, name.PRICE, name.VOLUME, name.HIGH, name.LOW, name.CLOSE]
         file = os.path.join(output, date) + '.csv'
 
         if os.path.exists(file):
@@ -58,6 +59,28 @@ class StockToCsv(ToCsv):
 
             stock[str(data['code'])] = data['tick']
 
+        for code, rows in stock.items():
+            max = rows[0]['max']
+            min = rows[0]['min']
+            stock[code][0][name.CLOSE] = rows[0][name.PRICE]
+            stock[code][0][name.PRICE] = rows[0][name.PRICE]
+
+            if code == '3285':
+                r = 0
+
+            for i, value in enumerate(rows[1:]):
+                p = value[name.PRICE]
+
+                if value['max'] > max:
+                    max = value['max']
+                    p = max
+                elif value['min'] < min:
+                    min = value['min']
+                    p = min
+
+                stock[code][i + 1][name.CLOSE] = value[name.PRICE]
+                stock[code][i + 1][name.PRICE] = p
+
         codes = sorted(list(stock.keys()))
 
         data = {}
@@ -66,7 +89,7 @@ class StockToCsv(ToCsv):
 
             for c in codes:
                 if len(stock[c]) <= i:
-                    [values.append(np.nan) for _ in self.columns]
+                    [values.append(np.nan) for _ in range(len(columns))]
                 else:
                     for n, v in stock[c][i].items():
                         if n == 'time':
@@ -77,12 +100,7 @@ class StockToCsv(ToCsv):
 
         pd.DataFrame(
             data,
-            index=(
-                pd.MultiIndex.from_product(
-                    [codes, [name.TIME, name.PRICE, name.VOLUME, name.HIGH, name.LOW]],
-                    names=['code', 'name']
-                )
-            )
+            index=(pd.MultiIndex.from_product([codes, columns], names=['code', 'name']))
         ).to_csv(file)
 
         logging.info(f'save {file}')
