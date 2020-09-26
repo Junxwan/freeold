@@ -132,9 +132,18 @@ class Tick():
         if os.path.exists(file) == False:
             self.close_execl()
 
-            time.sleep(2)
+            time.sleep(10)
+
+            if os.path.exists(file):
+                return True
+
             self._to_execl(code, name)
             time.sleep(10)
+
+            sa1 = win32gui.FindWindow(None, '確認另存新檔')
+            if sa1 > 0:
+                win32gui.PostMessage(sa1, win32con.WM_QUIT, 0, 0)
+                time.sleep(20)
 
             if os.path.exists(file) == False:
                 raise FileNotFoundError(file)
