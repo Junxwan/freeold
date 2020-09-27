@@ -485,15 +485,27 @@ class TrendData():
         self._data = data.dropna(axis='columns', how='all')
         self.date = data.loc[name.TIME][0][:10]
         self._tick = tick
+        self._x = []
+        self._y = []
+        self._y_max = 0
+        self._x_max = 0
+        self._y_min = 0
+        self._x_min = 0
+        self._x_pos = []
 
-        date_times = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:33:00', freq='min')
-        for i in range(4):
-            date_times = date_times.delete(266)
+        if tick is None:
+            date_times = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:33:00', freq='min')
+            for i in range(4):
+                date_times = date_times.delete(266)
+
+        else:
+            date_times1 = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:25:00', freq='S')
+            date_times2 = pd.date_range(start=f'{self.date} 13:30:00', end=f'{self.date} 13:33:00', freq='S')
+            date_times = date_times1.append(date_times2)
 
         self.times = {t.strftime('%H:%M:%S'): i for i, t in enumerate(date_times)}
 
         self._format()
-        self._format_tick(tick)
 
     def _format(self):
         data = self._data.copy()
@@ -501,42 +513,23 @@ class TrendData():
         data.loc[name.PRICE] = self._data.loc[name.PRICE].astype(float)
         data.loc[name.HIGH] = self._data.loc[name.HIGH].astype(float)
         data.loc[name.LOW] = self._data.loc[name.LOW].astype(float)
+        data.loc[name.AVG] = self._data.loc[name.AVG].astype(float)
+        data.loc[name.OPEN] = self._data.loc[name.OPEN].astype(float)
         data.loc[name.TIME] = self._data.loc[name.TIME].transform(lambda x: x[11:])
         data.columns = self._data.columns.astype(int)
         self._data = data
-
-    def _format_tick(self, tick):
-        avg = []
-
-        if tick is None:
-            avg = np.full([1, len(self._data.loc[name.TIME])], np.nan).tolist()[0]
-        else:
-            q = tick['time']
-            times = list(self.times)
-
-            for i, time in enumerate(times[1:-4]):
-                d = tick[q.between(times[i], time)]
-
-                if d.empty:
-                    if len(avg) == 0:
-                        avg.append(tick.loc[0]['buy'])
-                    else:
-                        avg.append(avg[-1])
-                else:
-                    avg.append(d.dropna().iloc[-1]['avg'])
-
-            avg.append(avg[-1])
-            pd.DataFrame([avg], index=['avg'])
-
-        self._data = self._data.append(pd.DataFrame([avg], index=['avg']))
 
     def value(self):
         return self._data
 
     def time(self):
-        return self._data.loc[name.TIME].dropna()
+        if self._tick is not None:
+            return self._tick[name.TIME]
+        return self._data.loc[name.TIME]
 
     def price(self):
+        if self._tick is not None:
+            return self._tick[name.PRICE]
         return self._data.loc[name.PRICE]
 
     def high(self):
@@ -545,17 +538,91 @@ class TrendData():
     def low(self):
         return self._data.loc[name.LOW]
 
+    def avg(self):
+        if self._tick is not None:
+            return self._tick[name.AVG]
+        return self._data.loc[name.AVG]
+
+    def open(self):
+        return self._data.loc[name.OPEN]
+
     def close(self):
         return self._data.loc[name.CLOSE]
 
     def volume(self):
+        if self._tick is not None:
+            return self._tick[name.VOLUME]
         return self._data.loc[name.VOLUME]
-
-    def tick(self):
-        return self._data.loc['avg']
 
     def first(self):
         return self._data[0]
+
+    def x(self) -> list:
+        if len(self._x) > 0:
+            return self._x
+
+        if self._tick is None:
+            self._x = [i - 5 for i in range(6)]
+        else:
+            l = 60 * 5
+            self._x = [i - l for i in range(l)]
+
+        for i, t in enumerate(self.time()):
+            self._x.append(self.times[t])
+
+        return self._x
+
+    def x_len(self):
+        if self._tick is not None:
+            return len(self.x()) + 4
+        else:
+            return 270
+
+    def y(self, close) -> list:
+        if len(self._y) > 0:
+            return self._y
+
+        self._y = [close for i in range(6)]
+        self._y.extend(self.price())
+
+        return self._y
+
+    def x_max(self):
+        if self._x_max == 0:
+            max = self.y_max()
+            if self._tick is not None:
+                self._x_max = (self.price() == max).idxmax()
+            else:
+                self._x_max = self.times[self.time()[self.high() == max].iloc[0]]
+        return self._x_max
+
+    def x_min(self):
+        if self._x_min == 0:
+            min = self.y_min()
+            if self._tick is not None:
+                self._x_min = (self.price() == min).idxmax()
+            else:
+                self._x_min = self.times[self.time()[self.low() == min].iloc[0]]
+        return self._x_min
+
+    def y_max(self):
+        if self._y_max == 0:
+            self._y_max = self.high().max()
+        return self._y_max
+
+    def y_min(self):
+        if self._y_min == 0:
+            self._y_min = self.low().min()
+        return self._y_min
+
+    def x_pos(self):
+        if len(self._x_pos) == 0:
+            if self._tick is not None:
+                pass
+            else:
+                self._x_pos = [0, 60, 120, 180, 240]
+
+        return self._x_pos
 
 
 class Query():

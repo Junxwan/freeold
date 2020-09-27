@@ -444,7 +444,7 @@ class image():
 
 
 class Watch():
-    default_code = 2330
+    default_code = 3285
 
     def __init__(self, root, config=None, path=None):
         self.root = root
@@ -477,8 +477,8 @@ class Watch():
         self._list_layout()
 
         # self._plot_k_trend()
-        # self._plot_trend()
-        self._plot_k()
+        self._plot_trend()
+        # self._plot_k()
         self.watch.pack()
 
         filename = os.path.join(path, datetime.now().strftime(f"%Y-%m-%d-watch.log"))

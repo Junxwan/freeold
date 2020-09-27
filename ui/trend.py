@@ -2,7 +2,6 @@
 import math
 import numpy as np
 import matplotlib.ticker as mticks
-import matplotlib.animation as animation
 from . import k
 from stock import data, name
 
@@ -12,9 +11,9 @@ NAME = 'trend'
 # 日內走勢
 class Watch(k.SubAxes):
     text = {
-        '時': 'time',
-        '成': 'price',
-        '量': data.VOLUME,
+        '時': name.TIME,
+        '成': name.PRICE,
+        '量': name.VOLUME,
     }
 
     name = NAME
@@ -29,11 +28,11 @@ class Watch(k.SubAxes):
 
         self._major(close)
 
-        self.axes.name = 'price'
-        self.axes.set_xlim(-5, 270)
+        self.axes.set_xlim(-5, self._c_watch.x_len())
         self.axes.set_ylim(self.price_loc.min, self.price_loc.max)
         self.axes.axhline(y=(close), color='#335867')
         self.axes.grid(True)
+        self.axes.name = name.PRICE
 
         self._plot_trend(close)
         self._update_label()
@@ -41,16 +40,7 @@ class Watch(k.SubAxes):
         return True
 
     def _plot_trend(self, close):
-        x = [i - 5 for i in range(6)]
-        y = [close for i in range(6)]
-
-        time = self._c_watch.time()
-        price = self._c_watch.price()
-        for i, t in enumerate(time):
-            x.append(self._c_watch.times[t])
-            y.append(price[i])
-
-        self.axes.plot(x, y, color='#FFFF00')
+        self.axes.plot(self._c_watch.x(), self._c_watch.y(close), color='#FFFF00')
 
     def plot_text(self, text, **kwargs):
         text.add('日', 'date', self._c_watch.date, offset_x=self.x_text_offset)
@@ -79,7 +69,7 @@ class Watch(k.SubAxes):
         return yesterday[data.CLOSE]
 
     def _major(self, close):
-        self.axes.xaxis.set_major_locator(TimeLocator())
+        self.axes.xaxis.set_major_locator(TimeLocator(self._c_watch))
         self.axes.xaxis.set_major_formatter(TimeFormatter())
 
         self.price_loc = PriceLocator(close)
@@ -90,7 +80,7 @@ class Watch(k.SubAxes):
     def _sup_axes(self):
         return {
             'max_min': MaxMin(),
-            'avg': Avg(),
+            name.AVG: Avg(),
         }
 
     def _update_label(self):
@@ -117,7 +107,7 @@ class Watch(k.SubAxes):
 
 # 成交量
 class Volume(k.SubAxes):
-    name = 'volume'
+    name = name.VOLUME
 
     master_name = NAME
 
@@ -126,22 +116,17 @@ class Volume(k.SubAxes):
         self.axes.grid(True)
         self.axes.set_ylim(0, 1.1 * self._c_watch.volume().max())
 
-        x = [i - 5 for i in range(6)]
         y = [0 for i in range(6)]
-        volume = self._c_watch.volume()
+        y.extend(self._c_watch.volume())
 
-        for i, t in enumerate(self._c_watch.time()):
-            x.append(self._c_watch.times[t])
-            y.append(volume[i])
-
-        self.axes.bar(x, y, color='#FF00FF', width=0.2)
+        self.axes.bar(self._c_watch.x(), y, color='#FF00FF', width=0.2)
         self._major()
         self._update_label()
 
         return True
 
     def _major(self):
-        self.axes.xaxis.set_major_locator(TimeLocator())
+        self.axes.xaxis.set_major_locator(TimeLocator(self._c_watch))
         self.axes.xaxis.set_major_formatter(TimeFormatter())
         self.axes.yaxis.set_major_locator(k.VolumeLocator(self._c_watch.volume()))
         self.axes.yaxis.set_major_formatter(k.VolumeFormatter())
@@ -167,12 +152,8 @@ class MaxMin(k.SubAxes):
         self._min = None
 
     def plot(self, **kwargs) -> bool:
-        value = self._c_watch.value()
-        max = value.loc[name.HIGH]
-        min = value.loc[name.LOW]
-
-        y_max = max.max()
-        x_max = self._c_watch.times[value.loc['time'][max == y_max].iloc[0]]
+        y_max = self._c_watch.y_max()
+        x_max = self._c_watch.x_max()
 
         self._max = self.axes.annotate(
             y_max,
@@ -184,8 +165,8 @@ class MaxMin(k.SubAxes):
             ha="right", va="top"
         )
 
-        y_min = min.min()
-        x_min = self._c_watch.times[value.loc['time'][min == y_min].iloc[0]]
+        y_min = self._c_watch.y_min()
+        x_min = self._c_watch.x_min()
 
         self._min = self.axes.annotate(
             y_min,
@@ -208,7 +189,7 @@ class MaxMin(k.SubAxes):
 
 
 class Avg(k.SubAxes):
-    name = 'avg'
+    name = name.AVG
 
     master_name = NAME
 
@@ -217,15 +198,8 @@ class Avg(k.SubAxes):
         self.line = None
 
     def plot(self, **kwargs) -> bool:
-        tick = self._c_watch.tick()
-
-        self.line = self.axes.plot(
-            np.arange(len(tick)),
-            tick,
-            linewidth=1,
-            color='#22AC38',
-        )
-
+        tick = self._c_watch.avg()
+        self.line = self.axes.plot(np.arange(len(tick)), tick, linewidth=1, color='#22AC38')
         return True
 
     def _clear(self):
@@ -250,8 +224,12 @@ class MoveEvent(k.MoveEvent):
 
 # 日期塞選
 class TimeLocator(mticks.Locator):
+    def __init__(self, c_watch):
+        mticks.Locator.__init__(self)
+        self.c_watch = c_watch
+
     def __call__(self):
-        return [0, 60, 120, 180, 240]
+        return self.c_watch.x_pos()
 
 
 # 日期格式
