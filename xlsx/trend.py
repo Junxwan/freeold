@@ -55,6 +55,7 @@ class StockToCsv(ToCsv):
             data = json.load(codecs.open(path, 'r', 'utf-8-sig'))
 
             if data['date'] != date:
+                logging.error(f'{path} date is error')
                 return
 
             stock[str(data['code'])] = data['tick']
