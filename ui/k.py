@@ -20,7 +20,7 @@ class SubAxes():
 
     def __init__(self):
         self._sup = {}
-        self._line = {}
+        self.line = {}
         self.code = None
         self._watch = None
         self._c_watch = None
@@ -71,7 +71,9 @@ class SubAxes():
             if isinstance(o, SubAxes) == False:
                 return False
 
-            if kwargs.get(name) is None:
+            name_v = kwargs.get(name)
+
+            if (name_v is None) | (name_v is False):
                 continue
 
             if o.draw(self.code, self.axes, text, self._c_watch, self._watch, **kwargs) == False:
@@ -118,14 +120,14 @@ class SubAxes():
 
         for n, o in self._sup.items():
             o.remove()
-        for n, o in self._line.items():
+        for n, o in self.line.items():
             o[0].remove()
 
         if self.info is not None:
             self.info.remove()
             self.info = None
 
-        self._line.clear()
+        self.line.clear()
         self._sup.clear()
 
     def _remove(self):
@@ -452,20 +454,20 @@ class MA(SubAxes):
         ma = self._c_watch.get_ma(day)
 
         for d in day:
-            if d not in self._line:
+            if d not in self.line:
                 self._add(d, ma[f'{d}ma'])
 
         day = {d: '' for d in day}
 
-        for d, v in self._line.items():
+        for d, v in self.line.items():
             if d not in day:
                 v.remove()
-                del self._line[d]
+                del self.line[d]
 
     def plot_text(self, text, **kwargs):
-        for name, line in self._line.items():
+        for name, line in self.line.items():
             key = f'{name}ma'
-            text.add(key, key, self._line[name][0].get_ydata()[-1], color=self.color[name], offset_x=self.x_text_offset)
+            text.add(key, key, self.line[name][0].get_ydata()[-1], color=self.color[name], offset_x=self.x_text_offset)
 
     def _add(self, day, price):
         if day in self.color:
@@ -480,15 +482,15 @@ class MA(SubAxes):
             color=color,
         )
 
-        self._line[day] = line
+        self.line[day] = line
 
         return line
 
     def _clear(self):
-        for name, line in self._line.items():
+        for name, line in self.line.items():
             line[0].remove()
 
-        self._line.clear()
+        self.line.clear()
 
 
 # 最高價與最低價

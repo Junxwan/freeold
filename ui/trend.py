@@ -12,6 +12,8 @@ class Watch(k.SubAxes):
     text = {
         '時': name.TIME,
         '成': name.PRICE,
+        '高': name.HIGH,
+        '低': name.LOW,
         '量': name.VOLUME,
     }
 
@@ -79,8 +81,9 @@ class Watch(k.SubAxes):
     # 副圖
     def _sup_axes(self):
         return {
-            'max_min': MaxMin(),
             name.AVG: Avg(),
+            'max_min_text': MaxMinText(),
+            'max_min': MaxMin(),
         }
 
     def _update_label(self):
@@ -138,8 +141,8 @@ class Volume(k.SubAxes):
 
 
 # 最高價與最低價
-class MaxMin(k.SubAxes):
-    name = 'max_min'
+class MaxMinText(k.SubAxes):
+    name = 'max_min_text'
 
     master_name = NAME
 
@@ -194,14 +197,30 @@ class MaxMin(k.SubAxes):
             self._min.remove()
 
 
+class MaxMin(k.SubAxes):
+    name = 'max_min'
+
+    master_name = NAME
+
+    def plot(self, **kwargs) -> bool:
+        x = self._c_watch.x()
+        y = self._c_watch.y()
+        high = self._c_watch.high().tolist()
+        low = self._c_watch.low().tolist()
+        high.insert(0, y[0])
+        high.insert(1, y[1])
+        low.insert(0, y[0])
+        low.insert(1, y[1])
+
+        self.line[name.HIGH] = self.axes.plot(x, high, linewidth=1, color='red')
+        self.line[name.LOW] = self.axes.plot(x, low, linewidth=1, color='green')
+        return True
+
+
 class Avg(k.SubAxes):
     name = name.AVG
 
     master_name = NAME
-
-    def __init__(self):
-        k.SubAxes.__init__(self)
-        self.line = None
 
     def plot(self, **kwargs) -> bool:
         tick = self._c_watch.avg().tolist()
@@ -209,13 +228,8 @@ class Avg(k.SubAxes):
         tick.insert(0, y[0])
         tick.insert(1, y[1])
 
-        self.line = self.axes.plot(self._c_watch.x(), tick, linewidth=1, color='#22AC38')
+        self.line[self.name] = self.axes.plot(self._c_watch.x(), tick, linewidth=1, color='#FF00FF')
         return True
-
-    def _clear(self):
-        if self.line is not None:
-            self.line[0].remove()
-            self.line = None
 
 
 # 日內走勢事件

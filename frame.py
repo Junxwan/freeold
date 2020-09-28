@@ -458,6 +458,7 @@ class Watch():
         self.plot_config = dict(
             volume=True,
             max_min=True,
+            max_min_text=True,
             avg=True,
             panel_ratios=(4, 1),
             ma=[5, 10, 20, 60, 120, 240]
