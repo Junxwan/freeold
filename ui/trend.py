@@ -118,7 +118,13 @@ class Volume(k.SubAxes):
         self.axes.name = self.name
         self.axes.grid(True)
         self.axes.set_ylim(0, 1.1 * self._c_watch.volume().max())
-        self.axes.bar(self._c_watch.x(), self._c_watch.y_volume(), color='#FF00FF', width=0.2)
+
+        if self._c_watch.freq == 's':
+            width = 10
+        else:
+            width = 0.2
+
+        self.axes.bar(self._c_watch.x(), self._c_watch.y_volume(), color='#FF00FF', width=width)
 
         self._major()
         self._update_label()
