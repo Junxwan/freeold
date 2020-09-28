@@ -472,7 +472,7 @@ class Trend():
 
     def now_date(self):
         return os.path.basename(
-            glob.glob(os.path.join(self.trend_dir, str(datetime.now().year), '*.csv'))[-1]
+            sorted(glob.glob(os.path.join(self.trend_dir, str(datetime.now().year), '*.csv')), reverse=True)[0]
         ).split('.')[0]
 
     def file_name(self, date):
@@ -487,6 +487,7 @@ class TrendData():
         self._tick = tick
         self._x = []
         self._y = []
+        self._y_volume = []
         self._y_max = 0
         self._x_max = 0
         self._y_min = 0
@@ -494,11 +495,15 @@ class TrendData():
         self._x_pos = []
 
         if tick is None:
+            self.freq = 'm'
+
             date_times = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:33:00', freq='min')
             for i in range(4):
                 date_times = date_times.delete(266)
 
         else:
+            self.freq = 's'
+
             date_times1 = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:25:00', freq='S')
             date_times2 = pd.date_range(start=f'{self.date} 13:30:00', end=f'{self.date} 13:33:00', freq='S')
             date_times = date_times1.append(date_times2)
@@ -520,7 +525,9 @@ class TrendData():
         self._data = data
 
     def value(self):
-        return self._data
+        if self._tick is None:
+            return self._data
+        return self._tick
 
     def time(self):
         if self._tick is not None:
@@ -561,48 +568,54 @@ class TrendData():
         if len(self._x) > 0:
             return self._x
 
-        if self._tick is None:
-            self._x = [i - 5 for i in range(6)]
-        else:
-            l = 60 * 5
-            self._x = [i - l for i in range(l)]
+        x_lim = self.x_lim()
+        self._x = [x_lim[0], 0]
 
         for i, t in enumerate(self.time()):
             self._x.append(self.times[t])
 
         return self._x
 
-    def x_len(self):
-        if self._tick is not None:
-            return len(self.x()) + 4
-        else:
-            return 270
-
-    def y(self, close) -> list:
+    def y(self, close=0) -> list:
         if len(self._y) > 0:
             return self._y
 
-        self._y = [close for i in range(6)]
-        self._y.extend(self.price())
+        self._y = self.price().tolist()
+        self._y.insert(0, close)
+        self._y.insert(1, close)
 
         return self._y
+
+    def x_lim(self):
+        # 09:00為0，08:55 ~ 13:33
+        if self._tick is None:
+            # 週期為分
+            return -5, len(self.times)
+
+        # 週期為秒
+        return -60 * 5, len(self.times)
 
     def x_max(self):
         if self._x_max == 0:
             max = self.y_max()
             if self._tick is not None:
-                self._x_max = (self.price() == max).idxmax()
+                price = self.price()
             else:
-                self._x_max = self.times[self.time()[self.high() == max].iloc[0]]
+                price = self.high()
+
+            self._x_max = self.times[self.time()[(price == max)].iloc[0]]
         return self._x_max
 
     def x_min(self):
         if self._x_min == 0:
             min = self.y_min()
             if self._tick is not None:
-                self._x_min = (self.price() == min).idxmax()
+                price = self.price()
             else:
-                self._x_min = self.times[self.time()[self.low() == min].iloc[0]]
+                price = self.low()
+
+            self._x_min = self.times[self.time()[price == min].iloc[0]]
+
         return self._x_min
 
     def y_max(self):
@@ -615,12 +628,23 @@ class TrendData():
             self._y_min = self.low().min()
         return self._y_min
 
+    def y_volume(self):
+        if len(self._y_volume) == 0:
+            self._y_volume = self.volume().tolist()
+            self._y_volume.insert(0, 0)
+            self._y_volume.insert(1, 0)
+
+        return self._y_volume
+
     def x_pos(self):
+        # 09:00 10:00 11:00 12:00 13:00
         if len(self._x_pos) == 0:
+            l = 60
+
             if self._tick is not None:
-                pass
-            else:
-                self._x_pos = [0, 60, 120, 180, 240]
+                l = 3600
+
+            self._x_pos = [l * i for i in range(5)]
 
         return self._x_pos
 

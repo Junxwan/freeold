@@ -620,8 +620,8 @@ class PriceLocator(mticks.Locator):
 
 # 交易量塞選
 class VolumeLocator(mticks.Locator):
-    def __init__(self, c_watch, len=5):
-        self._c_watch = c_watch
+    def __init__(self, data, len=5):
+        self.data = data
         self.len = len
         self.locs = []
 
@@ -632,8 +632,8 @@ class VolumeLocator(mticks.Locator):
         if len(self.locs) > 0:
             return self.locs
 
-        mx = self._c_watch.max()
-        mi = self._c_watch.min()
+        mx = self.data.max()
+        mi = self.data.min()
         step = 10 ** (len(str(int((mx - mi) / 3))) - 1)
         diff = (mx - mi) / self.len
         step = int((diff - diff % step) + step)

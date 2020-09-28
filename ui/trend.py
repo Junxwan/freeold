@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import math
-import numpy as np
 import matplotlib.ticker as mticks
 from . import k
 from stock import data, name
@@ -28,7 +27,8 @@ class Watch(k.SubAxes):
 
         self._major(close)
 
-        self.axes.set_xlim(-5, self._c_watch.x_len())
+        x_lim = self._c_watch.x_lim()
+        self.axes.set_xlim(x_lim[0], x_lim[1])
         self.axes.set_ylim(self.price_loc.min, self.price_loc.max)
         self.axes.axhline(y=(close), color='#335867')
         self.axes.grid(True)
@@ -112,14 +112,11 @@ class Volume(k.SubAxes):
     master_name = NAME
 
     def plot(self, **kwargs) -> bool:
-        self.axes.name = data.VOLUME
+        self.axes.name = self.name
         self.axes.grid(True)
         self.axes.set_ylim(0, 1.1 * self._c_watch.volume().max())
+        self.axes.bar(self._c_watch.x(), self._c_watch.y_volume(), color='#FF00FF', width=0.2)
 
-        y = [0 for i in range(6)]
-        y.extend(self._c_watch.volume())
-
-        self.axes.bar(self._c_watch.x(), y, color='#FF00FF', width=0.2)
         self._major()
         self._update_label()
 
@@ -154,28 +151,37 @@ class MaxMin(k.SubAxes):
     def plot(self, **kwargs) -> bool:
         y_max = self._c_watch.y_max()
         x_max = self._c_watch.x_max()
+        y_min = self._c_watch.y_min()
+        x_min = self._c_watch.x_min()
+        tick = self.axes.yaxis.major.locator.get_tick(y_min)
+
+        y_max_text = y_max + (tick * 6)
+        y_min_text = y_min - (tick * 6)
+
+        if y_max_text >= self.axes.yaxis.major.locator.ticks[-1]:
+            y_max_text = y_max - (tick * 10)
+
+        if y_min_text <= self.axes.yaxis.major.locator.ticks[0]:
+            y_min_text = y_min + (tick * 10)
 
         self._max = self.axes.annotate(
             y_max,
             xy=(x_max, y_max),
-            xytext=(x_max + 20, y_max),
+            xytext=(x_max, y_max_text),
             color='#FF0000',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#FF0000'),
-            ha="right", va="top"
+            ha="center", va="top"
         )
-
-        y_min = self._c_watch.y_min()
-        x_min = self._c_watch.x_min()
 
         self._min = self.axes.annotate(
             y_min,
             xy=(x_min, y_min),
-            xytext=(x_min + 20, y_min),
+            xytext=(x_min, y_min_text),
             color='#51F069',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#51F069'),
-            ha="right", va="top"
+            ha="center", va="top"
         )
 
         return True
@@ -198,8 +204,12 @@ class Avg(k.SubAxes):
         self.line = None
 
     def plot(self, **kwargs) -> bool:
-        tick = self._c_watch.avg()
-        self.line = self.axes.plot(np.arange(len(tick)), tick, linewidth=1, color='#22AC38')
+        tick = self._c_watch.avg().tolist()
+        y = self._c_watch.y()
+        tick.insert(0, y[0])
+        tick.insert(1, y[1])
+
+        self.line = self.axes.plot(self._c_watch.x(), tick, linewidth=1, color='#22AC38')
         return True
 
     def _clear(self):
@@ -211,13 +221,34 @@ class Avg(k.SubAxes):
 # 日內走勢事件
 class MoveEvent(k.MoveEvent):
     def set_data(self, c_watch):
-        self._data = c_watch.value()
-        self._times = [v for v in c_watch.times]
+        self._c_watch = c_watch
+        self._data = self._c_watch.value()
 
     def get(self, x):
-        for i, b in enumerate((self._data.loc['time'] == self._times[x])):
-            if b:
-                return self._data[i]
+        if self._c_watch.freq == 'm':
+            times = [v for v in self._c_watch.times]
+
+            for i, b in enumerate((self._data.loc[name.TIME] == times[x])):
+                if b:
+                    return self._data[i]
+        else:
+            h = int(x / 3600) + 9
+            ms = int(x % 3600) / 60
+            m = int(ms)
+            s = int((ms - m) * 60)
+
+            if h < 10:
+                h = f'0{h}'
+
+            if m < 10:
+                m = f'0{m}'
+
+            if s < 10:
+                s = f'0{s}'
+
+            data = self._data[self._c_watch.time() <= f'{h}:{m}:{s}']
+            if data.empty == False:
+                return data.iloc[-1]
 
         return None
 
@@ -236,14 +267,14 @@ class TimeLocator(mticks.Locator):
 class TimeFormatter(mticks.Formatter):
     date = {
         0: 9,
-        60: 10,
-        120: 11,
-        180: 12,
-        240: 13,
+        1: 10,
+        2: 11,
+        3: 12,
+        4: 13,
     }
 
     def __call__(self, x, pos=None):
-        return self.date[x]
+        return self.date[pos]
 
 
 # 股價塞選
