@@ -455,7 +455,9 @@ class Trend():
             self._date[code] = {}
 
         if date not in self._date[code]:
-            self._date[code][date] = TrendData(code, data, tick=self.tick(code, data['0']['time'][:10]))
+            # 暫時不用交易明細畫線
+            # self._date[code][date] = TrendData(code, data, tick=self.tick(code, data['0']['time'][:10]))
+            self._date[code][date] = TrendData(code, data)
 
         return self._date[code][date]
 
