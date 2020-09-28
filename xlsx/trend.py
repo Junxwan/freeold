@@ -45,10 +45,40 @@ class StockToCsv(ToCsv):
     def _to_csv(self, date, paths, output):
         columns = [name.TIME, name.PRICE, name.VOLUME, name.HIGH, name.LOW, name.CLOSE, name.OPEN, name.AVG]
         file = os.path.join(output, date) + '.csv'
+        names = ['code', 'name']
 
         if os.path.exists(file):
-            return
+            data_frame = pd.read_csv(file, index_col=[0, 1], header=[0], low_memory=False)
+            file_codes = sorted(data_frame.index.levels[0].tolist())
+            codes = sorted([int(os.path.basename(path).split('.')[0]) for path in paths])
+            diff_codes = list(set(codes).difference(set(file_codes)))
 
+            if len(diff_codes) == 0:
+                return True
+
+            path = os.path.dirname(paths[0])
+            paths = [os.path.join(path, str(code)) + '.json' for code in diff_codes]
+
+            add, codes = self._get(date, paths, columns)
+
+            apply = pd.DataFrame(
+                add,
+                index=(pd.MultiIndex.from_product([[int(code) for code in codes], columns], names=names))
+            )
+
+            for index, rows in apply.iterrows():
+                data_frame.loc[index, :] = rows.tolist()
+        else:
+            data, codes = self._get(date, paths, columns)
+            data_frame = pd.DataFrame(
+                data,
+                index=(pd.MultiIndex.from_product([codes, columns], names=names))
+            )
+
+        data_frame.to_csv(file)
+        logging.info(f'save {file}')
+
+    def _get(self, date, paths, columns):
         stock = {}
 
         for path in paths:
@@ -56,7 +86,7 @@ class StockToCsv(ToCsv):
 
             if data['date'] != date:
                 logging.error(f'{path} date is error')
-                return
+                return None, None
 
             stock[str(data['code'])] = data['tick']
 
@@ -100,12 +130,7 @@ class StockToCsv(ToCsv):
 
             data[i] = values
 
-        pd.DataFrame(
-            data,
-            index=(pd.MultiIndex.from_product([codes, columns], names=['code', 'name']))
-        ).to_csv(file)
-
-        logging.info(f'save {file}')
+        return data, codes
 
 
 class MarketToCsv(ToCsv):
