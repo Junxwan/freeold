@@ -148,9 +148,9 @@ class MaxMinText(k.SubAxes):
 
     len = {
         3: 10,
-        4: 20,
-        5: 25,
-        6: 30,
+        4: 12,
+        5: 15,
+        6: 20,
     }
 
     def __init__(self):

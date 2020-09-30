@@ -1,4 +1,5 @@
 from . import k, trend
+from stock import name
 
 NAME = 'k_trend'
 
@@ -23,3 +24,20 @@ class MA(k.MA):
 
 class TrendWatch(trend.Watch):
     x_text_offset = 0.2
+
+    # 副圖
+    def _sup_axes(self):
+        return {
+            name.AVG: trend.Avg(),
+            'max_min_text': MaxMinText(),
+            'max_min': trend.MaxMin(),
+        }
+
+
+class MaxMinText(trend.MaxMinText):
+    len = {
+        3: 10,
+        4: 20,
+        5: 25,
+        6: 30,
+    }
