@@ -152,6 +152,13 @@ class MaxMinText(k.SubAxes):
 
     master_name = NAME
 
+    len = {
+        3: 10,
+        4: 20,
+        5: 25,
+        6: 30,
+    }
+
     def __init__(self):
         k.SubAxes.__init__(self)
         self._max = None
@@ -162,35 +169,27 @@ class MaxMinText(k.SubAxes):
         x_max = self._c_watch.x_max()
         y_min = self._c_watch.y_min()
         x_min = self._c_watch.x_min()
-        tick = self.axes.yaxis.major.locator.get_tick(y_min)
-
-        y_max_text = y_max + (tick * 6)
-        y_min_text = y_min - (tick * 6)
-
-        if y_max_text >= self.axes.yaxis.major.locator.ticks[-1]:
-            y_max_text = y_max - (tick * 10)
-
-        if y_min_text <= self.axes.yaxis.major.locator.ticks[0]:
-            y_min_text = y_min + (tick * 10)
+        x_max_text = x_max + self.len[len(str(y_max))]
+        x_min_text = x_min + self.len[len(str(y_min))]
 
         self._max = self.axes.annotate(
             y_max,
             xy=(x_max, y_max),
-            xytext=(x_max, y_max_text),
+            xytext=(x_max_text, y_max),
             color='#FF0000',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#FF0000'),
-            ha="center", va="top"
+            ha='right', va='center'
         )
 
         self._min = self.axes.annotate(
             y_min,
             xy=(x_min, y_min),
-            xytext=(x_min, y_min_text),
+            xytext=(x_min_text, y_min),
             color='#51F069',
             size=self.xy_font_size,
             arrowprops=dict(arrowstyle="simple", color='#51F069'),
-            ha="center", va="top"
+            ha='right', va='center'
         )
 
         return True
