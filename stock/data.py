@@ -258,14 +258,14 @@ class K():
         except:
             return None
 
-        c_data = pd.DataFrame([
-            stock[i].tolist() for i in stock],
+        c_data = pd.DataFrame(
+            [stock[i].tolist() for i in stock],
             columns=stock.index.tolist()
-        )
+        ).dropna(axis='index', how='all')
 
         c_data[DATE] = pd.to_datetime(c_data[DATE])
         c_data = c_data.set_index(DATE).sort_index()
-        c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index])
+        c_data.insert(0, DATE, [t.strftime('%Y-%m-%d') for t in c_data.index.dropna()])
 
         if code not in self._k_data:
             self._k_data[code] = KData(code, c_data)
