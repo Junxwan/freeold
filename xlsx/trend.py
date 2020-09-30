@@ -91,7 +91,7 @@ class StockToCsv(ToCsv):
             stock[str(data['code'])] = data['tick']
 
         for code, rows in stock.items():
-            max = rows[0]['max']
+            max = rows[0]['min']
             min = rows[0]['min']
             stock[code][0][name.CLOSE] = rows[0][name.PRICE]
             stock[code][0][name.PRICE] = rows[0][name.PRICE]
@@ -99,14 +99,20 @@ class StockToCsv(ToCsv):
             stock[code][0][name.AVG] = np.nan
 
             for i, value in enumerate(rows[1:]):
-                p = value[name.PRICE]
-
-                if value['max'] > max:
-                    max = value['max']
-                    p = max
+                # 如果當前價格在前一根bar內則用收盤價
+                # 如果當前價格高於前一根bar最高價則用最高價
+                # 如果當前價格低於前一根bar最低價則用最低價
+                if (value['max'] > max) & (value['min'] < min):
+                    p = value[name.PRICE]
+                elif value['max'] > max:
+                    p = value['max']
                 elif value['min'] < min:
-                    min = value['min']
-                    p = min
+                    p = value['min']
+                else:
+                    p = value[name.PRICE]
+
+                max = value['max']
+                min = value['min']
 
                 stock[code][i + 1][name.CLOSE] = value[name.PRICE]
                 stock[code][i + 1][name.PRICE] = p
