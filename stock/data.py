@@ -455,8 +455,6 @@ class Trend():
             self._date[code] = {}
 
         if date not in self._date[code]:
-            # 暫時不用交易明細畫線
-            # self._date[code][date] = TrendData(code, data, tick=self.tick(code, data['0']['time'][:10]))
             self._date[code][date] = TrendData(code, data)
 
         return self._date[code][date]
@@ -482,11 +480,10 @@ class Trend():
 
 
 class TrendData():
-    def __init__(self, code, data, tick=None):
+    def __init__(self, code, data):
         self.code = code
         self._data = data.dropna(axis='columns', how='all')
         self.date = data.loc[name.TIME][0][:10]
-        self._tick = tick
         self._x = []
         self._y = []
         self._y_volume = []
@@ -496,19 +493,9 @@ class TrendData():
         self._x_min = 0
         self._x_pos = []
 
-        if tick is None:
-            self.freq = 'm'
-
-            date_times = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:33:00', freq='min')
-            for i in range(4):
-                date_times = date_times.delete(266)
-
-        else:
-            self.freq = 's'
-
-            date_times1 = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:25:00', freq='S')
-            date_times2 = pd.date_range(start=f'{self.date} 13:30:00', end=f'{self.date} 13:33:00', freq='S')
-            date_times = date_times1.append(date_times2)
+        date_times = pd.date_range(start=f'{self.date} 09:00:00', end=f'{self.date} 13:33:00', freq='min')
+        for i in range(4):
+            date_times = date_times.delete(266)
 
         self.times = {t.strftime('%H:%M:%S'): i for i, t in enumerate(date_times)}
 
@@ -527,18 +514,12 @@ class TrendData():
         self._data = data
 
     def value(self):
-        if self._tick is None:
-            return self._data
-        return self._tick
+        return self._data
 
     def time(self):
-        if self._tick is not None:
-            return self._tick[name.TIME]
         return self._data.loc[name.TIME]
 
     def price(self):
-        if self._tick is not None:
-            return self._tick[name.PRICE]
         return self._data.loc[name.PRICE]
 
     def high(self):
@@ -548,8 +529,6 @@ class TrendData():
         return self._data.loc[name.LOW]
 
     def avg(self):
-        if self._tick is not None:
-            return self._tick[name.AVG]
         return self._data.loc[name.AVG]
 
     def open(self):
@@ -559,8 +538,6 @@ class TrendData():
         return self._data.loc[name.CLOSE]
 
     def volume(self):
-        if self._tick is not None:
-            return self._tick[name.VOLUME]
         return self._data.loc[name.VOLUME]
 
     def first(self):
@@ -590,33 +567,19 @@ class TrendData():
 
     def x_lim(self):
         # 09:00為0，08:55 ~ 13:33
-        if self._tick is None:
-            # 週期為分
-            return -5, len(self.times)
-
-        # 週期為秒
-        return -60 * 5, len(self.times)
+        return -5, len(self.times)
 
     def x_max(self):
         if self._x_max == 0:
             max = self.y_max()
-            if self._tick is not None:
-                price = self.price()
-            else:
-                price = self.high()
+            self._x_max = self.times[self.time()[(self.high() == max)].iloc[0]]
 
-            self._x_max = self.times[self.time()[(price == max)].iloc[0]]
         return self._x_max
 
     def x_min(self):
         if self._x_min == 0:
             min = self.y_min()
-            if self._tick is not None:
-                price = self.price()
-            else:
-                price = self.low()
-
-            self._x_min = self.times[self.time()[price == min].iloc[0]]
+            self._x_min = self.times[self.time()[self.low() == min].iloc[0]]
 
         return self._x_min
 
@@ -642,10 +605,6 @@ class TrendData():
         # 09:00 10:00 11:00 12:00 13:00
         if len(self._x_pos) == 0:
             l = 60
-
-            if self._tick is not None:
-                l = 3600
-
             self._x_pos = [l * i for i in range(5)]
 
         return self._x_pos

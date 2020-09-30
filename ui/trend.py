@@ -118,13 +118,7 @@ class Volume(k.SubAxes):
         self.axes.name = self.name
         self.axes.grid(True)
         self.axes.set_ylim(0, 1.1 * self._c_watch.volume().max())
-
-        if self._c_watch.freq == 's':
-            width = 10
-        else:
-            width = 0.2
-
-        self.axes.bar(self._c_watch.x(), self._c_watch.y_volume(), color='#FF00FF', width=width)
+        self.axes.bar(self._c_watch.x(), self._c_watch.y_volume(), color='#FF00FF', width=0.2)
 
         self._major()
         self._update_label()
@@ -244,30 +238,11 @@ class MoveEvent(k.MoveEvent):
         self._data = self._c_watch.value()
 
     def get(self, x):
-        if self._c_watch.freq == 'm':
-            times = [v for v in self._c_watch.times]
+        times = [v for v in self._c_watch.times]
 
-            for i, b in enumerate((self._data.loc[name.TIME] == times[x])):
-                if b:
-                    return self._data[i]
-        else:
-            h = int(x / 3600) + 9
-            ms = int(x % 3600) / 60
-            m = int(ms)
-            s = int((ms - m) * 60)
-
-            if h < 10:
-                h = f'0{h}'
-
-            if m < 10:
-                m = f'0{m}'
-
-            if s < 10:
-                s = f'0{s}'
-
-            data = self._data[self._c_watch.time() <= f'{h}:{m}:{s}']
-            if data.empty == False:
-                return data.iloc[-1]
+        for i, b in enumerate((self._data.loc[name.TIME] == times[x])):
+            if b:
+                return self._data[i]
 
         return None
 
