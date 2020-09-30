@@ -394,7 +394,7 @@ class KTrendWatch(Plot):
 
         return MoveEvent(
             self.canvas, {
-                trend.NAME: trend.MoveEvent(c_watch[trend.NAME], trend_axes, show_date=False, color='#00FFFF'),
+                trend.NAME: trend.MoveEvent(c_watch[trend.NAME], trend_axes, show_date=False, linewidth=1),
                 k.NAME: k.MoveEvent(c_watch[k.NAME], k_axes)
             }
         )

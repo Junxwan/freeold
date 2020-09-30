@@ -136,7 +136,7 @@ class SubAxes():
 
 # 事件
 class MoveEvent():
-    def __init__(self, c_watch, axs, show_date=True, color='#FFFF66'):
+    def __init__(self, c_watch, axs, show_date=True, color='#00FFFF', linewidth=2):
         self.set_data(c_watch)
         self._axs = axs
         self.is_show_date = show_date
@@ -146,7 +146,7 @@ class MoveEvent():
         self._hax = {}
         self._callbacks = []
 
-        self._style = dict(color=color, linewidth=2)
+        self._style = dict(color=color, linewidth=linewidth)
 
     def set_data(self, c_watch):
         self._data = c_watch
