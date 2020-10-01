@@ -11,7 +11,7 @@ NAME = 'trend'
 class Watch(k.SubAxes):
     text = {
         '時': name.TIME,
-        '成': name.PRICE,
+        '收': name.CLOSE,
         '高': name.HIGH,
         '低': name.LOW,
         '量': name.VOLUME,
