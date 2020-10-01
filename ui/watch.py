@@ -536,6 +536,9 @@ class MoveEvent(tk.Frame):
 
     # 重畫
     def draw(self, event):
+        if event is None:
+            return
+
         if type(self._axes) is dict:
             if event.inaxes.name == name.PRICE:
                 self._axes[trend.NAME].draw(event)
@@ -555,8 +558,11 @@ class MoveEvent(tk.Frame):
             self._axes.add_callback(fun)
 
     def set_data(self, c_watch):
-        for name,value in c_watch.items():
-            self._axes[name].set_data(value)
+        if type(c_watch) is dict:
+            for name, value in c_watch.items():
+                self._axes[name].set_data(value)
+        else:
+            self._axes.set_data(c_watch)
 
     # 移動
     def move(self, event):
