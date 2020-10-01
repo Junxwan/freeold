@@ -59,8 +59,8 @@ class Base():
     def _stock(self, key, i=0):
         d = self.stock.loc[key]
         if i > 0:
-            return d[0:i]
-        return d[0]
+            return d.iloc[0:i]
+        return d.iloc[0]
 
     def _trend(self, key):
         return self.trend.loc[key]
