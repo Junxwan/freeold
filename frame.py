@@ -444,7 +444,7 @@ class image():
 
 
 class Watch():
-    default_code = 3285
+    default_code = 2330
 
     def __init__(self, root, config=None, path=None):
         self.root = root
