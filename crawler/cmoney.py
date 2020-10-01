@@ -7,6 +7,7 @@ import time
 import requests
 import pandas as pd
 from datetime import datetime
+from stock import name
 
 
 class Trend():
@@ -204,11 +205,11 @@ class api():
                 return None
 
             context.append({
-                'time': int(t[0] / 1000),
-                'price': t[1],
-                'volume': t[2],
-                'max': t[3],
-                'min': t[4],
+                name.TIME: int(t[0] / 1000),
+                name.CLOSE: t[1],
+                name.VOLUME: t[2],
+                name.HIGH: t[3],
+                name.LOW: t[4],
             })
 
         return context
