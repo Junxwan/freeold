@@ -43,7 +43,7 @@ class StockToCsv(ToCsv):
             self._to_csv(date, paths, output)
 
     def _to_csv(self, date, paths, output):
-        columns = [name.TIME, name.PRICE, name.VOLUME, name.HIGH, name.LOW, name.CLOSE, name.OPEN, name.AVG]
+        columns = [name.TIME, name.OPEN, name.CLOSE, name.VOLUME, name.HIGH, name.LOW, name.AVG]
         file = os.path.join(output, date) + '.csv'
         names = ['code', 'name']
 
@@ -91,31 +91,10 @@ class StockToCsv(ToCsv):
             stock[str(data['code'])] = data['tick']
 
         for code, rows in stock.items():
-            max = rows[0]['min']
-            min = rows[0]['min']
-            stock[code][0][name.CLOSE] = rows[0][name.PRICE]
-            stock[code][0][name.PRICE] = rows[0][name.PRICE]
             stock[code][0][name.OPEN] = np.nan
             stock[code][0][name.AVG] = np.nan
 
             for i, value in enumerate(rows[1:]):
-                # 如果當前價格在前一根bar內則用收盤價
-                # 如果當前價格高於前一根bar最高價則用最高價
-                # 如果當前價格低於前一根bar最低價則用最低價
-                if (value['max'] > max) & (value['min'] < min):
-                    p = value[name.PRICE]
-                elif value['max'] > max:
-                    p = value['max']
-                elif value['min'] < min:
-                    p = value['min']
-                else:
-                    p = value[name.PRICE]
-
-                max = value['max']
-                min = value['min']
-
-                stock[code][i + 1][name.CLOSE] = value[name.PRICE]
-                stock[code][i + 1][name.PRICE] = p
                 stock[code][i + 1][name.OPEN] = np.nan
                 stock[code][i + 1][name.AVG] = np.nan
 
@@ -129,7 +108,8 @@ class StockToCsv(ToCsv):
                 if len(stock[c]) <= i:
                     [values.append(np.nan) for _ in range(len(columns))]
                 else:
-                    for n, v in stock[c][i].items():
+                    for n in columns:
+                        v = stock[c][i][n]
                         if n == 'time':
                             v = pd.Timestamp(v, unit='s')
                         values.append(v)
