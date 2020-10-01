@@ -50,8 +50,8 @@ class Base():
     def volume(self):
         return self._stock(name.VOLUME)
 
-    def trend_price(self):
-        return self._trend(name.PRICE)
+    def trend_close(self):
+        return self._trend(name.CLOSE)
 
     def trend_time(self):
         return self._trend(name.TIME)
@@ -110,7 +110,7 @@ class OpenHighCloseLow(WeaK):
         if self._trend is None:
             return False
 
-        price = self.trend_price()
+        price = self.trend_close()
         q = self.trend_time()
         date = q[0][:10]
         times = [

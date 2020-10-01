@@ -504,7 +504,7 @@ class TrendData():
     def _format(self):
         data = self._data.copy()
         data.loc[VOLUME] = self._data.loc[VOLUME].astype(int)
-        data.loc[name.PRICE] = self._data.loc[name.PRICE].astype(float)
+        data.loc[name.CLOSE] = self._data.loc[name.CLOSE].astype(float)
         data.loc[name.HIGH] = self._data.loc[name.HIGH].astype(float)
         data.loc[name.LOW] = self._data.loc[name.LOW].astype(float)
         data.loc[name.AVG] = self._data.loc[name.AVG].astype(float)
@@ -518,9 +518,6 @@ class TrendData():
 
     def time(self):
         return self._data.loc[name.TIME]
-
-    def price(self):
-        return self._data.loc[name.PRICE]
 
     def high(self):
         return self._data.loc[name.HIGH]
@@ -559,7 +556,7 @@ class TrendData():
         if len(self._y) > 0:
             return self._y
 
-        self._y = self.price().tolist()
+        self._y = self.close().tolist()
         self._y.insert(0, close)
         self._y.insert(1, close)
 
