@@ -446,15 +446,15 @@ class Trend():
             return None
 
     def get(self, code, date):
-        data = self.code(code, date)
-
-        if data is None:
-            return None
-
         if code not in self._date:
             self._date[code] = {}
 
         if date not in self._date[code]:
+            data = self.code(code, date)
+
+            if data is None:
+                return None
+
             self._date[code][date] = TrendData(code, data)
 
         return self._date[code][date]
