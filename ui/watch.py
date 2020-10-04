@@ -260,7 +260,7 @@ class KWatch(Plot):
         return MoveEvent(self.canvas, k.MoveEvent(c_watch, [a.axes for a in self.axes.values()]))
 
     def _get(self, code, date=None):
-        return self.watch.code(code, date=date)
+        return self.watch.code(code, date=date,range=90)
 
     def _get_watch(self):
         return self.watch
