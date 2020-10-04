@@ -212,11 +212,14 @@ class K():
         self._dir = dir
         self._stock = Stock(dir)
         # self._stock.readAll()
+        year = datetime.now().year
 
         ready = [
             os.path.basename(p).split('.')[0] for p in
-            glob.glob(os.path.join(dir, f'{datetime.now().year}*.csv'))
+            glob.glob(os.path.join(dir, f'{year}*.csv'))
         ]
+
+        ready.insert(0, year - 1)
 
         [self._stock.read(n) for n in sorted(ready, reverse=True)]
 
