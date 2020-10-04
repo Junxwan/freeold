@@ -219,7 +219,7 @@ class K():
             glob.glob(os.path.join(dir, f'{year}*.csv'))
         ]
 
-        ready.insert(0, year - 1)
+        ready.insert(0, f'{year - 1}')
 
         [self._stock.read(n) for n in sorted(ready, reverse=True)]
 
