@@ -67,6 +67,7 @@ class StockToCsv(ToCsv):
             )
 
             for index, rows in apply.iterrows():
+                logging.info(f'apply {date} - {index}')
                 data_frame.loc[index, :] = rows.tolist()
         else:
             data, codes = self._get(date, paths, columns)
