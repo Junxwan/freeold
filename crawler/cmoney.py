@@ -146,7 +146,7 @@ class market(Trend):
 
             trend = self.api.trend(code, t)
 
-            time.sleep(1)
+            time.sleep(0.5)
 
             if trend == None:
                 logging.info(f'code: {code} date: {date} empty')

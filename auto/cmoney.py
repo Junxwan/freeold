@@ -138,7 +138,7 @@ class Tick():
                 return True
 
             self._to_execl(code, name)
-            time.sleep(10)
+            time.sleep(7)
 
             sa1 = win32gui.FindWindow(None, '確認另存新檔')
             if sa1 > 0:
