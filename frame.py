@@ -128,6 +128,9 @@ class main():
         btn = tk.Button(self.btnGroupFrame, text='市場', command=lambda: self.switchArg(cmoney.market))
         btn.place(x=5, y=self.h * 6)
 
+        btn = tk.Button(self.btnGroupFrame, text='基金', command=lambda: self.switchArg(cmoney.FundToCsv))
+        btn.place(x=5, y=self.h * 12)
+
         self.setLog('data')
 
     # 自動化功能按鈕組群
