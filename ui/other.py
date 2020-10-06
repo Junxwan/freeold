@@ -59,3 +59,7 @@ def tick_csv_path(config):
 
 def stock_trend_csv_path(config):
     return os.path.join(trend_csv_path(config), 'stock')
+
+
+def fund_csv_path(config):
+    return os.path.join(csv_path(config), 'fund')

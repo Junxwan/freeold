@@ -6,8 +6,11 @@ import os
 import time
 import requests
 import pandas as pd
+import urllib.parse as urlparse
+from urllib.parse import parse_qs
 from datetime import datetime
 from stock import name
+from bs4 import BeautifulSoup
 
 
 class Trend():
@@ -213,3 +216,126 @@ class api():
             })
 
         return context
+
+
+class Fund():
+    type = [
+        # 國內股票開放型指數型
+        'ET000001',
+
+        # 國內股票開放型科技類
+        'ET001001',
+
+        # 國內股票開放型中小型
+        'ET001004',
+
+        # 國內股票開放型一般股票型
+        'ET001005',
+
+        # 國內股票開放型中概股型
+        'ET001006',
+
+        # 國內股票開放型價值型
+        'ET001007',
+
+        # 國內股票開放型上櫃股票型
+        'ET001008',
+
+        # 股票債券平衡型一般股票型
+        'ET004001',
+
+        # 股票債券平衡型價值型股票型
+        'ET004002',
+
+    ]
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36',
+    }
+
+    def to_csv(self, output):
+        data = []
+        codes = []
+        dir = output
+        file_path = output
+        file = pd.DataFrame()
+
+        for fund in self.get_fund():
+            (company, code) = fund
+
+            resp = requests.get(
+                f'https://www.moneydj.com/funddj/ya/yp402002.djhtm?a={code}&b=803',
+                headers=self.headers
+            )
+
+            html = BeautifulSoup(resp.text, 'html.parser')
+            date = html.find('div', class_='t3n1c1').text.split('：')[-1]
+            date = f'{date[:4]}-{date[5:7]}-{date[8:]}'
+
+            if file.empty:
+                dir = os.path.join(output, f'{date[:4]}{date[5:7]}')
+                file_path = os.path.join(dir, 'fund.csv')
+
+                if os.path.exists(file_path):
+                    file = pd.read_csv(os.path.join(output, f'{date[:4]}{date[5:7]}', 'fund.csv'))
+                    codes = file['code'].tolist()
+
+            for raws in html.find_all('tr')[6:]:
+                value = raws.text.split('\n')
+
+                if len(value) <= 2:
+                    break
+
+                if value[4] == 'N/A':
+                    continue
+
+                t_code = parse_qs(urlparse.urlparse(raws.contents[5].contents[0].get('href')).query)['a'][0]
+
+                if t_code not in self.type:
+                    continue
+
+                code = parse_qs(urlparse.urlparse(raws.contents[3].contents[0].get('href')).query)['a'][0]
+                name = value[2]
+                type = value[3]
+
+                if code in codes:
+                    continue
+
+                resp = requests.get(f'https://www.moneydj.com/funddj/yp/yp011000.djhtm?a={code}')
+                table = BeautifulSoup(resp.text, 'html.parser').find('table', class_='t04')
+                scale = table.contents[1].contents[6].contents[1].text.split()
+
+                time.sleep(1)
+
+                if len(scale) == 0:
+                    continue
+
+                data.append(
+                    [name, company, type, code, scale[0][:-6], scale[0][-6:], date]
+                )
+
+                logging.info(f'{name} {code} {type} {date} {scale}')
+
+        if os.path.exists(dir) == False:
+            os.makedirs(dir)
+
+        data = file.to_numpy().tolist() + data
+
+        pd.DataFrame(
+            data, columns=['name', 'company', 'type', 'code', 'amount', 'valuation', 'date']
+        ).to_csv(file_path, index=False)
+
+    def get_fund(self):
+        fund = []
+        resp = requests.get('https://www.moneydj.com/funddj/yb/YP303000.djhtm', headers=self.headers)
+        soup = BeautifulSoup(resp.text, 'html.parser').find_all('tr')
+
+        for raws in soup[6:]:
+            if len(raws.contents) <= 1:
+                break
+
+            name = raws.contents[1].text
+            code = raws.contents[1].contents[0].get('href').split('=')[-1]
+            fund.append([name, code])
+
+        return fund
