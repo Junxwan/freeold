@@ -117,7 +117,7 @@ class Stock():
                 self.data.columns = np.arange(0, data.columns.size)
             else:
                 data.columns = np.arange(self.data.columns.size, self.data.columns.size + data.columns.size)
-                self.data = pd.merge(self.data, data, on=['code', 'name'], how='inner')
+                self.data = pd.merge(self.data, data, on=['code', 'name'], how='left')
 
             logging.info(f'read price for date: {dk}')
 
