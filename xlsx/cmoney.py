@@ -263,7 +263,7 @@ class year():
             i = 0
             data = {}
             filePath = os.path.join(path, name) + ".csv"
-            ck = list(dates[list(dates.keys())[-1]].keys())
+            ck = list(dates[list(dates.keys())[0]].keys())
             index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
 
             for date, codes in dates.items():
