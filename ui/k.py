@@ -680,6 +680,7 @@ class PriceFormatter(mticks.Formatter):
 # 交易量格式
 class VolumeFormatter(mticks.Formatter):
     def __call__(self, x, pos=None):
+        
         return self.format(x)
 
     def format(self, x):
