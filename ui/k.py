@@ -564,13 +564,15 @@ class DateLocator(mticks.Locator):
         loc = list(monthFirstWorkDay.values())
         last = len(self.data) - 1
 
-        if last - loc[-1] < 5:
-            del loc[-1]
+        if len(self.data) > 30:
+            if last - loc[-1] < 5:
+                del loc[-1]
 
-        if loc[1] - loc[0] < 5:
-            del loc[1]
+            if loc[1] - loc[0] < 5:
+                del loc[1]
 
-        loc.append(last)
+            loc.append(last)
+
         self.loc = loc
 
         return self.loc
