@@ -408,7 +408,7 @@ class Volume(SubAxes):
         self._update_label()
 
     def _major(self, volume):
-        self.axes.yaxis.set_major_locator(VolumeLocator(volume))
+        self.axes.yaxis.set_major_locator(VolumeLocator(volume, len=3))
         self.axes.yaxis.set_major_formatter(VolumeFormatter())
 
         for ticks in [self.axes.get_yticklabels(), self.axes.get_xticklabels()]:
@@ -678,9 +678,7 @@ class PriceFormatter(mticks.Formatter):
 # 交易量格式
 class VolumeFormatter(mticks.Formatter):
     def __call__(self, x, pos=None):
-        if len(self.locs) != (pos + 1):
-            return self.format(x)
-        return ''
+        return self.format(x)
 
     def format(self, x):
         return '%1.0fM' % (x * 1e-6) if x >= 1e6 else '%1.0fK' % (
