@@ -408,7 +408,7 @@ class Volume(SubAxes):
         self._update_label()
 
     def _major(self, volume):
-        self.axes.yaxis.set_major_locator(VolumeLocator(volume))
+        self.axes.yaxis.set_major_locator(VolumeLocator(volume, len=3))
         self.axes.yaxis.set_major_formatter(VolumeFormatter())
 
         for ticks in [self.axes.get_yticklabels(), self.axes.get_xticklabels()]:
@@ -679,7 +679,7 @@ class PriceFormatter(mticks.Formatter):
 class VolumeFormatter(mticks.Formatter):
     def __call__(self, x, pos=None):
         if len(self.locs) != (pos + 1):
-            return self.format(x)
+        return self.format(x)
         return ''
 
     def format(self, x):
