@@ -298,7 +298,10 @@ class KData():
     def set_date(self, date):
         try:
             self._ri = self._data.index.get_loc(date) + 1
-            self._li = self._ri - self.range
+            if self._ri > self.range:
+                self._li = self._ri - self.range
+            else:
+                self._li = 0
         except:
             return False
 
