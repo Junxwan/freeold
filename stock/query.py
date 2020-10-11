@@ -17,17 +17,37 @@ class Base():
     # 最多幾筆
     num = 10000
 
+    offset_day = 0
+
     # 排序key
     sort_key = []
 
-    def run(self, stock, trend) -> bool:
+    file_columns = ['code', 'name', name.OPEN, name.CLOSE, name.HIGH, name.LOW, name.INCREASE, name.AMPLITUDE,
+                    name.VOLUME]
+
+    def run(self, index, code, stock, trend, info):
+        self.index = index
+        self.code = code
         self.stock = stock
         self.trend = trend
+        self.info = info
 
         if self.check_stock(self.check_stocks) == False:
-            return False
+            return None
 
-        return self._run()
+        if self._run():
+            d = self.stock[self.index][1:].tolist()
+            d.insert(0, self.code)
+            d.insert(1, self.info['name'])
+            return self.data(d)
+
+        return None
+
+    def data(self, data):
+        return data
+
+    def columns(self):
+        return self.file_columns
 
     def open(self):
         return self._stock(name.OPEN)
@@ -97,12 +117,30 @@ class WeaK(Base):
         [name.OPEN, '>', name.CLOSE],
     ]
 
-    num = 100
-
     sort_key = ['amplitude']
 
     def _run(self) -> bool:
         return True
+
+
+class WeakRed(WeaK):
+    offset_day = 1
+
+    def _run(self) -> bool:
+        d = self.stock[self.index + self.offset_day]
+        return d[name.OPEN] < d[name.CLOSE]
+
+    def data(self, data):
+        d = self.stock[self.index + self.offset_day]
+        data.append(d[name.INCREASE])
+        data.append(d[name.AMPLITUDE])
+        return data
+
+    def columns(self):
+        columns = self.file_columns.copy()
+        columns.append(f'y_{name.INCREASE}')
+        columns.append(f'y_{name.AMPLITUDE}')
+        return columns
 
 
 class OpenHighCloseLow(WeaK):

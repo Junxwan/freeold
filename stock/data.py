@@ -613,6 +613,7 @@ class TrendData():
 class Query():
     q = {
         'weak': query.WeaK(),
+        'weak_red': query.WeakRed(),
         'open_high_close_low': query.OpenHighCloseLow()
     }
 
@@ -621,8 +622,13 @@ class Query():
         self._trend = Trend(csv_dir)
 
     def run(self, name, start, end=None, output=None, codes=None):
-        stock = self._stock.date(start, end)
         query = self.q[name]
+
+        if (query.offset_day > 0) and (end is None) or (end == ''):
+            end = start
+            start = self._stock.afterDates(start)[query.offset_day]
+
+        stock = self._stock.date(start, end)
 
         if stock.empty:
             logging.info(f'======= not data for {start} to {end} =======')
@@ -633,14 +639,13 @@ class Query():
 
         logging.info(f'======= exec {name} =======')
 
-        columns = COLUMNS.copy()
-        columns.insert(0, 'code')
-        columns.insert(1, 'name')
-
         if stock.ndim == 1:
             stock = pd.DataFrame(stock)
 
         for i, index in enumerate(stock.columns):
+            if query.offset_day > 0 and (len(stock.columns) - query.offset_day) == i:
+                break
+
             result = []
             date = stock[index].iloc[0]
 
@@ -649,13 +654,11 @@ class Query():
 
                 logging.info(f"exec code: {code} date: {date}")
 
-                if query.run(value, self._trend.code(code, date)):
-                    d = value[index][1:].tolist()
-                    d.insert(0, code)
-                    d.insert(1, self._stock.info(code)['name'])
-                    result.append(d)
+                r = query.run(index, code, value, self._trend.code(code, date), self._stock.info(code))
+                if r is not None:
+                    result.append(r)
 
-            frame = pd.DataFrame(result, columns=columns)
+            frame = pd.DataFrame(result, columns=query.columns())
             frame = query.sort(frame)
             frame = query.limit(frame)
 

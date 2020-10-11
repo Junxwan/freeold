@@ -454,6 +454,7 @@ class Watch():
         self.size = pyautogui.size()
         self.width = self.size.width
         self.height = self.size.height
+        self.dir = ''
         self.type = None
 
         # self.root.attributes('-fullscreen', True)
@@ -513,6 +514,7 @@ class Watch():
     def _button_layout(self):
         self.code = tk.StringVar()
         self.date = tk.StringVar()
+        self.type_name = tk.StringVar()
 
         self.code.set(self.default_code)
 
@@ -520,36 +522,46 @@ class Watch():
         tk.Entry(self.bottom_frame, width=8, textvariable=self.code, font=ui.FONT).place(x=130, y=10)
         tk.Label(self.bottom_frame, text='日期:', font=ui.FONT).place(x=10, y=100)
         tk.Entry(self.bottom_frame, width=10, textvariable=self.date, font=ui.BTN_FONT).place(x=130, y=100)
+        tk.Label(self.bottom_frame, text='分類:', font=ui.FONT).place(x=10, y=200)
+        tk.Entry(self.bottom_frame, width=10, textvariable=self.type_name, font=ui.BTN_FONT).place(x=130, y=200)
+
         tk.Button(
             self.bottom_frame,
             text='切',
             font=ui.SMALL_FONT,
             command=self._update_plot,
-        ).place(x=10, y=200)
+        ).place(x=10, y=300)
+
         tk.Button(
             self.bottom_frame,
             text='K',
             font=ui.SMALL_FONT,
             command=self._plot_k,
-        ).place(x=100, y=200)
+        ).place(x=100, y=300)
         tk.Button(
             self.bottom_frame,
             text='勢',
             font=ui.SMALL_FONT,
             command=self._plot_trend,
-        ).place(x=180, y=200)
+        ).place(x=180, y=300)
         tk.Button(
             self.bottom_frame,
             text='k勢',
             font=ui.SMALL_FONT,
             command=self._plot_k_trend,
-        ).place(x=270, y=200)
+        ).place(x=270, y=300)
         tk.Button(
             self.bottom_frame,
             text='載',
             font=ui.SMALL_FONT,
             command=self._open_dir_stock,
-        ).place(x=10, y=280)
+        ).place(x=10, y=380)
+        tk.Button(
+            self.bottom_frame,
+            text='類',
+            font=ui.SMALL_FONT,
+            command=self._save_code,
+        ).place(x=100, y=380)
 
     def _list_layout(self):
         date_list = tk.Frame(self.top_frame, width=self.right_width, height=int(self.height * 0.15))
@@ -595,7 +607,11 @@ class Watch():
 
     def _open_dir_stock(self):
         self._date_list = {}
-        for path in sorted(glob.glob(os.path.join(ui.openDir(), '*.csv')), reverse=True):
+        self.dir = ui.openDir()
+        self._date_listbox.delete(0, tk.END)
+        self._stock_listbox.delete(0, tk.END)
+
+        for path in sorted(glob.glob(os.path.join(self.dir, '*.csv')), reverse=True):
             name = os.path.basename(path).split('.')[0]
             self._date_listbox.insert(tk.END, name)
             self._date_list[name] = pd.read_csv(path)
@@ -642,3 +658,24 @@ class Watch():
     def _update_plot(self):
         if self.watch.update_plot(int(self.code.get()), date=self.date.get()) == False:
             messagebox.showinfo('結果', '無此個股')
+
+    def _save_code(self):
+        name = self.type_name.get()
+        if (name is None) or (name == ''):
+            return
+
+        dir = os.path.join(self.dir, name)
+
+        if os.path.exists(dir) == False:
+            os.mkdir(dir)
+
+        data = pd.DataFrame(columns=['date', 'code'])
+        date = self.date.get()
+        file = os.path.join(dir, date) + '.csv'
+
+        if os.path.exists(file):
+            data = pd.read_csv(file)
+
+        data = data.append([{'date': date, 'code': self.code.get()}])
+
+        data.to_csv(file, index_label=['date', 'code'], index=False)
