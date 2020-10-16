@@ -514,6 +514,8 @@ class Watch():
     def _button_layout(self):
         self.code = tk.StringVar()
         self.date = tk.StringVar()
+        self.start_date_range = tk.StringVar()
+        self.end_date_range = tk.StringVar()
         self.type_name = tk.StringVar()
 
         self.code.set(self.default_code)
@@ -524,44 +526,48 @@ class Watch():
         tk.Entry(self.bottom_frame, width=10, textvariable=self.date, font=ui.BTN_FONT).place(x=130, y=100)
         tk.Label(self.bottom_frame, text='分類:', font=ui.FONT).place(x=10, y=200)
         tk.Entry(self.bottom_frame, width=10, textvariable=self.type_name, font=ui.BTN_FONT).place(x=130, y=200)
+        tk.Label(self.bottom_frame, text='sx:', font=ui.FONT).place(x=10, y=300)
+        tk.Entry(self.bottom_frame, width=10, textvariable=self.start_date_range, font=ui.BTN_FONT).place(x=130, y=300)
+        tk.Label(self.bottom_frame, text='ex:', font=ui.FONT).place(x=10, y=400)
+        tk.Entry(self.bottom_frame, width=10, textvariable=self.end_date_range, font=ui.BTN_FONT).place(x=130, y=400)
 
         tk.Button(
             self.bottom_frame,
             text='切',
             font=ui.SMALL_FONT,
             command=self._update_plot,
-        ).place(x=10, y=300)
+        ).place(x=10, y=500)
 
         tk.Button(
             self.bottom_frame,
             text='K',
             font=ui.SMALL_FONT,
             command=self._plot_k,
-        ).place(x=100, y=300)
+        ).place(x=100, y=500)
         tk.Button(
             self.bottom_frame,
             text='勢',
             font=ui.SMALL_FONT,
             command=self._plot_trend,
-        ).place(x=180, y=300)
+        ).place(x=180, y=500)
         tk.Button(
             self.bottom_frame,
             text='k勢',
             font=ui.SMALL_FONT,
             command=self._plot_k_trend,
-        ).place(x=270, y=300)
+        ).place(x=270, y=500)
         tk.Button(
             self.bottom_frame,
             text='載',
             font=ui.SMALL_FONT,
             command=self._open_dir_stock,
-        ).place(x=10, y=380)
+        ).place(x=10, y=580)
         tk.Button(
             self.bottom_frame,
             text='類',
             font=ui.SMALL_FONT,
             command=self._save_code,
-        ).place(x=100, y=380)
+        ).place(x=100, y=580)
 
     def _list_layout(self):
         date_list = tk.Frame(self.top_frame, width=self.right_width, height=int(self.height * 0.15))
@@ -648,6 +654,7 @@ class Watch():
 
     def _plot(self, type):
         self.type = type
+        self._update_config()
 
         date = self.date.get()
         if date == '':
@@ -656,8 +663,13 @@ class Watch():
         self.watch.plot(int(self.code.get()), date=date, type=type, **self.plot_config)
 
     def _update_plot(self):
-        if self.watch.update_plot(int(self.code.get()), date=self.date.get()) == False:
+        self._update_config()
+
+        if self.watch.update_plot(int(self.code.get()), date=self.date.get(), type=self.type, **self.plot_config) == False:
             messagebox.showinfo('結果', '無此個股')
+
+    def _update_config(self):
+        self.plot_config['range'] = [self.start_date_range.get(), self.end_date_range.get()]
 
     def _save_code(self):
         name = self.type_name.get()

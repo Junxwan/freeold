@@ -43,20 +43,20 @@ class Watch():
             self.canvas = FigureCanvasTkAgg(self._fig, self._frame)
 
         self.kwargs = kwargs
-        self.update_plot(code, date=date)
+        self.update_plot(code, date=date, **kwargs)
 
         return self._fig
 
     # 繪製某個股
-    def update_plot(self, code, date=None):
-        type = self.kwargs.get('type')
+    def update_plot(self, code, date=None, **kwargs):
+        type = kwargs.get('type')
 
         if type == 'k':
-            self._plot_k(code, date=date, **self.kwargs)
+            self._plot_k(code, date=date, **kwargs)
         elif type == 'trend':
-            self._plot_trend(code, date=date, **self.kwargs)
+            self._plot_trend(code, date=date, **kwargs)
         elif type == 'k_trend':
-            self._plot_k_trend(code, date=date, **self.kwargs)
+            self._plot_k_trend(code, date=date, **kwargs)
 
         self.canvas.draw_idle()
 
@@ -260,7 +260,7 @@ class KWatch(Plot):
         return MoveEvent(self.canvas, k.MoveEvent(c_watch, [a.axes for a in self.axes.values()]))
 
     def _get(self, code, date=None):
-        return self.watch.code(code, date=date,range=90)
+        return self.watch.code(code, date=date, range=90)
 
     def _get_watch(self):
         return self.watch

@@ -544,17 +544,32 @@ class MaxMin(SubAxes):
 
 # 選取範圍
 class Range(SubAxes):
+    def __init__(self):
+        SubAxes.__init__(self)
+        self._rectangle = None
+
     def plot(self, **kwargs):
         range = kwargs.get('range')
+
+        if len(range) <= 1:
+            return
+
+        if range[0] == '' or range[1] == '':
+            return
+
         date = self._c_watch.date()
         range = date[(range[0] <= date) & (range[1] >= date)]
         date = date.tolist()
         x1 = date.index(range[0])
         x2 = date.index(range[-1])
-        self.rectangle = self.axes.add_patch(plt.Rectangle((x1 - 0.5, 0), x2-x1, 10000, color='#66FFFF', alpha=0.2))
+        self._rectangle = self.axes.add_patch(
+            plt.Rectangle((x1 - 0.5, 0), (x2 - x1) + 1, 10000, color='#66FFFF', alpha=0.2)
+        )
 
     def _clear(self):
-        self.rectangle.remove()
+        if self._rectangle is not None:
+            self._rectangle.remove()
+            self._rectangle = None
 
 
 # 日期塞選
