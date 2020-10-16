@@ -1,4 +1,3 @@
-import tkinter as tk
 import numpy as np
 import matplotlib.ticker as mticks
 import mplfinance._utils as mutils
@@ -6,7 +5,7 @@ import mplfinance._widths as mwidths
 import mplfinance.plotting as mplotting
 from stock import data
 from datetime import datetime
-from matplotlib.backend_bases import MouseButton
+import matplotlib.pyplot as plt
 
 NAME = 'k'
 
@@ -352,6 +351,7 @@ class Watch(SubAxes):
         return {
             'ma': MA(),
             'max_min': MaxMin(),
+            'range': Range(),
         }
 
     def _clear(self):
@@ -542,6 +542,21 @@ class MaxMin(SubAxes):
             self._min.remove()
 
 
+# 選取範圍
+class Range(SubAxes):
+    def plot(self, **kwargs):
+        range = kwargs.get('range')
+        date = self._c_watch.date()
+        range = date[(range[0] <= date) & (range[1] >= date)]
+        date = date.tolist()
+        x1 = date.index(range[0])
+        x2 = date.index(range[-1])
+        self.rectangle = self.axes.add_patch(plt.Rectangle((x1 - 0.5, 0), x2-x1, 10000, color='#66FFFF', alpha=0.2))
+
+    def _clear(self):
+        self.rectangle.remove()
+
+
 # 日期塞選
 class DateLocator(mticks.Locator):
     def __init__(self, date):
@@ -680,7 +695,6 @@ class PriceFormatter(mticks.Formatter):
 # 交易量格式
 class VolumeFormatter(mticks.Formatter):
     def __call__(self, x, pos=None):
-        
         return self.format(x)
 
     def format(self, x):
