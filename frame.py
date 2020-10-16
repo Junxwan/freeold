@@ -465,7 +465,7 @@ class Watch():
             max_min_text=True,
             avg=True,
             panel_ratios=(4, 1),
-            ma=[5, 10, 20, 60, 120, 240]
+            ma=[5, 10, 20, 60, 120, 240],
         )
 
         self.root.state('zoomed')
@@ -634,7 +634,21 @@ class Watch():
 
     def _stock_event(self, event):
         value = self._stock_listbox.get(tk.ACTIVE)
-        self.code.set(value.split('-')[0])
+        code = value.split('-')[0]
+        data = self._date_list[self.date.get()]
+        data = data[data['code'] == int(code)]
+
+        self.code.set(code)
+
+        if 'start_date_range' in data.columns:
+            self.start_date_range.set(data['start_date_range'][0])
+        else:
+            self.start_date_range.set('')
+
+        if 'end_date_range' in data.columns:
+            self.end_date_range.set(data['end_date_range'][0])
+        else:
+            self.end_date_range.set('')
 
         if self.type == 'k':
             self._plot_k()
@@ -665,7 +679,8 @@ class Watch():
     def _update_plot(self):
         self._update_config()
 
-        if self.watch.update_plot(int(self.code.get()), date=self.date.get(), type=self.type, **self.plot_config) == False:
+        if self.watch.update_plot(int(self.code.get()), date=self.date.get(), type=self.type,
+                                  **self.plot_config) == False:
             messagebox.showinfo('結果', '無此個股')
 
     def _update_config(self):
