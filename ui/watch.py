@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import tkinter as tk
 import numpy as np
-import pandas as pd
-import mplfinance as mpf
 import matplotlib.pyplot as plt
 from stock import data, name
 from . import other, k, trend, k_trend
@@ -24,6 +22,9 @@ class Watch():
         self.height = height
         self.ready = ready
         self.type = ''
+
+        if 'fontsize' in config:
+            self.xy_data_style['fontsize'] = config['fontsize']
 
         self.k_watch = data.K(other.stock_csv_path(self.config))
         self.k = None

@@ -17,7 +17,7 @@ class SubAxes():
 
     master_name = ''
 
-    def __init__(self):
+    def __init__(self, font_size=28):
         self._sup = {}
         self.line = {}
         self.code = None
@@ -29,6 +29,7 @@ class SubAxes():
         self.y = []
         self._x_data = []
         self._y_data = []
+        self.xy_font_size = font_size
 
     def draw(self, code, axes, text, c_watch, watch, **kwargs) -> bool:
         self.code = code
@@ -424,6 +425,7 @@ class Volume(SubAxes):
 class MA(SubAxes):
     # 顏色
     color = {
+        2: '#999900',
         5: '#FF8000',
         10: '#00CCCC',
         20: '#00CC66',

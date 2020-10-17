@@ -38,6 +38,7 @@ class app(tk.Tk):
         fileMenu.add_command(label='資料', command=lambda: self.runDate())
         fileMenu.add_command(label='圖', command=lambda: self.runImage())
         fileMenu.add_command(label='看盤', command=lambda: self.runWatch())
+        fileMenu.add_command(label='趨勢選股', command=lambda: self.runPattern())
 
         m.add_cascade(label="功能", menu=fileMenu)
         self.config(menu=m)
@@ -59,5 +60,8 @@ class app(tk.Tk):
     def runWatch(self):
         self.run(lambda: frame.Watch(self, config=self.configs, path=self.currentPath))
 
+    def runPattern(self):
+        self.run(lambda: frame.Pattern(self, config=self.configs, path=self.currentPath))
 
-app().runDate()
+
+app().runPattern()

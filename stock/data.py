@@ -134,7 +134,10 @@ class Stock():
                 return r
             return self.data.iloc[:, r.index[0]]
 
-        r = q[(start <= q) & (end >= q)]
+        if end == False:
+            r = q[start >= q]
+        else:
+            r = q[(start <= q) & (end >= q)]
 
         if r.empty:
             return r

@@ -171,3 +171,6 @@ class OpenHighCloseLow(WeaK):
             value = max
 
         return True
+
+class u():
+    pass

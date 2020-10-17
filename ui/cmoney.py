@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-
-import logging
 import os
 import time
 import tkinter as tk
-import pandas as pd
 from auto import cmoney as cm
 from crawler import cmoney as crawler
 from xlsx import cmoney as xlsx, trend

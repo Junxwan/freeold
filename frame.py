@@ -2,17 +2,17 @@
 
 import glob
 import os
-import sys
+import threading
+from tkinter import ttk
 import tkinter as tk
 import logging
-import traceback
 import pandas as pd
 import openpyxl
 import pyautogui
 from datetime import datetime
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from ui import cmoney, xq, stock, log, other, ui, watch
+from ui import cmoney, xq, stock, log, other, ui, watch, pattern
 
 
 class main():
@@ -127,9 +127,6 @@ class main():
 
         btn = tk.Button(self.btnGroupFrame, text='市場', command=lambda: self.switchArg(cmoney.market))
         btn.place(x=5, y=self.h * 6)
-
-        btn = tk.Button(self.btnGroupFrame, text='基金', command=lambda: self.switchArg(cmoney.FundToCsv))
-        btn.place(x=5, y=self.h * 12)
 
         self.setLog('data')
 
@@ -706,3 +703,244 @@ class Watch():
         data = data.append([{'date': date, 'code': self.code.get()}])
 
         data.to_csv(file, index_label=['date', 'code'], index=False)
+
+
+class Pattern():
+    def __init__(self, root, config=None, path=None):
+        config['fontsize'] = 20
+
+        self.root = root
+        self.config = config
+        self.path = path
+        self.size = pyautogui.size()
+        self.width = self.size.width
+        self.height = self.size.height
+        self._pattern_list = pd.DataFrame()
+
+        self.root.state('zoomed')
+        self._mainLayout()
+        self._stock_list_layout()
+        self._button_layout()
+        self._pattern_list_layout()
+        self._log_list_layout()
+
+        self.select = pattern.Select(config)
+
+        self.pattern = pattern.Watch(
+            self.right_bottom_frame,
+            config=config,
+        )
+
+        self.watch = watch.Watch(
+            self.left_top_frame,
+            width=self.width,
+            height=self.height,
+            config=config,
+        )
+
+        self._plot_k()
+        self.pattern.pack()
+        self.watch.pack()
+
+        log.init(path, 'pattern', self._log_listbox)
+
+    def _mainLayout(self):
+        self.left_frame = tk.Frame(self.root, width=int(self.width * 0.65), height=self.height)
+        self.left_frame.pack(side=tk.LEFT)
+        self.left_frame.pack_propagate(0)
+
+        self.left_top_frame = tk.Frame(self.left_frame, width=self.width, height=int(self.height * 0.7))
+        self.left_top_frame.pack(side=tk.TOP)
+        self.left_top_frame.pack_propagate(0)
+
+        self.left_bottom_frame = tk.Frame(self.left_frame, width=self.width, height=int(self.height * 0.3))
+        self.left_bottom_frame.pack(side=tk.BOTTOM)
+        self.left_bottom_frame.pack_propagate(0)
+
+        self.right_width = int(self.width * 0.35)
+        self.right_frame = tk.Frame(self.root, width=self.right_width, height=self.height, bg='#C0C0C0')
+        self.right_frame.pack(side=tk.RIGHT)
+        self.right_frame.pack_propagate(0)
+
+        self.right_top_frame = tk.Frame(self.right_frame, width=self.right_width, height=int(self.height * 0.5),
+                                        bg='#E0E0E0')
+        self.right_top_frame.pack(side=tk.TOP)
+        self.right_top_frame.pack_propagate(0)
+
+        self.right_bottom_frame = tk.Frame(self.right_frame, width=self.right_width, height=int(self.height * 0.5))
+        self.right_bottom_frame.pack(side=tk.BOTTOM)
+        self.right_bottom_frame.pack_propagate(0)
+
+        self._log_frame = tk.Frame(self.left_bottom_frame, width=int(self.width * 0.65 * 0.5),
+                                   height=int(self.height * 0.3))
+        self._log_frame.pack(side=tk.LEFT)
+        self._log_frame.pack_propagate(0)
+
+        self._button_frame = tk.Frame(self.left_bottom_frame, width=int(self.width * 0.65 * 0.3),
+                                      height=int(self.height * 0.3), bg='#E0E0E0')
+        self._button_frame.pack(side=tk.LEFT)
+        self._button_frame.pack_propagate(0)
+
+        self._pattern_frame = tk.Frame(self.left_bottom_frame, width=int(self.width * 0.65 * 0.2),
+                                       height=int(self.height * 0.3))
+        self._pattern_frame.pack(side=tk.RIGHT)
+        self._pattern_frame.pack_propagate(0)
+
+    def _stock_list_layout(self):
+        self.stock_scrollbar = tk.Scrollbar(self.right_top_frame)
+        self.stock_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self._stock_table = ttk.Treeview(self.right_top_frame, selectmode='browse', show="headings",
+                                         columns=('1', '2', '3', '4'))
+        self._stock_table.configure(xscrollcommand=self.stock_scrollbar.set)
+        self._stock_table.pack(side=tk.TOP, fill=tk.X)
+
+        style = ttk.Style()
+        style.configure("Treeview.Heading", font=(None, 20))
+        style.configure("Treeview", font=(None, 20), rowheight=70)
+
+        self._stock_table.column('1', anchor='center')
+        self._stock_table.column('2', anchor='center')
+        self._stock_table.column('3', anchor='center')
+        self._stock_table.column('4', anchor='center')
+
+        self._stock_table.heading('1', text='代碼')
+        self._stock_table.heading('2', text='名稱')
+        self._stock_table.heading('3', text='日期')
+        self._stock_table.heading('4', text='相似度')
+
+        self._stock_table.bind('<KeyRelease-Up>', self._stock_event)
+        self._stock_table.bind('<KeyRelease-Down>', self._stock_event)
+        self._stock_table.bind('<Button-1>', self._stock_event)
+
+    def _pattern_list_layout(self):
+        scrollbar = tk.Scrollbar(self._pattern_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self._pattern_listbox = tk.Listbox(
+            self._pattern_frame,
+            bg='#eeeeee',
+            font=ui.FONT,
+            selectbackground="orange",
+            yscrollcommand=scrollbar.set,
+        )
+
+        self._pattern_listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
+        scrollbar.config(command=self._pattern_listbox.yview)
+
+        self._pattern_listbox.bind('<KeyRelease-Up>', self._pattern_event)
+        self._pattern_listbox.bind('<KeyRelease-Down>', self._pattern_event)
+        self._pattern_listbox.bind('<Button-1>', self._pattern_event)
+
+    def _button_layout(self):
+        self.pattern_file_path = tk.StringVar()
+        self.pattern_name = tk.StringVar()
+        self.date = tk.StringVar()
+        self.start_range = tk.IntVar()
+        self.end_range = tk.IntVar()
+        self.similarity = tk.DoubleVar()
+
+        self.start_range.set(5)
+        self.end_range.set(10)
+        self.similarity.set(0.85)
+
+        self.pattern_file_path.set(os.path.join(self.config['data'], 'csv', 'pattern') + '.csv')
+
+        tk.Label(self._button_frame, text='p輸出:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(self._button_frame, width=15, textvariable=self.pattern_file_path, font=ui.FONT).place(x=190, y=10)
+        tk.Button(self._button_frame, text='載', font=ui.SMALL_FONT, command=self._open_pattern_file).place(x=630, y=10)
+
+        tk.Label(self._button_frame, text='p名稱:', font=ui.FONT).place(x=10, y=100)
+        tk.Entry(self._button_frame, width=15, textvariable=self.pattern_name, font=ui.FONT).place(x=190, y=100)
+        tk.Button(self._button_frame, text='存', font=ui.SMALL_FONT, command=self._save_pattern).place(x=630, y=100)
+
+        tk.Label(self._button_frame, text='日期:', font=ui.FONT).place(x=10, y=200)
+        tk.Entry(self._button_frame, width=15, textvariable=self.date, font=ui.FONT).place(x=190, y=200)
+        tk.Button(self._button_frame, text='選', font=ui.SMALL_FONT, command=self.run).place(x=630, y=200)
+
+        tk.Label(self._button_frame, text='比對範圍:', font=ui.FONT).place(x=10, y=300)
+        tk.Entry(self._button_frame, width=5, textvariable=self.start_range, font=ui.FONT).place(x=250, y=300)
+        tk.Entry(self._button_frame, width=5, textvariable=self.end_range, font=ui.FONT).place(x=400, y=300)
+
+        tk.Label(self._button_frame, text='相似度:', font=ui.FONT).place(x=10, y=400)
+        tk.Entry(self._button_frame, width=5, textvariable=self.similarity, font=ui.FONT).place(x=190, y=400)
+
+    def _save_pattern(self):
+        file = pd.DataFrame()
+        path = self.pattern_file_path.get()
+
+        if os.path.exists(path):
+            file = pd.read_csv(path, index_col=None)
+
+        data = self.pattern.data()
+        data.insert(0, self.pattern_name.get())
+
+        if file.empty == False:
+            d = file[file['0'] == self.pattern_name.get()]
+            if d.empty == False:
+                file = self._pattern_list.drop(index=d.index[0])
+
+        d = file.to_numpy().tolist()
+        d.append(data)
+
+        pd.DataFrame(d).to_csv(path, index=False)
+        self._pattern_list = pd.read_csv(path)
+
+    def _open_pattern_file(self):
+        self._pattern_list = pd.read_csv(ui.openFile())
+        self._pattern_listbox.delete(0, tk.END)
+
+        for name in self._pattern_list['0']:
+            self._pattern_listbox.insert(tk.END, name)
+
+    def _log_list_layout(self):
+        scrollbar = tk.Scrollbar(self._log_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self._log_listbox = tk.Listbox(
+            self._log_frame,
+            bg='#eeeeee',
+            font=ui.FONT,
+            selectbackground="orange",
+            yscrollcommand=scrollbar.set,
+            width=77
+        )
+
+        self._log_listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
+        scrollbar.config(command=self._log_listbox.yview)
+
+    def _pattern_event(self, event):
+        name = self._pattern_listbox.get(tk.ACTIVE)
+        d = self._pattern_list[self._pattern_list['0'] == name]
+        self.pattern.set(d.to_numpy().tolist()[0][1:])
+        self.pattern_name.set(name)
+
+    def _stock_event(self, event):
+        v = self._stock_table.item(self._stock_table.selection()[0])
+        v = v['values']
+        self._plot_k(code=v[0], range=[v[2], self.date.get()])
+
+    def _plot_k(self, code=2330, range=None):
+        self.watch.plot(code, date=None, type='k', **dict(
+            volume=True,
+            panel_ratios=(4, 1),
+            ma=[2],
+            range=range
+        ))
+
+    def run(self):
+        t = threading.Thread(target=self._run)
+        t.start()
+
+    def _run(self):
+        self.pattern_select = self.select.run(
+            self.start_range.get(),
+            self.end_range.get(),
+            self.pattern.data(),
+            date=self.date.get(),
+            similarity=self.similarity.get(),
+        )
+
+        for i in self._stock_table.get_children():
+            self._stock_table.delete(i)
+
+        for value in self.pattern_select:
+            self._stock_table.insert('', 'end', values=(value[0], value[1], value[2], value[-1]))
