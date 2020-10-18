@@ -738,9 +738,13 @@ class Pattern():
             config=config,
         )
 
+        self.corrLine = pattern.CorrLine(self.line_frame)
+        self.corrLine.set([1], [1])
+
         self._plot_k()
         self.pattern.pack()
         self.watch.pack()
+        self.corrLine.pack()
 
         log.init(path, 'pattern', self._log_listbox)
 
@@ -767,6 +771,16 @@ class Pattern():
         self.right_top_frame.pack(side=tk.TOP)
         self.right_top_frame.pack_propagate(0)
 
+        self.stock_frame = tk.Frame(self.right_top_frame, width=self.right_width, height=int(self.height * 0.5 * 0.5),
+                                    bg='#E0E0E0')
+        self.stock_frame.pack(side=tk.TOP)
+        self.stock_frame.pack_propagate(0)
+
+        self.line_frame = tk.Frame(self.right_top_frame, width=self.right_width, height=int(self.height * 0.5 * 0.5),
+                                   bg='#E0E0E0')
+        self.line_frame.pack(side=tk.BOTTOM)
+        self.line_frame.pack_propagate(0)
+
         self.right_bottom_frame = tk.Frame(self.right_frame, width=self.right_width, height=int(self.height * 0.5))
         self.right_bottom_frame.pack(side=tk.BOTTOM)
         self.right_bottom_frame.pack_propagate(0)
@@ -787,10 +801,10 @@ class Pattern():
         self._pattern_frame.pack_propagate(0)
 
     def _stock_list_layout(self):
-        self.stock_scrollbar = tk.Scrollbar(self.right_top_frame)
+        self.stock_scrollbar = tk.Scrollbar(self.stock_frame)
         self.stock_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self._stock_table = ttk.Treeview(self.right_top_frame, selectmode='browse', show="headings",
+        self._stock_table = ttk.Treeview(self.stock_frame, selectmode='browse', show="headings",
                                          columns=('1', '2', '3', '4'))
         self._stock_table.configure(xscrollcommand=self.stock_scrollbar.set)
         self._stock_table.pack(side=tk.TOP, fill=tk.X)
@@ -914,9 +928,15 @@ class Pattern():
         self.pattern_name.set(name)
 
     def _stock_event(self, event):
-        v = self._stock_table.item(self._stock_table.selection()[0])
+        s = self._stock_table.selection()
+        if len(s) == 0:
+            return
+
+        v = self._stock_table.item(s[0])
         v = v['values']
         self._plot_k(code=v[0], range=[v[2], self.date.get()])
+        stock = self.pattern_select[self.pattern_select['code'] == v[0]].iloc[0]
+        self.corrLine.set(stock['ys'], stock['ma'])
 
     def _plot_k(self, code=2330, range=None):
         self.watch.plot(code, date=None, type='k', **dict(
@@ -942,5 +962,12 @@ class Pattern():
         for i in self._stock_table.get_children():
             self._stock_table.delete(i)
 
-        for value in self.pattern_select:
-            self._stock_table.insert('', 'end', values=(value[0], value[1], value[2], value[-1]))
+        for i, value in self.pattern_select.iterrows():
+            self._stock_table.insert(
+                '',
+                'end',
+                values=(value['code'], value['name'], value['start_date'], value['similarity'])
+            )
+
+        self.pattern_select.to_csv(os.path.join(self.config['data'], 'pattern_select') + '.csv', index=False,
+                                   encoding='utf-8-sig')

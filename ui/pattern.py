@@ -47,11 +47,38 @@ class Watch():
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 
+class CorrLine():
+    def __init__(self, frame):
+        self._frame = frame
+        self._fig = plt.figure()
+        self._axes = None
+        self._canvas = FigureCanvasTkAgg(self._fig, self._frame)
+
+    def set(self, data1, data2):
+        if self._axes is not None:
+            self._axes[0].remove()
+            self._axes[1].remove()
+
+        self._axes = self._fig.subplots(1, 2)
+        self._axes[0].grid(True)
+        self._axes[1].grid(True)
+
+        self._axes[0].plot(np.arange(len(data1)), data1)
+        self._axes[1].plot(np.arange(len(data2)), data2)
+        self._canvas.draw()
+
+    # 執行
+    def pack(self):
+        self._canvas.draw()
+        self._canvas.get_tk_widget().focus_force()
+        self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+
 class Select():
     def __init__(self, config):
         self.k = data.K(other.stock_csv_path(config))
 
-    def run(self, d1, d2, y, date=None, similarity=1) -> list:
+    def run(self, d1, d2, y, date=None, similarity=1) -> pd.DataFrame:
         result = []
         y = pd.Series(y).dropna()
         stock = self.k.get_stock()
@@ -63,32 +90,44 @@ class Select():
         for i in range((d2 + 1) - d1):
             ys[d1 + i] = self.y(y, d1 + i)
 
+        logging.info(f"ys: {ys.__str__()}")
+
         for code in data.index.levels[0].tolist():
-            close = stock.data.loc[code].loc[name.CLOSE]
-            ma = close.iloc[::-1].rolling(2).mean().round(2).iloc[::-1].values[di:]
+            ma = data.loc[code].loc[name.CLOSE].iloc[::-1].rolling(2).mean().round(2).iloc[::-1][:d2]
             s = dict()
 
             for i in range((d2 + 1) - d1):
                 i = d1 + i
-                v = np.corrcoef(ma[:i], ys[i])[0][1]
+                v = np.corrcoef(ma[:i].iloc[::-1].tolist(), ys[i])[0][1]
 
                 if v >= similarity:
-                    s[i] = np.corrcoef(ma[:i], ys[i])[0][1]
+                    s[i] = v
 
             if len(s) > 0:
                 p = pd.Series(s)
-                result.append([code, stock.info(code)['name'], dates[di + p.idxmax() - 1], date, round(p.max(), 4)])
+                i = p.idxmax()
+                result.append([
+                    code,
+                    stock.info(code)['name'],
+                    dates[di + i - 1],
+                    date,
+                    round(p.max(), 4),
+                    ys[i].tolist(),
+                    ma[:i].iloc[::-1].tolist()
+                ])
 
             logging.info(f"{code} - {date}")
 
         logging.info(f"total: {len(result)}")
 
-        return result
+        return pd.DataFrame(
+            result, columns=['code', 'name', 'start_date', 'end_date', 'similarity', 'ys', 'ma']
+        ).sort_values(by='similarity', ascending=False)
 
     def y(self, y, l):
         new_indices = np.linspace(0, len(y) - 1, l)
         spl = UnivariateSpline(np.arange(0, len(y)), y, k=3, s=0)
-        return spl(new_indices)
+        return np.around(spl(new_indices).tolist(), decimals=2)
 
 
 class MoveEvent(tk.Frame):
