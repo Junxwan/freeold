@@ -875,9 +875,11 @@ class Pattern():
         tk.Label(self._button_frame, text='比對範圍:', font=ui.FONT).place(x=10, y=300)
         tk.Entry(self._button_frame, width=5, textvariable=self.start_range, font=ui.FONT).place(x=250, y=300)
         tk.Entry(self._button_frame, width=5, textvariable=self.end_range, font=ui.FONT).place(x=400, y=300)
+        tk.Button(self._button_frame, text='載p', font=ui.SMALL_FONT, command=self._open_stock_file).place(x=580,
+                                                                                                          y=300)
 
         tk.Label(self._button_frame, text='相似度:', font=ui.FONT).place(x=10, y=400)
-        tk.Entry(self._button_frame, width=5, textvariable=self.similarity, font=ui.FONT).place(x=190, y=400)
+        tk.Entry(self._button_frame, width=4, textvariable=self.similarity, font=ui.FONT).place(x=170, y=400)
 
     def _save_pattern(self):
         file = pd.DataFrame()
@@ -897,15 +899,30 @@ class Pattern():
         d = file.to_numpy().tolist()
         d.append(data)
 
-        pd.DataFrame(d).to_csv(path, index=False)
+        pd.DataFrame(d).to_csv(path, index=False, encoding='utf-8-sig')
         self._pattern_list = pd.read_csv(path)
 
     def _open_pattern_file(self):
-        self._pattern_list = pd.read_csv(ui.openFile())
+        p = ui.openFile()
+        self._pattern_list = pd.read_csv(p.name)
         self._pattern_listbox.delete(0, tk.END)
 
         for name in self._pattern_list['0']:
             self._pattern_listbox.insert(tk.END, name)
+
+    def _open_stock_file(self):
+        p = ui.openFile()
+        self.pattern_select = pd.read_csv(p.name)
+
+        for i in self._stock_table.get_children():
+            self._stock_table.delete(i)
+
+        for i, value in self.pattern_select.iterrows():
+            self._stock_table.insert(
+                '',
+                'end',
+                values=(value['code'], value['name'], value['start_date'], value['similarity'])
+            )
 
     def _log_list_layout(self):
         scrollbar = tk.Scrollbar(self._log_frame)
@@ -923,7 +940,14 @@ class Pattern():
         scrollbar.config(command=self._log_listbox.yview)
 
     def _pattern_event(self, event):
+        if self._pattern_list.empty:
+            return
+
         name = self._pattern_listbox.get(tk.ACTIVE)
+
+        if name == '':
+            return
+
         d = self._pattern_list[self._pattern_list['0'] == name]
         self.pattern.set(d.to_numpy().tolist()[0][1:])
         self.pattern_name.set(name)
@@ -985,5 +1009,5 @@ class Pattern():
                 values=(value['code'], value['name'], value['start_date'], value['similarity'])
             )
 
-        self.pattern_select.to_csv(os.path.join(self.config['data'], 'pattern_select') + '.csv', index=False,
+        self.pattern_select.to_csv(os.path.join(self.config['data'], 'pattern_stock') + '.csv', index=False,
                                    encoding='utf-8-sig')
