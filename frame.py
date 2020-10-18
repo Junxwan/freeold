@@ -801,11 +801,18 @@ class Pattern():
         self._pattern_frame.pack_propagate(0)
 
     def _stock_list_layout(self):
+        columns = [
+            ['代碼', 'code'],
+            ['名稱', 'name'],
+            ['日期', 'start_date'],
+            ['相似度', 'similarity'],
+        ]
+
         self.stock_scrollbar = tk.Scrollbar(self.stock_frame)
         self.stock_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self._stock_table = ttk.Treeview(self.stock_frame, selectmode='browse', show="headings",
-                                         columns=('1', '2', '3', '4'))
+                                         columns=[v[0] for v in columns])
         self._stock_table.configure(xscrollcommand=self.stock_scrollbar.set)
         self._stock_table.pack(side=tk.TOP, fill=tk.X)
 
@@ -813,15 +820,9 @@ class Pattern():
         style.configure("Treeview.Heading", font=(None, 20))
         style.configure("Treeview", font=(None, 20), rowheight=70)
 
-        self._stock_table.column('1', anchor='center')
-        self._stock_table.column('2', anchor='center')
-        self._stock_table.column('3', anchor='center')
-        self._stock_table.column('4', anchor='center')
-
-        self._stock_table.heading('1', text='代碼')
-        self._stock_table.heading('2', text='名稱')
-        self._stock_table.heading('3', text='日期')
-        self._stock_table.heading('4', text='相似度')
+        for v in columns:
+            self._stock_table.column(v[0], anchor='center')
+            self._stock_table.heading(v[0], text=v[0], command=lambda _v=v: self._sort_stock_table(_v, False))
 
         self._stock_table.bind('<KeyRelease-Up>', self._stock_event)
         self._stock_table.bind('<KeyRelease-Down>', self._stock_event)
@@ -937,6 +938,21 @@ class Pattern():
         self._plot_k(code=v[0], range=[v[2], self.date.get()])
         stock = self.pattern_select[self.pattern_select['code'] == v[0]].iloc[0]
         self.corrLine.set(stock['ys'], stock['ma'])
+
+    def _sort_stock_table(self, v, reverse):
+        self.pattern_select = self.pattern_select.sort_values(by=v[1], ascending=reverse)
+
+        for i in self._stock_table.get_children():
+            self._stock_table.delete(i)
+
+        for i, value in self.pattern_select.iterrows():
+            self._stock_table.insert(
+                '',
+                'end',
+                values=(value['code'], value['name'], value['start_date'], value['similarity'])
+            )
+
+        self._stock_table.heading(v[0], text=v[0], command=lambda _v=v: self._sort_stock_table(_v, not reverse))
 
     def _plot_k(self, code=2330, range=None):
         self.watch.plot(code, date=None, type='k', **dict(
