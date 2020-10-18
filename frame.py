@@ -197,6 +197,9 @@ class main():
         btn = tk.Button(self.btnGroupFrame, text='選股', command=lambda: self.switchArg(stock.select))
         btn.place(x=5, y=5)
 
+        btn = tk.Button(self.btnGroupFrame, text='趨勢選股', command=lambda: self.switchArg(stock.Pattern))
+        btn.place(x=100, y=5)
+
         self.setLog('stock')
 
     # 其他功能按鈕組群
@@ -924,6 +927,8 @@ class Pattern():
                 values=(value['code'], value['name'], value['start_date'], value['similarity'])
             )
 
+        self.date.set(self.pattern_select.iloc[0]['end_date'])
+
     def _log_list_layout(self):
         scrollbar = tk.Scrollbar(self._log_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -961,6 +966,13 @@ class Pattern():
         v = v['values']
         self._plot_k(code=v[0], range=[v[2], self.date.get()])
         stock = self.pattern_select[self.pattern_select['code'] == v[0]].iloc[0]
+
+        if type(stock['ys']) is str:
+            stock['ys'] = [float(i) for i in stock['ys'][1:-1].split(',')]
+
+        if type(stock['ma']) is str:
+            stock['ma'] = [float(i) for i in stock['ma'][1:-1].split(',')]
+
         self.corrLine.set(stock['ys'], stock['ma'])
 
     def _sort_stock_table(self, v, reverse):

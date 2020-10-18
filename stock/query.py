@@ -25,12 +25,13 @@ class Base():
     file_columns = ['code', 'name', name.OPEN, name.CLOSE, name.HIGH, name.LOW, name.INCREASE, name.AMPLITUDE,
                     name.VOLUME]
 
-    def run(self, index, code, stock, trend, info):
+    def run(self, index, code, stock, trend, info, pattern=None):
         self.index = index
         self.code = code
         self.stock = stock
         self.trend = trend
         self.info = info
+        self.pattern = pattern
 
         if self.check_stock(self.check_stocks) == False:
             return None
@@ -117,7 +118,7 @@ class WeaK(Base):
         [name.OPEN, '>', name.CLOSE],
     ]
 
-    sort_key = ['amplitude']
+    sort_key = [name.AMPLITUDE]
 
     def _run(self) -> bool:
         return True
@@ -143,34 +144,31 @@ class WeakRed(WeaK):
         return columns
 
 
-class OpenHighCloseLow(WeaK):
-    def _run(self) -> bool:
-        if self._trend is None:
-            return False
+class BlackDownRed(Base):
+    check_stocks = [
+        [name.OPEN, '<', name.CLOSE],
+    ]
 
-        price = self.trend_close()
-        q = self.trend_time()
-        date = q[0][:10]
-        times = [
-            ['09:00:00', '09:30:00'],
-            ['09:30:00', '10:00:00'],
-            ['10:00:00', '10:30:00'],
-        ]
+    sort_key = [name.INCREASE]
 
-        value = 10000
-        for time in times:
-            p = price[(q >= f'{date} {time[0]}') & (q < f'{date} {time[1]}')]
+    pattern_columns = ['start_date', 'end_date', 'similarity', 'ys', 'ma']
 
-            if p.empty:
+    def _run(self):
+        d = self.stock.iloc[:, 1:]
+
+        for i in d.columns:
+            v = d[i]
+            if v[name.OPEN] < v[name.CLOSE]:
                 return False
-
-            max = float(p.max())
-            if value <= max:
-                return False
-
-            value = max
-
         return True
 
-class u():
-    pass
+    def data(self, data):
+        for v in self.pattern_columns:
+            data.append(self.pattern[v])
+        return data
+
+    def columns(self):
+        columns = self.file_columns.copy()
+        for name in self.pattern_columns:
+            columns.append(name)
+        return columns

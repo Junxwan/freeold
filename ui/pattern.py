@@ -116,7 +116,7 @@ class Select():
                     ma[:i].iloc[::-1].tolist()
                 ])
 
-            logging.info(f"{code} - {date}")
+            logging.info(f"{code} - {date} - pattern")
 
         logging.info(f"total: {len(result)}")
 

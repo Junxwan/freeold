@@ -620,14 +620,18 @@ class Query():
     q = {
         'weak': query.WeaK(),
         'weak_red': query.WeakRed(),
-        'open_high_close_low': query.OpenHighCloseLow()
+        'black_down_red': query.BlackDownRed()
     }
 
-    def __init__(self, csv_dir):
-        self._stock = Stock(os.path.join(csv_dir, 'stock'))
+    def __init__(self, csv_dir, stock=None):
+        if stock is None:
+            self._stock = Stock(os.path.join(csv_dir, 'stock'))
+        else:
+            self._stock = stock
+
         self._trend = Trend(csv_dir)
 
-    def run(self, name, start, end=None, output=None, codes=None):
+    def run(self, name, start, end=None, output=None, codes=None, pattern=None):
         query = self.q[name]
 
         if (query.offset_day > 0) and (end is None) or (end == ''):
@@ -640,43 +644,66 @@ class Query():
             logging.info(f'======= not data for {start} to {end} =======')
             return
 
-        if codes == None:
+        if codes is None and pattern is None:
             codes = stock.index.levels[0]
+
+        if pattern is not None:
+            codes = pattern['code']
 
         logging.info(f'======= exec {name} =======')
 
         if stock.ndim == 1:
             stock = pd.DataFrame(stock)
 
-        for i, index in enumerate(stock.columns):
-            if query.offset_day > 0 and (len(stock.columns) - query.offset_day) == i:
-                break
+        if pattern is None:
+            for i, index in enumerate(stock.columns):
+                if query.offset_day > 0 and (len(stock.columns) - query.offset_day) == i:
+                    break
 
-            result = []
-            date = stock[index].iloc[0]
+                date = stock[index].iloc[0]
+                self._run(query, i, index, date, codes, stock, output)
+        else:
+            self._run(
+                query,
+                {v['code']: len(v['ys']) for i, v in pattern.iterrows()},
+                0,
+                end,
+                codes,
+                stock,
+                output,
+                pattern=pattern
+            )
 
-            for code in codes:
+    def _run(self, query, i, index, date, codes, stock, output, pattern=None):
+        result = []
+
+        for code in codes:
+            if type(i) is dict:
+                value = stock.loc[code].iloc[:, :i[code]]
+                p = pattern[pattern['code'] == code].iloc[0]
+            else:
+                p = None
                 value = stock.loc[code].iloc[:, i:]
 
-                logging.info(f"exec code: {code} date: {date}")
+            logging.info(f"exec code: {code} date: {date}")
 
-                r = query.run(index, code, value, self._trend.code(code, date), self._stock.info(code))
-                if r is not None:
-                    result.append(r)
+            r = query.run(index, code, value, self._trend.code(code, date), self._stock.info(code), pattern=p)
+            if r is not None:
+                result.append(r)
 
-            frame = pd.DataFrame(result, columns=query.columns())
-            frame = query.sort(frame)
-            frame = query.limit(frame)
+        frame = pd.DataFrame(result, columns=query.columns())
+        frame = query.sort(frame)
+        frame = query.limit(frame)
 
-            if (output != None) & (os.path.exists(output) == True):
-                dir = os.path.join(output, date[:4] + date[5:7])
+        if (output != None) & (os.path.exists(output) == True):
+            dir = os.path.join(output, date[:4] + date[5:7])
 
-                if os.path.exists(dir) == False:
-                    os.mkdir(dir)
+            if os.path.exists(dir) == False:
+                os.mkdir(dir)
 
-                logging.info(f'======= save {name} - {date} =======')
+            logging.info(f'======= save {name} - {date} =======')
 
-                frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
+            frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
 
 
 def calendar_xy(date, year=None, month=None):
