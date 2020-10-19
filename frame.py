@@ -197,9 +197,6 @@ class main():
         btn = tk.Button(self.btnGroupFrame, text='選股', command=lambda: self.switchArg(stock.select))
         btn.place(x=5, y=5)
 
-        btn = tk.Button(self.btnGroupFrame, text='趨勢選股', command=lambda: self.switchArg(stock.Pattern))
-        btn.place(x=100, y=5)
-
         self.setLog('stock')
 
     # 其他功能按鈕組群
@@ -727,8 +724,6 @@ class Pattern():
         self._pattern_list_layout()
         self._log_list_layout()
 
-        self.select = pattern.Select(config)
-
         self.pattern = pattern.Watch(
             self.right_bottom_frame,
             config=config,
@@ -740,6 +735,8 @@ class Pattern():
             height=self.height,
             config=config,
         )
+
+        self.stock = self.watch.k_watch.get_stock()
 
         self.corrLine = pattern.CorrLine(self.line_frame)
         self.corrLine.set([1], [1])
@@ -1003,7 +1000,7 @@ class Pattern():
         t.start()
 
     def _run(self):
-        self.pattern_select = self.select.run(
+        self.pattern_select = self.stock.pattern(
             self.start_range.get(),
             self.end_range.get(),
             self.pattern.data(),

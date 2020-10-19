@@ -30,3 +30,18 @@ PRICE = 'price'
 
 # 均價
 AVG = 'avg'
+
+# 開始日期
+START_DATE = 'start_date'
+
+# 結束日期
+END_DATE = 'end_date'
+
+# 相似度
+SIMILARITY = 'similarity'
+
+# 簡單均價
+MA = 'ma'
+
+# 線
+LINE = 'line'

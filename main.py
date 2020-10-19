@@ -64,4 +64,4 @@ class app(tk.Tk):
         self.run(lambda: frame.Pattern(self, config=self.configs, path=self.currentPath))
 
 
-app().runPattern()
+app().runDate()

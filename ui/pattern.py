@@ -73,63 +73,6 @@ class CorrLine():
         self._canvas.get_tk_widget().focus_force()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-
-class Select():
-    def __init__(self, config):
-        self.k = data.K(other.stock_csv_path(config))
-
-    def run(self, d1, d2, y, date=None, similarity=1) -> pd.DataFrame:
-        result = []
-        y = pd.Series(y).dropna()
-        stock = self.k.get_stock()
-        data = stock.query(date, False)
-        dates = data.loc[2330].loc[name.DATE]
-        di = dates.index[0]
-        ys = dict()
-
-        for i in range((d2 + 1) - d1):
-            ys[d1 + i] = self.y(y, d1 + i)
-
-        logging.info(f"ys: {ys.__str__()}")
-
-        for code in data.index.levels[0].tolist():
-            ma = data.loc[code].loc[name.CLOSE].iloc[::-1].rolling(2).mean().round(2).iloc[::-1][:d2]
-            s = dict()
-
-            for i in range((d2 + 1) - d1):
-                i = d1 + i
-                v = np.corrcoef(ma[:i].iloc[::-1].tolist(), ys[i])[0][1]
-
-                if v >= similarity:
-                    s[i] = v
-
-            if len(s) > 0:
-                p = pd.Series(s)
-                i = p.idxmax()
-                result.append([
-                    code,
-                    stock.info(code)['name'],
-                    dates[di + i - 1],
-                    date,
-                    round(p.max(), 4),
-                    ys[i].tolist(),
-                    ma[:i].iloc[::-1].tolist()
-                ])
-
-            logging.info(f"{code} - {date} - pattern")
-
-        logging.info(f"total: {len(result)}")
-
-        return pd.DataFrame(
-            result, columns=['code', 'name', 'start_date', 'end_date', 'similarity', 'ys', 'ma']
-        ).sort_values(by='similarity', ascending=False)
-
-    def y(self, y, l):
-        new_indices = np.linspace(0, len(y) - 1, l)
-        spl = UnivariateSpline(np.arange(0, len(y)), y, k=3, s=0)
-        return np.around(spl(new_indices).tolist(), decimals=2)
-
-
 class MoveEvent(tk.Frame):
     def __init__(self, canvas, axes):
         tk.Frame.__init__(self)

@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from . import query, name
+from scipy.interpolate import UnivariateSpline
 
 # 日期
 DATE = name.DATE
@@ -62,6 +63,7 @@ class Stock():
     def __init__(self, dir):
         self.dir = dir
         self.dk = {}
+        self.pattern = Pattern()
 
         if self.stock.empty:
             self.stock = pd.read_csv(os.path.join(dir, INFO_FILE_NAME) + '.csv')
@@ -159,6 +161,29 @@ class Stock():
 
     def qDate(self, code=2330):
         return self.data.loc[code].loc[DATE]
+
+    def pattern(self, d1, d2, y, date=None, similarity=1):
+        result = []
+        data = self.stock.query(date, False)
+        dates = data.loc[2330].loc[name.DATE]
+        di = dates.index[0]
+        ys = self.pattern.ys(d1, d2, y)
+
+        for code in data.index.levels[0].tolist():
+            r = self.pattern.corr_coef(data.loc[code], d1, d2, ys, similarity)
+
+            if r is None:
+                continue
+
+            result.append([code, self.stock.info(code)['name'], dates[di + r[0] - 1], date, r[1], r[2], r[3]])
+
+            logging.info(f"{code} - {date} - pattern")
+
+        logging.info(f"total: {len(result)}")
+
+        return pd.DataFrame(
+            result, columns=['code', 'name', 'start_date', 'end_date', 'similarity', 'ys', 'ma']
+        ).sort_values(by='similarity', ascending=False)
 
 
 class Dealer():
@@ -616,94 +641,117 @@ class TrendData():
         return self._x_pos
 
 
+class Pattern():
+    def corr_coef(self, data, d1, d2, ys, similarity):
+        ma = data.loc[name.CLOSE].iloc[::-1].rolling(2).mean().round(2).iloc[::-1][:d2]
+        s = dict()
+        for i in range((d2 + 1) - d1):
+            i = d1 + i
+            v = np.corrcoef(ma[:i].iloc[::-1].tolist(), ys[i])[0][1]
+
+            if v >= similarity:
+                s[i] = v
+
+        if len(s) > 0:
+            p = pd.Series(s)
+            i = p.idxmax()
+            return [i, round(p.max(), 4), ys[i].tolist(), ma[:i].iloc[::-1].tolist()]
+
+        return None
+
+    def ys(self, d1, d2, y):
+        ys = dict()
+        for i in range((d2 + 1) - d1):
+            ys[d1 + i] = self._spline(y, d1 + i)
+        return ys
+
+    def _spline(self, y, l):
+        new_indices = np.linspace(0, len(y) - 1, l)
+        spl = UnivariateSpline(np.arange(0, len(y)), y, k=3, s=0)
+        return np.around(spl(new_indices).tolist(), decimals=2)
+
+
 class Query():
     q = {
-        'weak': query.WeaK(),
-        'weak_red': query.WeakRed(),
-        'black_down_red': query.BlackDownRed()
+        'weak': {
+            'all': query.WeaK(),
+            'yesterday_red': query.WeakYesterdayRed(),
+            'continuous_black_down_yesterday_red': query.WeakContinuousBlackDownYesterdayRed()
+        },
+        'down': {
+            'continuous_black_down_red': query.ContinuousBlackDownRed()
+        }
     }
 
-    def __init__(self, csv_dir, stock=None):
-        if stock is None:
-            self._stock = Stock(os.path.join(csv_dir, 'stock'))
-        else:
-            self._stock = stock
-
+    def __init__(self, csv_dir):
+        self._stock = Stock(os.path.join(csv_dir, 'stock'))
         self._trend = Trend(csv_dir)
 
-    def run(self, name, start, end=None, output=None, codes=None, pattern=None):
-        query = self.q[name]
+    def run(self, start, output, end=None, codes=None):
+        name = output.split('csv/')[1]
+        q = name.split('/')
+        query = self.q[q[-2]]
 
-        if (query.offset_day > 0) and (end is None) or (end == ''):
-            end = start
-            start = self._stock.afterDates(start)[query.offset_day]
+        if len(q) >= 2:
+            query = query[q[-1]]
 
-        stock = self._stock.date(start, end)
+        if end is None or end == '':
+            stock = self._stock.query(start, False)
+        else:
+            stock = self._stock.query(end, False)
 
         if stock.empty:
             logging.info(f'======= not data for {start} to {end} =======')
             return
 
-        if codes is None and pattern is None:
+        if codes is None:
             codes = stock.index.levels[0]
-
-        if pattern is not None:
-            codes = pattern['code']
 
         logging.info(f'======= exec {name} =======')
 
         if stock.ndim == 1:
             stock = pd.DataFrame(stock)
 
-        if pattern is None:
-            for i, index in enumerate(stock.columns):
-                if query.offset_day > 0 and (len(stock.columns) - query.offset_day) == i:
-                    break
-
-                date = stock[index].iloc[0]
-                self._run(query, i, index, date, codes, stock, output)
+        pattern_path = os.path.join(output, 'pattern') + '.csv'
+        if os.path.exists(pattern_path) == False:
+            pattern = None
         else:
-            self._run(
-                query,
-                {v['code']: len(v['ys']) for i, v in pattern.iterrows()},
-                0,
-                end,
-                codes,
-                stock,
-                output,
-                pattern=pattern
-            )
+            pattern = pd.read_csv(pattern_path).dropna(axis=1).iloc[0][1:].astype(float).tolist()
 
-    def _run(self, query, i, index, date, codes, stock, output, pattern=None):
-        result = []
+        if end is None or end == '':
+            range = enumerate([stock.columns[0]])
+        else:
+            ds = stock.loc[2330].loc['date']
+            range = enumerate(ds[(ds >= start) & (end >= ds)].index)
 
-        for code in codes:
-            if type(i) is dict:
-                value = stock.loc[code].iloc[:, :i[code]]
-                p = pattern[pattern['code'] == code].iloc[0]
-            else:
-                p = None
-                value = stock.loc[code].iloc[:, i:]
+        for index_day, index in range:
+            result = []
+            date = stock[index].iloc[0]
 
-            logging.info(f"exec code: {code} date: {date}")
+            for code in codes:
+                value = stock.loc[code].iloc[:, index_day:]
 
-            r = query.run(index, code, value, self._trend.code(code, date), self._stock.info(code), pattern=p)
-            if r is not None:
-                result.append(r)
+                logging.info(f"exec code: {code} date: {date}")
 
-        frame = pd.DataFrame(result, columns=query.columns())
-        frame = query.sort(frame)
-        frame = query.limit(frame)
+                r = query.execute(index, code, value, self._trend.code(code, date), self._stock.info(code),
+                                  pattern=pattern)
+                if r is not None:
+                    result.append(r)
 
-        if (output != None) & (os.path.exists(output) == True):
-            dir = os.path.join(output, date[:4] + date[5:7])
+            frame = pd.DataFrame(result, columns=query.columns())
+            frame = query.sort(frame)
+            frame = query.limit(frame)
 
-            if os.path.exists(dir) == False:
-                os.mkdir(dir)
-
+            self._toCsv(frame, date, output)
             logging.info(f'======= save {name} - {date} =======')
 
-            frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
+    def _toCsv(self, frame, date, output):
+        dir = os.path.join(output, date[:4] + date[5:7])
+
+        if os.path.exists(dir) == False:
+            os.mkdir(dir)
+
+        frame.to_csv(os.path.join(dir, date) + '.csv', index=False, encoding='utf_8_sig')
 
 
 def calendar_xy(date, year=None, month=None):

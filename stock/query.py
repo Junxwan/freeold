@@ -1,4 +1,4 @@
-from . import name
+from . import name, data
 
 
 class Base():
@@ -17,34 +17,34 @@ class Base():
     # 最多幾筆
     num = 10000
 
-    offset_day = 0
-
     # 排序key
-    sort_key = []
+    sort_key = ['code']
 
     file_columns = ['code', 'name', name.OPEN, name.CLOSE, name.HIGH, name.LOW, name.INCREASE, name.AMPLITUDE,
                     name.VOLUME]
 
-    def run(self, index, code, stock, trend, info, pattern=None):
-        self.index = index
-        self.code = code
+    ys = None
+
+    def __init__(self):
+        self.pattern = data.Pattern()
+
+    def execute(self, index, code, stock, trend, info, pattern=None, check_offset_day=0):
         self.stock = stock
         self.trend = trend
-        self.info = info
-        self.pattern = pattern
+        self.pattern_model = pattern
 
-        if self.check_stock(self.check_stocks) == False:
+        if self.check_stock(self.check_stocks, i=check_offset_day) == False:
             return None
 
-        if self._run():
-            d = self.stock[self.index][1:].tolist()
-            d.insert(0, self.code)
-            d.insert(1, self.info['name'])
-            return self.data(d)
+        if self.run(index, code, stock, trend, info):
+            d = stock[index][1:].tolist()
+            d.insert(0, code)
+            d.insert(1, info['name'])
+            return self.data(d, index, code, stock, trend, info)
 
         return None
 
-    def data(self, data):
+    def data(self, data, index, code, stock, trend, info):
         return data
 
     def columns(self):
@@ -78,20 +78,17 @@ class Base():
         return self._trend(name.TIME)
 
     def _stock(self, key, i=0):
-        d = self.stock.loc[key]
-        if i > 0:
-            return d.iloc[0:i]
-        return d.iloc[0]
+        return self.stock.loc[key].iloc[i]
 
     def _trend(self, key):
         return self.trend.loc[key]
 
-    def check_stock(self, query) -> bool:
+    def check_stock(self, query, i=0) -> bool:
         for q in query:
-            v1 = self._stock(q[0])
+            v1 = self._stock(q[0], i=i)
 
             if type(q[2]) == str:
-                v2 = self._stock(q[2])
+                v2 = self._stock(q[2], i=i)
             else:
                 v2 = q[2]
 
@@ -99,8 +96,19 @@ class Base():
                 return False
         return True
 
-    def _run(self) -> bool:
+    def run(self, index, code, stock, trend, info) -> bool:
         return False
+
+    def runPattern(self, data):
+        arg = self.pattern_arg()
+
+        if self.ys is None:
+            self.ys = self.pattern.ys(arg[0], arg[1], self.pattern_model)
+
+        return self.pattern.corr_coef(data, arg[0], arg[1], self.ys, arg[2])
+
+    def pattern_arg(self):
+        return [0, 0, 0]
 
     def sort(self, data):
         return data.sort_values(by=self.sort_key, ascending=False)
@@ -109,6 +117,7 @@ class Base():
         return data[:self.num]
 
 
+# 弱勢股
 class WeaK(Base):
     check_stocks = [
         [name.OPEN, '>', 10],
@@ -120,19 +129,17 @@ class WeaK(Base):
 
     sort_key = [name.AMPLITUDE]
 
-    def _run(self) -> bool:
+    def run(self, index, code, stock, trend, info) -> bool:
         return True
 
-
-class WeakRed(WeaK):
-    offset_day = 1
-
-    def _run(self) -> bool:
-        d = self.stock[self.index + self.offset_day]
+# 弱勢股-昨天紅
+class WeakYesterdayRed(WeaK):
+    def run(self, index, code, stock, trend, info) -> bool:
+        d = stock[index + 1]
         return d[name.OPEN] < d[name.CLOSE]
 
-    def data(self, data):
-        d = self.stock[self.index + self.offset_day]
+    def data(self, data, index, code, stock, trend, info):
+        d = stock[index + 1]
         data.append(d[name.INCREASE])
         data.append(d[name.AMPLITUDE])
         return data
@@ -143,28 +150,79 @@ class WeakRed(WeaK):
         columns.append(f'y_{name.AMPLITUDE}')
         return columns
 
+# 弱勢股-昨天紅且之前連黑k下降趨勢
+class WeakContinuousBlackDownYesterdayRed(Base):
+    sort_key = [name.INCREASE]
 
-class BlackDownRed(Base):
+    def __init__(self):
+        Base.__init__(self)
+        self.weak = WeakYesterdayRed()
+        self.pattern = ContinuousBlackDownRed()
+
+    def run(self, index, code, stock, trend, info) -> bool:
+        self.weak_data = self.weak.execute(index, code, stock, trend, info, pattern=self.pattern_model)
+
+        if self.weak_data is None:
+            return False
+
+        self.pattern_data = self.pattern.execute(
+            index + 1,
+            code,
+            stock.iloc[:, 1:],
+            trend,
+            info,
+            pattern=self.pattern_model
+        )
+
+        if self.pattern_data is None:
+            return False
+
+        return True
+
+    def data(self, data, index, code, stock, trend, info):
+        return self.weak_data + self.pattern_data[9:]
+
+    def columns(self):
+        columns = self.weak.columns()
+        for name in self.pattern.pattern_columns:
+            columns.append(name)
+        return columns
+
+# 連黑k下降趨勢後今天紅
+class ContinuousBlackDownRed(Base):
     check_stocks = [
         [name.OPEN, '<', name.CLOSE],
     ]
 
     sort_key = [name.INCREASE]
 
-    pattern_columns = ['start_date', 'end_date', 'similarity', 'ys', 'ma']
+    pattern_columns = [name.START_DATE, name.END_DATE, name.SIMILARITY, name.LINE, name.MA]
 
-    def _run(self):
-        d = self.stock.iloc[:, 1:]
+    def run(self, index, code, stock, trend, info) -> bool:
+        self.corr = self.runPattern(stock)
+
+        if self.corr is None:
+            return False
+
+        d = stock.iloc[:, 1:self.corr[0]]
 
         for i in d.columns:
             v = d[i]
             if v[name.OPEN] < v[name.CLOSE]:
                 return False
+
         return True
 
-    def data(self, data):
-        for v in self.pattern_columns:
-            data.append(self.pattern[v])
+    def pattern_arg(self):
+        return [3, 10, 0.85]
+
+    def data(self, data, index, code, stock, trend, info):
+        d = stock.iloc[:, :self.corr[0]]
+        data.append(d.iloc[0].iloc[0])
+        data.append(d.iloc[0].iloc[-1])
+        data.append(self.corr[1])
+        data.append(self.corr[2])
+        data.append(self.corr[3])
         return data
 
     def columns(self):
