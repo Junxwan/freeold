@@ -165,13 +165,12 @@ class stock():
 
 # 每日個股行情
 class day():
-    data = pd.DataFrame()
-    columns = dt.COLUMNS.copy()
-
     def __init__(self, file):
         logging.info('read: ' + file + ' ...')
 
+        self.columns = dt.COLUMNS.copy()
         self.columns.insert(0, dt.DATE)
+        self.data = pd.DataFrame()
         self.date = os.path.basename(file).split('.')[0]
 
         for i, rows in pd.read_excel(file).iterrows():
