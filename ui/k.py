@@ -561,11 +561,15 @@ class Range(SubAxes):
 
         date = self._c_watch.date()
         range = date[(range[0] <= date) & (range[1] >= date)]
+
+        if range.empty:
+            return
+
         date = date.tolist()
         x1 = date.index(range[0])
         x2 = date.index(range[-1])
         self._rectangle = self.axes.add_patch(
-            plt.Rectangle((x1 - 0.5, 0), (x2 - x1) + 1, 10000, color='#66FFFF', alpha=0.2)
+            plt.Rectangle((x1 - 0.5, 0), (x2 - x1) + 1, 10000, color='#66FFFF', alpha=0.2, lw=4)
         )
 
     def _clear(self):

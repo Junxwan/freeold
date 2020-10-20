@@ -218,8 +218,8 @@ class ContinuousBlackDownRed(Base):
 
     def data(self, data, index, code, stock, trend, info):
         d = stock.iloc[:, :self.corr[0]]
-        data.append(d.iloc[0].iloc[0])
         data.append(d.iloc[0].iloc[-1])
+        data.append(d.iloc[0].iloc[0])
         data.append(self.corr[1])
         data.append(self.corr[2])
         data.append(self.corr[3])

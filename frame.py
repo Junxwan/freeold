@@ -1003,7 +1003,7 @@ class Pattern():
         self.pattern_select = self.stock.pattern(
             self.start_range.get(),
             self.end_range.get(),
-            self.pattern.data(),
+            pd.Series(self.pattern.data()).dropna().tolist(),
             date=self.date.get(),
             similarity=self.similarity.get(),
         )

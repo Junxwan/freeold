@@ -63,7 +63,7 @@ class Stock():
     def __init__(self, dir):
         self.dir = dir
         self.dk = {}
-        self.pattern = Pattern()
+        self._pattern = Pattern()
 
         if self.stock.empty:
             self.stock = pd.read_csv(os.path.join(dir, INFO_FILE_NAME) + '.csv')
@@ -164,20 +164,20 @@ class Stock():
 
     def pattern(self, d1, d2, y, date=None, similarity=1):
         result = []
-        data = self.stock.query(date, False)
+        data = self.query(date, False)
         dates = data.loc[2330].loc[name.DATE]
         di = dates.index[0]
-        ys = self.pattern.ys(d1, d2, y)
+        ys = self._pattern.ys(d1, d2, y)
 
         for code in data.index.levels[0].tolist():
-            r = self.pattern.corr_coef(data.loc[code], d1, d2, ys, similarity)
+            logging.info(f"{code} - {date} - pattern")
+
+            r = self._pattern.corr_coef(data.loc[code], d1, d2, ys, similarity)
 
             if r is None:
                 continue
 
-            result.append([code, self.stock.info(code)['name'], dates[di + r[0] - 1], date, r[1], r[2], r[3]])
-
-            logging.info(f"{code} - {date} - pattern")
+            result.append([code, self.info(code)['name'], dates[di + r[0] - 1], date, r[1], r[2], r[3]])
 
         logging.info(f"total: {len(result)}")
 
