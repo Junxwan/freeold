@@ -637,13 +637,13 @@ class Watch():
 
         self.code.set(code)
 
-        if 'start_date_range' in data.columns:
-            self.start_date_range.set(data['start_date_range'][0])
+        if 'start_date' in data.columns:
+            self.start_date_range.set(data['start_date'].iloc[0])
         else:
             self.start_date_range.set('')
 
-        if 'end_date_range' in data.columns:
-            self.end_date_range.set(data['end_date_range'][0])
+        if 'end_date' in data.columns:
+            self.end_date_range.set(data['end_date'].iloc[0])
         else:
             self.end_date_range.set('')
 
