@@ -1,12 +1,7 @@
-import logging
-import pandas as pd
 import numpy as np
 import tkinter as tk
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from stock import data, name
-from ui import other
-from scipy.interpolate import UnivariateSpline
 from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -72,6 +67,7 @@ class CorrLine():
         self._canvas.draw()
         self._canvas.get_tk_widget().focus_force()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
 
 class MoveEvent(tk.Frame):
     def __init__(self, canvas, axes):

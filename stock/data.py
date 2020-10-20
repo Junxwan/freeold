@@ -662,10 +662,10 @@ class Pattern():
     def ys(self, d1, d2, y):
         ys = dict()
         for i in range((d2 + 1) - d1):
-            ys[d1 + i] = self._spline(y, d1 + i)
+            ys[d1 + i] = self.spline(y, d1 + i)
         return ys
 
-    def _spline(self, y, l):
+    def spline(self, y, l):
         new_indices = np.linspace(0, len(y) - 1, l)
         spl = UnivariateSpline(np.arange(0, len(y)), y, k=3, s=0)
         return np.around(spl(new_indices).tolist(), decimals=2)

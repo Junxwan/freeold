@@ -7,8 +7,10 @@ from tkinter import ttk
 import tkinter as tk
 import logging
 import pandas as pd
+import numpy as np
 import openpyxl
 import pyautogui
+from stock import name, data
 from datetime import datetime
 from tkinter import messagebox
 from PIL import Image, ImageTk
@@ -847,6 +849,10 @@ class Pattern():
         self._pattern_listbox.bind('<Button-1>', self._pattern_event)
 
     def _button_layout(self):
+        self.code = tk.StringVar()
+        self.mx1 = tk.IntVar()
+        self.mx2 = tk.IntVar()
+
         self.pattern_file_path = tk.StringVar()
         self.pattern_name = tk.StringVar()
         self.date = tk.StringVar()
@@ -862,7 +868,7 @@ class Pattern():
 
         tk.Label(self._button_frame, text='p輸出:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(self._button_frame, width=15, textvariable=self.pattern_file_path, font=ui.FONT).place(x=190, y=10)
-        tk.Button(self._button_frame, text='載', font=ui.SMALL_FONT, command=self._open_pattern_file).place(x=630, y=10)
+        tk.Button(self._button_frame, text='載l', font=ui.SMALL_FONT, command=self._open_pattern_file).place(x=630, y=10)
 
         tk.Label(self._button_frame, text='p名稱:', font=ui.FONT).place(x=10, y=100)
         tk.Entry(self._button_frame, width=15, textvariable=self.pattern_name, font=ui.FONT).place(x=190, y=100)
@@ -872,16 +878,27 @@ class Pattern():
         tk.Entry(self._button_frame, width=15, textvariable=self.date, font=ui.FONT).place(x=190, y=200)
         tk.Button(self._button_frame, text='選', font=ui.SMALL_FONT, command=self.run).place(x=630, y=200)
 
-        tk.Label(self._button_frame, text='比對範圍:', font=ui.FONT).place(x=10, y=300)
-        tk.Entry(self._button_frame, width=5, textvariable=self.start_range, font=ui.FONT).place(x=250, y=300)
-        tk.Entry(self._button_frame, width=5, textvariable=self.end_range, font=ui.FONT).place(x=400, y=300)
-        tk.Button(self._button_frame, text='載p', font=ui.SMALL_FONT, command=self._open_stock_file).place(x=580,
+        tk.Label(self._button_frame, text='範圍:', font=ui.FONT).place(x=10, y=300)
+        tk.Entry(self._button_frame, width=4, textvariable=self.start_range, font=ui.FONT).place(x=150, y=300)
+        tk.Entry(self._button_frame, width=4, textvariable=self.end_range, font=ui.FONT).place(x=280, y=300)
+        tk.Button(self._button_frame, text='載s', font=ui.SMALL_FONT, command=self._open_stock_file).place(x=650,
                                                                                                           y=300)
 
-        tk.Label(self._button_frame, text='相似度:', font=ui.FONT).place(x=10, y=400)
-        tk.Entry(self._button_frame, width=4, textvariable=self.similarity, font=ui.FONT).place(x=170, y=400)
+        tk.Label(self._button_frame, text='相似:', font=ui.FONT).place(x=400, y=300)
+        tk.Entry(self._button_frame, width=4, textvariable=self.similarity, font=ui.FONT).place(x=530, y=300)
+
+        tk.Label(self._button_frame, text='code:', font=ui.FONT).place(x=10, y=400)
+        tk.Entry(self._button_frame, width=6, textvariable=self.code, font=ui.FONT).place(x=150, y=400)
+
+        tk.Label(self._button_frame, text='x:', font=ui.FONT).place(x=330, y=400)
+        tk.Entry(self._button_frame, width=4, textvariable=self.mx1, font=ui.FONT).place(x=400, y=400)
+        tk.Entry(self._button_frame, width=4, textvariable=self.mx2, font=ui.FONT).place(x=520, y=400)
+        tk.Button(self._button_frame, text='移', font=ui.SMALL_FONT, command=self._move).place(x=650, y=400)
 
     def _save_pattern(self):
+        if self.pattern_name.get() == '':
+            return
+
         file = pd.DataFrame()
         path = self.pattern_file_path.get()
 
@@ -961,7 +978,7 @@ class Pattern():
 
         v = self._stock_table.item(s[0])
         v = v['values']
-        self._plot_k(code=v[0], range=[v[2], self.date.get()])
+        self._plot_k(date=self.date.get(), code=v[0], range=[v[2], self.date.get()])
         stock = self.pattern_select[self.pattern_select['code'] == v[0]].iloc[0]
 
         if type(stock['ys']) is str:
@@ -987,8 +1004,29 @@ class Pattern():
 
         self._stock_table.heading(v[0], text=v[0], command=lambda _v=v: self._sort_stock_table(_v, not reverse))
 
-    def _plot_k(self, code=2330, range=None):
-        self.watch.plot(code, date=None, type='k', **dict(
+    def _move(self):
+        code = int(self.code.get())
+        mx1 = self.mx1.get()
+        mx2 = self.mx2.get()
+
+        self.pattern_name.set('')
+        dates = self.stock.dates()
+        self._plot_k(date=self.date.get(), code=code, range=[
+            dates[mx2], dates[mx1],
+        ])
+
+        ma = self.stock.data.loc[code].loc[name.CLOSE].iloc[::-1].rolling(2).mean().round(2).iloc[::-1]
+        line = [round(i % 20, 1) for i in ma[mx1: mx2].iloc[::-1].tolist()]
+
+        if len(line) < 20:
+            [line.append(np.nan) for i in range(20 - len(line))]
+        else:
+            line = data.Pattern().spline(line, 20)
+
+        self.pattern.set(dict(zip([i for i in range(20)], line)))
+
+    def _plot_k(self, date=None, code=2330, range=None):
+        self.watch.plot(code, date=date, type='k', **dict(
             volume=True,
             panel_ratios=(4, 1),
             ma=[2],
