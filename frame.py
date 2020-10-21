@@ -718,12 +718,13 @@ class Pattern():
         self.width = self.size.width
         self.height = self.size.height
         self._pattern_list = pd.DataFrame()
+        self._pattern_path = os.path.join(self.config['data'], 'csv', 'pattern') + '.csv'
 
         self.root.state('zoomed')
         self._mainLayout()
         self._stock_list_layout()
-        self._button_layout()
         self._pattern_list_layout()
+        self._button_layout()
         self._log_list_layout()
 
         self.pattern = pattern.Watch(
@@ -739,6 +740,7 @@ class Pattern():
         )
 
         self.stock = self.watch.k_watch.get_stock()
+        self.strategy = data.Query(other.csv_path(config), stock=self.stock)
 
         self.corrLine = pattern.CorrLine(self.line_frame)
         self.corrLine.set([1], [1])
@@ -853,7 +855,7 @@ class Pattern():
         self.mx1 = tk.IntVar()
         self.mx2 = tk.IntVar()
 
-        self.pattern_file_path = tk.StringVar()
+        self._strategy_dir = tk.StringVar()
         self.pattern_name = tk.StringVar()
         self.date = tk.StringVar()
         self.start_range = tk.IntVar()
@@ -864,11 +866,14 @@ class Pattern():
         self.end_range.set(10)
         self.similarity.set(0.85)
 
-        self.pattern_file_path.set(os.path.join(self.config['data'], 'csv', 'pattern') + '.csv')
+        self._open_pattern_file(self._pattern_path)
 
         tk.Label(self._button_frame, text='p輸出:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(self._button_frame, width=15, textvariable=self.pattern_file_path, font=ui.FONT).place(x=190, y=10)
-        tk.Button(self._button_frame, text='載l', font=ui.SMALL_FONT, command=self._open_pattern_file).place(x=630, y=10)
+        tk.Entry(self._button_frame, width=15, textvariable=self._strategy_dir, font=ui.FONT).place(x=190, y=10)
+        tk.Button(self._button_frame, text='載', font=ui.SMALL_FONT,
+                  command=lambda: self._strategy_dir.set(ui.openFile().name)).place(x=600, y=10)
+        tk.Button(self._button_frame, text='刷', font=ui.SMALL_FONT,
+                  command=lambda :self._open_pattern_file(self._pattern_path)).place(x=680, y=10)
 
         tk.Label(self._button_frame, text='p名稱:', font=ui.FONT).place(x=10, y=100)
         tk.Entry(self._button_frame, width=15, textvariable=self.pattern_name, font=ui.FONT).place(x=190, y=100)
@@ -900,10 +905,9 @@ class Pattern():
             return
 
         file = pd.DataFrame()
-        path = self.pattern_file_path.get()
 
-        if os.path.exists(path):
-            file = pd.read_csv(path, index_col=None)
+        if os.path.exists(self._pattern_path):
+            file = pd.read_csv(self._pattern_path, index_col=None)
 
         data = self.pattern.data()
         data.insert(0, self.pattern_name.get())
@@ -916,12 +920,11 @@ class Pattern():
         d = file.to_numpy().tolist()
         d.append(data)
 
-        pd.DataFrame(d).to_csv(path, index=False, encoding='utf-8-sig')
-        self._pattern_list = pd.read_csv(path)
+        pd.DataFrame(d).to_csv(self._pattern_path, index=False, encoding='utf-8-sig')
+        self._pattern_list = pd.read_csv(self._pattern_path)
 
-    def _open_pattern_file(self):
-        p = ui.openFile()
-        self._pattern_list = pd.read_csv(p.name)
+    def _open_pattern_file(self, path):
+        self._pattern_list = pd.read_csv(path)
         self._pattern_listbox.delete(0, tk.END)
 
         for name in self._pattern_list['0']:
@@ -949,7 +952,7 @@ class Pattern():
         self._log_listbox = tk.Listbox(
             self._log_frame,
             bg='#eeeeee',
-            font=ui.FONT,
+            font=ui.SMALL_FONT,
             selectbackground="orange",
             yscrollcommand=scrollbar.set,
             width=77
@@ -1038,12 +1041,23 @@ class Pattern():
         t.start()
 
     def _run(self):
+        path = self._strategy_dir.get()
+        date = self.date.get()
+        codes = None
+
+        if os.path.isfile(path):
+            codes = pd.read_csv(path)['code']
+        elif os.path.isdir(path):
+            data = self.pattern_select = self.strategy.run(date, path, is_save=False)
+            codes = data[date]['code']
+
         self.pattern_select = self.stock.pattern(
             self.start_range.get(),
             self.end_range.get(),
             pd.Series(self.pattern.data()).dropna().tolist(),
-            date=self.date.get(),
+            date=date,
             similarity=self.similarity.get(),
+            codes=codes
         )
 
         for i in self._stock_table.get_children():
@@ -1055,6 +1069,3 @@ class Pattern():
                 'end',
                 values=(value['code'], value['name'], value['start_date'], value['similarity'])
             )
-
-        self.pattern_select.to_csv(os.path.join(self.config['data'], 'pattern_stock') + '.csv', index=False,
-                                   encoding='utf-8-sig')

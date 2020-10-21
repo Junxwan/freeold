@@ -162,14 +162,17 @@ class Stock():
     def qDate(self, code=2330):
         return self.data.loc[code].loc[DATE]
 
-    def pattern(self, d1, d2, y, date=None, similarity=1):
+    def pattern(self, d1, d2, y, date=None, similarity=1, codes=None):
         result = []
         data = self.query(date, False)
         dates = data.loc[2330].loc[name.DATE]
         di = dates.index[0]
         ys = self._pattern.ys(d1, d2, y)
 
-        for code in data.index.levels[0].tolist():
+        if codes is None:
+            codes = data.index.levels[0].tolist()
+
+        for code in codes:
             logging.info(f"{code} - {date} - pattern")
 
             r = self._pattern.corr_coef(data.loc[code], d1, d2, ys, similarity)
@@ -683,12 +686,16 @@ class Query():
         }
     }
 
-    def __init__(self, csv_dir):
-        self._stock = Stock(os.path.join(csv_dir, 'stock'))
+    def __init__(self, csv_dir, stock=None):
+        if stock is None:
+            self._stock = Stock(os.path.join(csv_dir, 'stock'))
+        else:
+            self._stock = stock
+
         self._trend = Trend(csv_dir)
 
-    def run(self, start, output, end=None, codes=None):
-        name = output.split('csv/')[1]
+    def run(self, start, strategy, end=None, codes=None, pattern=None, is_save=True):
+        name = strategy.split('csv/')[1]
         q = name.split('/')
         query = self.q[q[-2]]
 
@@ -712,11 +719,12 @@ class Query():
         if stock.ndim == 1:
             stock = pd.DataFrame(stock)
 
-        pattern_path = os.path.join(output, 'pattern') + '.csv'
-        if os.path.exists(pattern_path) == False:
-            pattern = None
-        else:
-            pattern = pd.read_csv(pattern_path).dropna(axis=1).iloc[0][1:].astype(float).tolist()
+        if pattern is None:
+            pattern_path = os.path.join(strategy, 'pattern') + '.csv'
+            if os.path.exists(pattern_path) == False:
+                pattern = None
+            else:
+                pattern = pd.read_csv(pattern_path).dropna(axis=1).iloc[0][1:].astype(float).tolist()
 
         if end is None or end == '':
             range = enumerate([stock.columns[0]])
@@ -724,6 +732,7 @@ class Query():
             ds = stock.loc[2330].loc['date']
             range = enumerate(ds[(ds >= start) & (end >= ds)].index)
 
+        data = dict()
         for index_day, index in range:
             result = []
             date = stock[index].iloc[0]
@@ -733,8 +742,15 @@ class Query():
 
                 logging.info(f"exec code: {code} date: {date}")
 
-                r = query.execute(index, code, value, self._trend.code(code, date), self._stock.info(code),
-                                  pattern=pattern)
+                r = query.execute(
+                    index,
+                    code,
+                    value,
+                    self._trend.code(code, date),
+                    self._stock.info(code),
+                    pattern=pattern
+                )
+
                 if r is not None:
                     result.append(r)
 
@@ -742,8 +758,13 @@ class Query():
             frame = query.sort(frame)
             frame = query.limit(frame)
 
-            self._toCsv(frame, date, output)
-            logging.info(f'======= save {name} - {date} =======')
+            if is_save:
+                self._toCsv(frame, date, strategy)
+                logging.info(f'======= save {name} - {date} =======')
+            else:
+                data[date] = frame
+
+        return data
 
     def _toCsv(self, frame, date, output):
         dir = os.path.join(output, date[:4] + date[5:7])
