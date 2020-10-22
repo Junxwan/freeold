@@ -1,3 +1,9 @@
+# 代碼
+CODE = 'code'
+
+# 名稱
+NAME = 'name'
+
 # 日期
 DATE = 'date'
 

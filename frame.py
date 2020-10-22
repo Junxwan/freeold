@@ -873,7 +873,7 @@ class Pattern():
         tk.Button(self._button_frame, text='載', font=ui.SMALL_FONT,
                   command=lambda: self._strategy_dir.set(ui.openFile().name)).place(x=600, y=10)
         tk.Button(self._button_frame, text='刷', font=ui.SMALL_FONT,
-                  command=lambda :self._open_pattern_file(self._pattern_path)).place(x=680, y=10)
+                  command=lambda: self._open_pattern_file(self._pattern_path)).place(x=680, y=10)
 
         tk.Label(self._button_frame, text='p名稱:', font=ui.FONT).place(x=10, y=100)
         tk.Entry(self._button_frame, width=15, textvariable=self.pattern_name, font=ui.FONT).place(x=190, y=100)
@@ -982,15 +982,15 @@ class Pattern():
         v = self._stock_table.item(s[0])
         v = v['values']
         self._plot_k(date=self.date.get(), code=v[0], range=[v[2], self.date.get()])
-        stock = self.pattern_select[self.pattern_select['code'] == v[0]].iloc[0]
+        stock = self.pattern_select[self.pattern_select[name.CODE] == v[0]].iloc[0]
 
-        if type(stock['ys']) is str:
-            stock['ys'] = [float(i) for i in stock['ys'][1:-1].split(',')]
+        if type(stock[name.LINE]) is str:
+            stock[name.LINE] = [float(i) for i in stock[name.LINE][1:-1].split(',')]
 
-        if type(stock['ma']) is str:
-            stock['ma'] = [float(i) for i in stock['ma'][1:-1].split(',')]
+        if type(stock[name.MA]) is str:
+            stock[name.MA] = [float(i) for i in stock[name.MA][1:-1].split(',')]
 
-        self.corrLine.set(stock['ys'], stock['ma'])
+        self.corrLine.set(stock[name.LINE], stock[name.MA])
 
     def _sort_stock_table(self, v, reverse):
         self.pattern_select = self.pattern_select.sort_values(by=v[1], ascending=reverse)
@@ -1044,21 +1044,25 @@ class Pattern():
         path = self._strategy_dir.get()
         date = self.date.get()
         codes = None
+        y = pd.Series(self.pattern.data()).dropna().tolist()
 
         if os.path.isfile(path):
-            codes = pd.read_csv(path)['code']
+            codes = pd.read_csv(path)[name.CODE]
         elif os.path.isdir(path):
             data = self.pattern_select = self.strategy.run(date, path, is_save=False)
-            codes = data[date]['code']
+            codes = data[date][name.CODE]
 
-        self.pattern_select = self.stock.pattern(
-            self.start_range.get(),
-            self.end_range.get(),
-            pd.Series(self.pattern.data()).dropna().tolist(),
-            date=date,
-            similarity=self.similarity.get(),
-            codes=codes
-        )
+        if len(y) > 0:
+            self.pattern_select = self.stock.pattern(
+                self.start_range.get(),
+                self.end_range.get(),
+                y,
+                date=date,
+                similarity=self.similarity.get(),
+                codes=codes
+            )
+        else:
+            self.pattern_select = self.pattern_select[date]
 
         for i in self._stock_table.get_children():
             self._stock_table.delete(i)
@@ -1067,5 +1071,5 @@ class Pattern():
             self._stock_table.insert(
                 '',
                 'end',
-                values=(value['code'], value['name'], value['start_date'], value['similarity'])
+                values=(value[name.CODE], value[name.NAME], value[name.START_DATE], value[name.SIMILARITY])
             )

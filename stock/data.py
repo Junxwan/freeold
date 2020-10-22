@@ -185,7 +185,7 @@ class Stock():
         logging.info(f"total: {len(result)}")
 
         return pd.DataFrame(
-            result, columns=['code', 'name', 'start_date', 'end_date', 'similarity', 'ys', 'ma']
+            result, columns=[name.CODE, name.NAME, name.START_DATE, name.END_DATE, name.SIMILARITY, name.LINE, name.MA]
         ).sort_values(by='similarity', ascending=False)
 
 
@@ -679,10 +679,11 @@ class Query():
         'weak': {
             'all': query.WeaK(),
             'yesterday_red': query.WeakYesterdayRed(),
-            'continuous_black_down_yesterday_red': query.WeakContinuousBlackDownYesterdayRed()
+            'today_red_before_black_down': query.WeakTodayRedBeforeBlackDown(),
+            'today_red_before_black_down_4': query.WeakTodayRedBeforeBlackDown(day=4)
         },
         'down': {
-            'continuous_black_down_red': query.ContinuousBlackDownRed()
+            'red_black_down_recent_2_black': query.TodayRedBeforeBlackDown()
         }
     }
 
@@ -695,10 +696,9 @@ class Query():
         self._trend = Trend(csv_dir)
 
     def run(self, start, strategy, end=None, codes=None, pattern=None, is_save=True):
-        name = strategy.split('csv/')[1]
-        q = name.split('/')
+        name = os.path.normcase(strategy).split('strategy' + os.path.sep)[1]
+        q = name.split(os.path.sep)
         query = self.q[q[-2]]
-
         if len(q) >= 2:
             query = query[q[-1]]
 
@@ -760,9 +760,10 @@ class Query():
 
             if is_save:
                 self._toCsv(frame, date, strategy)
-                logging.info(f'======= save {name} - {date} =======')
             else:
                 data[date] = frame
+
+            logging.info(f'{name} - {date} - {len(frame)}')
 
         return data
 

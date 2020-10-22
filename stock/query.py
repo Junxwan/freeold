@@ -132,6 +132,7 @@ class WeaK(Base):
     def run(self, index, code, stock, trend, info) -> bool:
         return True
 
+
 # 弱勢股-昨天紅
 class WeakYesterdayRed(WeaK):
     def run(self, index, code, stock, trend, info) -> bool:
@@ -150,14 +151,20 @@ class WeakYesterdayRed(WeaK):
         columns.append(f'y_{name.AMPLITUDE}')
         return columns
 
-# 弱勢股-昨天紅且之前連黑k下降趨勢
-class WeakContinuousBlackDownYesterdayRed(Base):
+
+# 1. 弱勢股-昨天紅
+# 2. 前天之前是下降趨勢(連黑)
+class WeakTodayRedBeforeBlackDown(Base):
     sort_key = [name.INCREASE]
 
-    def __init__(self):
+    def __init__(self, day=None):
         Base.__init__(self)
         self.weak = WeakYesterdayRed()
-        self.pattern = ContinuousBlackDownRed()
+
+        if day is None:
+            self.pattern = TodayRedBeforeBlackDown()
+        else:
+            self.pattern = TodayRedBeforeBlackDown([day, day])
 
     def run(self, index, code, stock, trend, info) -> bool:
         self.weak_data = self.weak.execute(index, code, stock, trend, info, pattern=self.pattern_model)
@@ -188,8 +195,9 @@ class WeakContinuousBlackDownYesterdayRed(Base):
             columns.append(name)
         return columns
 
-# 連黑k下降趨勢後今天紅
-class ContinuousBlackDownRed(Base):
+
+# 今天紅且昨天之前是下降趨勢(連黑)
+class TodayRedBeforeBlackDown(Base):
     check_stocks = [
         [name.OPEN, '<', name.CLOSE],
     ]
@@ -198,8 +206,18 @@ class ContinuousBlackDownRed(Base):
 
     pattern_columns = [name.START_DATE, name.END_DATE, name.SIMILARITY, name.LINE, name.MA]
 
+    pattern_day = [3, 10]
+
+    similarity = 0.85
+
+    def __init__(self, patternDay=None):
+        Base.__init__(self)
+
+        if patternDay is not None:
+            self.pattern_day = patternDay
+
     def run(self, index, code, stock, trend, info) -> bool:
-        self.corr = self.runPattern(stock)
+        self.corr = self.runPattern(stock.iloc[:, 1:])
 
         if self.corr is None:
             return False
@@ -214,7 +232,9 @@ class ContinuousBlackDownRed(Base):
         return True
 
     def pattern_arg(self):
-        return [3, 10, 0.85]
+        arg = self.pattern_day.copy()
+        arg.append(self.similarity)
+        return arg
 
     def data(self, data, index, code, stock, trend, info):
         d = stock.iloc[:, :self.corr[0]]
