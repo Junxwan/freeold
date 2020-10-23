@@ -114,6 +114,135 @@ class Tick(ui.process):
         self.showMessageBox('時間:' + str(int((end - now) / 60)) + ' 分')
 
 
+class StockTrendToCsv(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.input = tk.StringVar()
+        self.output = tk.StringVar()
+
+        if config != None:
+            self.output.set(other.stock_trend_csv_path(config))
+
+        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.input.set(ui.openDir())
+        ).place(x=w * 50, y=10)
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=h * 8)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        trend.StockToCsv(self.input.get()).output(self.output.get())
+        self.showSuccess()
+
+
+class StockTickToCsv(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.config = config
+        self.input = tk.StringVar()
+        self.output = tk.StringVar()
+
+        if config != None:
+            self.input.set(os.path.join(config['data'], 'tick'))
+            self.output.set(other.tick_csv_path(config))
+
+        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.input.set(ui.openDir())
+        ).place(x=w * 50, y=10)
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=h * 8)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        xlsx.Tick(self.input.get(), other.csv_path(self.config)).output(self.output.get())
+        self.showSuccess()
+
+
+class MarKetTrendToCsv(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.input = tk.StringVar()
+        self.output = tk.StringVar()
+
+        if config != None:
+            self.output.set(other.trend_csv_path(config))
+
+        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.input.set(ui.openDir())
+        ).place(x=w * 50, y=10)
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=h * 8)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        trend.MarketToCsv(self.input.get()).output(self.output.get())
+        self.showSuccess()
+
+
+class StockIndustry(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.output = tk.StringVar()
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=10)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        crawler.Industry().run(self.output.get())
+        self.showSuccess()
+
+
 # 抓取trend
 class stock(Trend):
     def __init__(self, root, master, w, h, config=None):
@@ -255,111 +384,4 @@ class stockToData(toData):
 
     def run(self):
         xlsx.stock(self.input.get()).output(self.output.get())
-        self.showSuccess()
-
-
-class StockTrendToCsv(ui.process):
-    def __init__(self, root, master, w, h, config=None):
-        ui.process.__init__(self, master, w, h)
-
-        self.input = tk.StringVar()
-        self.output = tk.StringVar()
-
-        if config != None:
-            self.output.set(other.stock_trend_csv_path(config))
-
-        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda: self.input.set(ui.openDir())
-        ).place(x=w * 50, y=10)
-
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda: self.output.set(ui.openDir())
-        ).place(x=w * 50, y=h * 8)
-
-        self.addRunBtn(master)
-
-    def run(self):
-        trend.StockToCsv(self.input.get()).output(self.output.get())
-        self.showSuccess()
-
-
-class StockTickToCsv(ui.process):
-    def __init__(self, root, master, w, h, config=None):
-        ui.process.__init__(self, master, w, h)
-
-        self.config = config
-        self.input = tk.StringVar()
-        self.output = tk.StringVar()
-
-        if config != None:
-            self.input.set(os.path.join(config['data'], 'tick'))
-            self.output.set(other.tick_csv_path(config))
-
-        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda: self.input.set(ui.openDir())
-        ).place(x=w * 50, y=10)
-
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda: self.output.set(ui.openDir())
-        ).place(x=w * 50, y=h * 8)
-
-        self.addRunBtn(master)
-
-    def run(self):
-        xlsx.Tick(self.input.get(), other.csv_path(self.config)).output(self.output.get())
-        self.showSuccess()
-
-
-class MarKetTrendToCsv(ui.process):
-    def __init__(self, root, master, w, h, config=None):
-        ui.process.__init__(self, master, w, h)
-
-        self.input = tk.StringVar()
-        self.output = tk.StringVar()
-
-        if config != None:
-            self.output.set(other.trend_csv_path(config))
-
-        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda: self.input.set(ui.openDir())
-        ).place(x=w * 50, y=10)
-
-        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda: self.output.set(ui.openDir())
-        ).place(x=w * 50, y=h * 8)
-
-        self.addRunBtn(master)
-
-    def run(self):
-        trend.MarketToCsv(self.input.get()).output(self.output.get())
         self.showSuccess()

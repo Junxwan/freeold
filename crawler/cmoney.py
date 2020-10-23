@@ -12,6 +12,12 @@ from datetime import datetime
 from stock import name
 from bs4 import BeautifulSoup
 
+USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
+
+HEADERS = {
+    'User-Agent': USER_AGENT,
+}
+
 
 class Trend():
     def __init__(self, dir):
@@ -162,6 +168,46 @@ class market(Trend):
             logging.info(f'code: {code} date: {date} save trend')
 
 
+# 個股產業分類與細分類
+class Industry():
+    def run(self, output):
+        list = []
+        resp = requests.get('https://www.moneydj.com/z/js/IndustryListNewJS.djjs', headers=HEADERS)
+        resp.encoding = 'big5'
+        resp = resp.text.split('var')[1].split('=')[1].split(';')
+        for text in filter(None, resp):
+            item = text.split('~')
+            title = item[0].split(' ')
+
+            for t in item[1].split(','):
+                v = t.split(' ')
+                stock = []
+
+                logging.info(f' {title[-1]}-{v[1]}')
+
+                list.append([title[-1], v[1]])
+
+                resp = requests.get(f"https://www.moneydj.com/z/zh/zha/ZH00.djhtm?A={v[0]}", headers=HEADERS)
+                time.sleep(1)
+
+                for td in BeautifulSoup(resp.text, 'html.parser').find_all('td', id='oAddCheckbox'):
+                    code = td.a.attrs['href'].split("'")[1][2:]
+                    stock.append([code, td.text[len(code):]])
+
+                dir = os.path.join(output, title[-1])
+
+                if os.path.exists(dir) == False:
+                    os.makedirs(dir)
+
+                file_path = os.path.join(dir, v[1].replace('/', '_')) + '.csv'
+
+                pd.DataFrame(stock, columns=['code', 'name']).to_csv(file_path, encoding="utf_8_sig", index=False)
+
+        pd.DataFrame(list, columns=['industry', 'sub_industry']).to_csv(
+            os.path.join(output, 'industry') + '.csv', encoding="utf_8_sig", index=False,
+        )
+
+
 class api():
     def __init__(self):
         s = requests.session()
@@ -249,10 +295,6 @@ class Fund():
 
     ]
 
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36',
-    }
-
     def to_csv(self, output):
         data = []
         codes = []
@@ -265,7 +307,7 @@ class Fund():
 
             resp = requests.get(
                 f'https://www.moneydj.com/funddj/ya/yp402002.djhtm?a={code}&b=803',
-                headers=self.headers
+                headers=HEADERS
             )
 
             html = BeautifulSoup(resp.text, 'html.parser')
@@ -327,7 +369,7 @@ class Fund():
 
     def get_fund(self):
         fund = []
-        resp = requests.get('https://www.moneydj.com/funddj/yb/YP303000.djhtm', headers=self.headers)
+        resp = requests.get('https://www.moneydj.com/funddj/yb/YP303000.djhtm', headers=HEADERS)
         soup = BeautifulSoup(resp.text, 'html.parser').find_all('tr')
 
         for raws in soup[6:]:
