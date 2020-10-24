@@ -206,7 +206,7 @@ class TodayRedBeforeBlackDown(Base):
 
     pattern_columns = [name.START_DATE, name.END_DATE, name.SIMILARITY, name.LINE, name.MA]
 
-    pattern_day = [3, 10]
+    pattern_day = [2, 10]
 
     similarity = 0.85
 
@@ -222,7 +222,7 @@ class TodayRedBeforeBlackDown(Base):
         if self.corr is None:
             return False
 
-        d = stock.iloc[:, 1:self.corr[0]]
+        d = stock.iloc[:, 1:self.corr[0]+1]
 
         for i in d.columns:
             v = d[i]

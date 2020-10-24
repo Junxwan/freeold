@@ -513,10 +513,7 @@ class DataLabel():
                 p = value[name]
             else:
                 p = float(value[name])
-                if p < 50:
-                    p = '%1.2f' % p
-                elif p < 500:
-                    p = '%1.1f' % p
+                p = '%1.2f' % p
 
             ax.set_text(p)
 

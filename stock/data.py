@@ -646,7 +646,7 @@ class TrendData():
 
 class Pattern():
     def corr_coef(self, data, d1, d2, ys, similarity):
-        ma = data.loc[name.CLOSE].iloc[::-1].rolling(2).mean().round(2).iloc[::-1][:d2]
+        ma = data.loc[name.CLOSE].iloc[::-1].rolling(self.lw(d2)).mean().round(2).iloc[::-1][:d2]
         s = dict()
         for i in range((d2 + 1) - d1):
             i = d1 + i
@@ -672,6 +672,11 @@ class Pattern():
         new_indices = np.linspace(0, len(y) - 1, l)
         spl = UnivariateSpline(np.arange(0, len(y)), y, k=3, s=0)
         return np.around(spl(new_indices).tolist(), decimals=2)
+
+    def lw(self, max):
+        if max >= 40:
+            return 5
+        return 2
 
 
 class Query():

@@ -1014,15 +1014,20 @@ class Pattern():
         code = int(self.code.get())
         mx1 = self.mx1.get()
         mx2 = self.mx2.get()
+        pattern = data.Pattern()
 
         self.pattern_name.set('')
-        dates = self.stock.dates()
+        dates = self.stock.afterDates(self.date.get())
         self._plot_k(date=self.date.get(), code=code, range=[
             dates[mx2], dates[mx1],
         ])
 
-        ma = self.stock.data.loc[code].loc[name.CLOSE].iloc[::-1].rolling(2).mean().round(2).iloc[::-1]
-        line = [round(i % 20, 1) for i in ma[mx1: mx2].iloc[::-1].tolist()]
+        index = self.stock.dates().index(dates[mx1])
+        ma = self.stock.data.loc[code].loc[name.CLOSE].iloc[::-1].rolling(pattern.lw(mx2)).mean().round(2).iloc[::-1]
+        line = pd.Series([ma[index + i] for i in range(mx2 - mx1)]).iloc[::-1]
+        min = line.min()
+        max = line.max()
+        line = ((line - min) / (max - min) * 19).round(2).tolist()
 
         if len(line) < 20:
             [line.append(np.nan) for i in range(20 - len(line))]
@@ -1035,7 +1040,7 @@ class Pattern():
         self.watch.plot(code, date=date, type='k', **dict(
             volume=True,
             panel_ratios=(4, 1),
-            ma=[2],
+            ma=[2, 5],
             range=range
         ))
 
@@ -1052,8 +1057,12 @@ class Pattern():
         if os.path.isfile(path):
             codes = pd.read_csv(path)[name.CODE]
         elif os.path.isdir(path):
-            data = self.pattern_select = self.strategy.run(date, path, is_save=False)
+            if self.code.get() != '':
+                codes = [int(self.code.get())]
+            data = self.pattern_select = self.strategy.run(date, path, codes=codes, is_save=False)
             codes = data[date][name.CODE]
+        elif self.code.get() != '':
+            codes = [int(self.code.get())]
 
         if len(y) > 0:
             self.pattern_select = self.stock.pattern(

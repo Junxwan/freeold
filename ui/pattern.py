@@ -85,7 +85,7 @@ class MoveEvent(tk.Frame):
         self.releaseEvent = self.canvas.mpl_connect('button_release_event', self.on_release)
 
     def set_y(self, y):
-        self._y = {i: y[i] for i in range(20)}
+        self._y = {i: y[i] for i in range(len(y))}
         self._draw()
         self.canvas.draw_idle()
 
