@@ -3,9 +3,9 @@ import matplotlib.ticker as mticks
 import mplfinance._utils as mutils
 import mplfinance._widths as mwidths
 import mplfinance.plotting as mplotting
-from stock import data
-from datetime import datetime
 import matplotlib.pyplot as plt
+from stock import data, name
+from datetime import datetime
 
 NAME = 'k'
 
@@ -232,14 +232,15 @@ class MoveEvent():
 # K線
 class Watch(SubAxes):
     text = {
-        '日': data.DATE,
-        '開': data.OPEN,
-        '收': data.CLOSE,
-        '高': data.HIGH,
-        '低': data.LOW,
-        '漲': data.INCREASE,
-        '量': data.VOLUME,
-        '振': data.AMPLITUDE,
+        '日': name.DATE,
+        '開': name.OPEN,
+        '收': name.CLOSE,
+        '高': name.HIGH,
+        '低': name.LOW,
+        '漲': name.INCREASE,
+        '%': name.D_INCREASE,
+        '量': name.VOLUME,
+        '振': name.AMPLITUDE,
     }
 
     name = NAME

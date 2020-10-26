@@ -18,10 +18,20 @@ class Base():
     num = 10000
 
     # 排序key
-    sort_key = ['code']
+    sort_key = [name.CODE]
 
-    file_columns = ['code', 'name', name.OPEN, name.CLOSE, name.HIGH, name.LOW, name.INCREASE, name.AMPLITUDE,
-                    name.VOLUME]
+    file_columns = [
+        name.CODE,
+        'name',
+        name.OPEN,
+        name.CLOSE,
+        name.HIGH,
+        name.LOW,
+        name.INCREASE,
+        name.D_INCREASE,
+        name.AMPLITUDE,
+        name.VOLUME
+    ]
 
     ys = None
 
@@ -145,6 +155,7 @@ class WeakYesterdayRed(WeaK):
         data.append(d[name.HIGH])
         data.append(d[name.LOW])
         data.append(d[name.INCREASE])
+        data.append(d[name.D_INCREASE])
         data.append(d[name.AMPLITUDE])
         data.append(d[name.VOLUME])
         return data
@@ -156,6 +167,7 @@ class WeakYesterdayRed(WeaK):
         columns.append(f'y_{name.HIGH}')
         columns.append(f'y_{name.LOW}')
         columns.append(f'y_{name.INCREASE}')
+        columns.append(f'y_{name.D_INCREASE}')
         columns.append(f'y_{name.AMPLITUDE}')
         columns.append(f'y_{name.VOLUME}')
         return columns
