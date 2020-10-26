@@ -196,6 +196,10 @@ class day():
             if c not in self.data:
                 [values.append(np.nan) for _ in self.columns]
             else:
+                close = self.data[c][name.CLOSE]
+                open = self.data[c][name.OPEN]
+                self.data[c][name.D_INCREASE] = round(((close - open) / open) * 100, 2)
+
                 [values.append(v) for n, v in self.data[c].items()]
 
         index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
