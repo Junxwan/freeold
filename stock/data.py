@@ -242,17 +242,17 @@ class K():
     def __init__(self, dir):
         self._dir = dir
         self._stock = Stock(dir)
-        # self._stock.readAll()
-        year = datetime.now().year
+        self._stock.readAll()
+        # year = datetime.now().year
 
-        ready = [
-            os.path.basename(p).split('.')[0] for p in
-            glob.glob(os.path.join(dir, f'{year}*.csv'))
-        ]
-
-        ready.insert(0, f'{year - 1}')
-
-        [self._stock.read(n) for n in sorted(ready, reverse=True)]
+        # ready = [
+        #     os.path.basename(p).split('.')[0] for p in
+        #     glob.glob(os.path.join(dir, f'{year}*.csv'))
+        # ]
+        #
+        # ready.insert(0, f'{year - 1}')
+        #
+        # [self._stock.read(n) for n in sorted(ready, reverse=True)]
 
         self._data = {}
         self._k_data = {}

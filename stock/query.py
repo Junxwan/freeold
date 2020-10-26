@@ -123,7 +123,6 @@ class WeaK(Base):
         [name.OPEN, '>', 10],
         [name.VOLUME, '>=', 1000],
         [name.AMPLITUDE, '>=', 3],
-        [name.INCREASE, '<', 0],
         [name.OPEN, '>', name.CLOSE],
     ]
 
@@ -141,14 +140,24 @@ class WeakYesterdayRed(WeaK):
 
     def data(self, data, index, code, stock, trend, info):
         d = stock[index + 1]
+        data.append(d[name.OPEN])
+        data.append(d[name.CLOSE])
+        data.append(d[name.HIGH])
+        data.append(d[name.LOW])
         data.append(d[name.INCREASE])
         data.append(d[name.AMPLITUDE])
+        data.append(d[name.VOLUME])
         return data
 
     def columns(self):
         columns = self.file_columns.copy()
+        columns.append(f'y_{name.OPEN}')
+        columns.append(f'y_{name.CLOSE}')
+        columns.append(f'y_{name.HIGH}')
+        columns.append(f'y_{name.LOW}')
         columns.append(f'y_{name.INCREASE}')
         columns.append(f'y_{name.AMPLITUDE}')
+        columns.append(f'y_{name.VOLUME}')
         return columns
 
 
@@ -222,7 +231,7 @@ class TodayRedBeforeBlackDown(Base):
         if self.corr is None:
             return False
 
-        d = stock.iloc[:, 1:self.corr[0]+1]
+        d = stock.iloc[:, 1:self.corr[0] + 1]
 
         for i in d.columns:
             v = d[i]
