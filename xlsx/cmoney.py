@@ -227,6 +227,9 @@ class year():
             for column in self.dataColumns:
                 file = os.path.join(path, column, f'{year}.xlsx')
 
+                if os.path.exists(file) == False:
+                    continue
+
                 logging.info(f'read: {file}...')
 
                 for i, rows in pd.read_excel(file).iterrows():
@@ -258,10 +261,10 @@ class year():
     def output(self, path):
         logging.info('save start')
 
-        for name, dates in self.data.items():
+        for f_name, dates in self.data.items():
             i = 0
             data = {}
-            filePath = os.path.join(path, name) + ".csv"
+            filePath = os.path.join(path, f_name) + ".csv"
             ck = list(dates[list(dates.keys())[0]].keys())
             index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
 
@@ -272,6 +275,10 @@ class year():
                     if c not in codes:
                         [values.append(np.nan) for _ in self.columns]
                     else:
+                        close = codes[c][name.CLOSE]
+                        open = codes[c][name.OPEN]
+                        codes[c][name.D_INCREASE] = round(((close - open) / open) * 100, 2)
+
                         [values.append(v) for n, v in codes[c].items()]
 
                 data[i] = values
@@ -279,6 +286,6 @@ class year():
 
             pd.DataFrame(data, index=index).to_csv(filePath)
 
-            logging.info(f'save {name}')
+            logging.info(f'save {f_name}')
 
         logging.info('save end')

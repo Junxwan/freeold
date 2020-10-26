@@ -22,6 +22,9 @@ LOW = 'low'
 # 漲幅
 INCREASE = 'increase'
 
+# 日漲幅
+D_INCREASE = 'd_increase'
+
 # 震幅
 AMPLITUDE = 'amplitude'
 
