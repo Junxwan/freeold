@@ -1,6 +1,7 @@
 import glob
 import os
 import time
+import logging
 import pandas as pd
 import pyautogui
 from datetime import datetime
@@ -163,12 +164,15 @@ class Tick():
         return True
 
     def close_execl(self):
-        self.windown_name = {}
-        win32gui.EnumWindows(self.get_all_hwnd, 0)
+        try:
+            self.windown_name = {}
+            win32gui.EnumWindows(self.get_all_hwnd, 0)
 
-        for index, name in self.windown_name.items():
-            if len(name.split('Excel')) == 2:
-                win32gui.PostMessage(index, win32con.WM_QUIT, 0, 0)
+            for index, name in self.windown_name.items():
+                if len(name.split('Excel')) == 2:
+                    win32gui.PostMessage(index, win32con.WM_QUIT, 0, 0)
+        except Exception as e:
+            logging.error(e)
 
     def get_all_hwnd(self, hwnd, mouse):
 
