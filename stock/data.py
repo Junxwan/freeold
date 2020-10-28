@@ -684,6 +684,7 @@ class Query():
         'weak': {
             'all': query.WeaK(),
             'yesterday_red': query.WeakYesterdayRed(),
+            'yesterday_red_d_increase_1_5': query.WeakYesterdayRedDIncrease1_5(),
             'today_red_before_black_down': query.WeakTodayRedBeforeBlackDown(),
             'today_red_before_black_down_4': query.WeakTodayRedBeforeBlackDown(day=4)
         },
@@ -751,7 +752,8 @@ class Query():
                     index,
                     code,
                     value,
-                    self._trend.code(code, date),
+                    # self._trend.code(code, date),
+                    None,
                     self._stock.info(code),
                     pattern=pattern
                 )

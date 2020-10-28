@@ -172,6 +172,13 @@ class WeakYesterdayRed(WeaK):
         columns.append(f'y_{name.VOLUME}')
         return columns
 
+# 弱勢股-昨天紅-當日上漲大於等於1.5%
+class WeakYesterdayRedDIncrease1_5(WeakYesterdayRed):
+    def run(self, index, code, stock, trend, info) -> bool:
+        if WeakYesterdayRed.run(self, index, code, stock, trend, info):
+            return stock[index + 1][name.D_INCREASE] >= 1.5
+        return False
+
 
 # 1. 弱勢股-昨天紅
 # 2. 前天之前是下降趨勢(連黑)
