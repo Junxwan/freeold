@@ -119,7 +119,7 @@ def statistics(result_path, max=None, min=0.0, lw=1.0):
                            f"{os.path.basename(result_path).split('.')[0]}_statistics") + '.csv', index=False)
 
 
-NAME = 'weak_increase'
+NAME = 'weak_red_increase'
 data_path = os.path.abspath(dict(config['path'])['data'])
 
 stock = data.Stock(os.path.join(data_path, 'csv', 'stock'))
