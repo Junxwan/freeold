@@ -104,9 +104,25 @@ class stock(Trend):
                 emy.append(code)
                 continue
 
+            group = pd.DataFrame(tData).groupby(by='time')
+
+            trend = []
+
+            if group.groups[tData[0]['time']].size > 1:
+                for index, value in group:
+                    trend.append({
+                        name.TIME: int(value[name.TIME].iloc[0]),
+                        name.CLOSE: value[name.CLOSE].iloc[-1],
+                        name.VOLUME: int(value[name.VOLUME].sum()),
+                        name.HIGH: value[name.HIGH].iloc[-1],
+                        name.LOW: value[name.LOW].iloc[-1],
+                    })
+            else:
+                trend = tData
+
             date = datetime.fromtimestamp(tData[0]['time']).date().__str__()
 
-            if self.save(tData, code, date, filePath):
+            if self.save(trend, int(code), date, filePath):
                 ok += 1
                 logging.info(f'code: {code} date: {date} save trend - {str(count)}')
             else:
