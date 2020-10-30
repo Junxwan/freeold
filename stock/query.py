@@ -35,10 +35,15 @@ class Base():
 
     ys = None
 
+    len = 90
+
     def __init__(self):
         self.pattern = data.Pattern()
 
     def execute(self, index, code, stock, trend, info, pattern=None, check_offset_day=0):
+        if stock.shape[1] < 90:
+            return None
+
         self.stock = stock
         self.trend = trend
         self.pattern_model = pattern
@@ -171,6 +176,7 @@ class WeakYesterdayRed(WeaK):
         columns.append(f'y_{name.AMPLITUDE}')
         columns.append(f'y_{name.VOLUME}')
         return columns
+
 
 # 弱勢股-昨天紅-當日上漲大於等於1.5%
 class WeakYesterdayRedDIncrease1_5(WeakYesterdayRed):
