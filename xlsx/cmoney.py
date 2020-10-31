@@ -120,8 +120,10 @@ class Tick():
 
             if d.empty == False:
                 d = d.dropna()
-                open.append(d.iloc[0][name.PRICE])
-                avg.append(d.iloc[-1][name.AVG])
+
+                if d.empty == False:
+                    open.append(d.iloc[0][name.PRICE])
+                    avg.append(d.iloc[-1][name.AVG])
 
         [avg.append(np.nan) for _ in range(len(trend.loc[name.TIME]) - len(avg))]
         [open.append(np.nan) for _ in range(len(trend.loc[name.TIME]) - len(open))]
