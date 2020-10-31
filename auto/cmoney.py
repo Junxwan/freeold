@@ -38,7 +38,7 @@ class Tick():
         pyautogui.write(name)
         time.sleep(1)
         pyautogui.press('enter')
-        time.sleep(9)
+        time.sleep(7)
 
     def move_date(self, date, year=None, month=None):
         (m, x, y) = d.calendar_xy(date, year, month)
@@ -51,6 +51,10 @@ class Tick():
 
         pyautogui.click(3255 + (75 * x), 532 + (48 * y))
         time.sleep(2)
+
+        # id = win32gui.FindWindow(None, '理財寶籌碼k線1.20.1007.3(正式版)')
+        # if id > 0:
+        #     win32gui.PostMessage(id, win32con.WM_QUIT, 0, 0)
 
     def run(self, code, date):
         # 根據單一檔案 <path>/2020-08-14.csv
@@ -125,56 +129,29 @@ class Tick():
         name = f'{date}-{code}'
         file = os.path.join(self.dir, name) + '.xlsx'
 
-        if (os.path.exists(file)) | (os.path.exists(os.path.join(self.csv_dir, date, code) + '.csv')):
+        if (os.path.exists(file)) | (os.path.exists(os.path.join(self.csv_dir, date, code) + '.csv')) | (
+                os.path.exists(os.path.join(self.dir, date[:4], name) + '.csv')):
             return True
 
         self._to_execl(code, name)
 
-        if os.path.exists(file) == False:
-            self.close_execl()
+        id = self.find_excel(name)
 
+        if id == 0:
             time.sleep(10)
+            id = self.find_excel(name)
 
-            if os.path.exists(file):
-                return True
-
-            self._to_execl(code, name)
-            time.sleep(7)
-
-            sa1 = win32gui.FindWindow(None, '確認另存新檔')
-            if sa1 > 0:
-                win32gui.PostMessage(sa1, win32con.WM_QUIT, 0, 0)
-                time.sleep(20)
-
-            if os.path.exists(file) == False:
-                raise FileNotFoundError(file)
+        if id > 0:
+            win32gui.PostMessage(id, win32con.WM_QUIT, 0, 0)
+        else:
+            logging.info(f"{name} 404")
 
         return True
 
     def _get(self, date, codes) -> bool:
-        i = 0
         for code in codes:
             self._get_code(date, str(code))
-
-            i += 1
-
-            if i % 10 == 0:
-                self.close_execl()
-
         return True
 
-    def close_execl(self):
-        try:
-            self.windown_name = {}
-            win32gui.EnumWindows(self.get_all_hwnd, 0)
-
-            for index, name in self.windown_name.items():
-                if len(name.split('Excel')) == 2:
-                    win32gui.PostMessage(index, win32con.WM_QUIT, 0, 0)
-        except Exception as e:
-            logging.error(e)
-
-    def get_all_hwnd(self, hwnd, mouse):
-
-        if win32gui.IsWindow(hwnd) and win32gui.IsWindowEnabled(hwnd) and win32gui.IsWindowVisible(hwnd):
-            self.windown_name.update({hwnd: win32gui.GetWindowText(hwnd)})
+    def find_excel(self, name):
+        return win32gui.FindWindow(None, f"{name} - Excel")
