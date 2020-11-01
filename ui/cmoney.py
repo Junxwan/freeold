@@ -242,6 +242,27 @@ class StockIndustry(ui.process):
         crawler.Industry().run(self.output.get())
         self.showSuccess()
 
+class StockConcept(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.output = tk.StringVar()
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda: self.output.set(ui.openDir())
+        ).place(x=w * 50, y=10)
+
+        self.addRunBtn(master)
+
+    def run(self):
+        crawler.Concept().run(self.output.get())
+        self.showSuccess()
+
 
 # 抓取trend
 class stock(Trend):

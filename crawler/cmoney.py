@@ -224,6 +224,35 @@ class Industry():
         )
 
 
+# 概念股
+class Concept():
+    def run(self, output):
+        resp = requests.get('https://www.moneydj.com/z/zg/zge_EH000237_1.djhtm')
+        resp.encoding = 'big5'
+
+        for value in BeautifulSoup(resp.text, 'html.parser').find_all('option'):
+            if value.text == '1日':
+                break
+
+            resp = requests.get(f"https://www.moneydj.com/z/zg/zge_{value.attrs['value']}_1.djhtm")
+            resp.encoding = 'big5'
+            time.sleep(1)
+
+            stock = []
+            for td in BeautifulSoup(resp.text, 'html.parser').find_all('td', id='oAddCheckbox'):
+                if len(td.contents) == 1:
+                    continue
+
+                v = td.contents[1].contents[0].split("'")
+                stock.append([v[1][2:], v[3]])
+
+            logging.info(value.text)
+
+            pd.DataFrame(stock, columns=['code', 'name']).to_csv(
+                os.path.join(output, value.text.replace('/', '_')) + '.csv', encoding="utf_8_sig", index=False,
+            )
+
+
 class api():
     def __init__(self):
         s = requests.session()

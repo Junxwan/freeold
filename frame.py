@@ -130,8 +130,11 @@ class main():
         btn = tk.Button(self.btnGroupFrame, text='市場', command=lambda: self.switchArg(cmoney.market))
         btn.place(x=5, y=self.h * 6)
 
-        btn = tk.Button(self.btnGroupFrame, text='個股產業清單', command=lambda: self.switchArg(cmoney.StockIndustry))
+        btn = tk.Button(self.btnGroupFrame, text='個股產業股', command=lambda: self.switchArg(cmoney.StockIndustry))
         btn.place(x=5, y=self.h * 12)
+
+        btn = tk.Button(self.btnGroupFrame, text='個股概念股', command=lambda: self.switchArg(cmoney.StockConcept))
+        btn.place(x=5, y=self.h * 18)
 
         self.setLog('data')
 
