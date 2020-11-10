@@ -6,8 +6,7 @@ import glob
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from . import query, name
-from scipy.interpolate import UnivariateSpline
+from . import query, name, weak, pattern
 
 # 日期
 DATE = name.DATE
@@ -182,7 +181,6 @@ class Stock():
     def __init__(self, dir):
         self.dir = dir
         self.dk = {}
-        self._pattern = Pattern()
 
         if self.stock.empty:
             self.stock = pd.read_csv(os.path.join(dir, INFO_FILE_NAME) + '.csv')
@@ -739,18 +737,8 @@ class TrendData():
 
 class Query():
     q = {
-        'weak': {
-            'all': query.WeaK(),
-            'yesterday_red': query.WeakYesterdayRed(),
-            'yesterday_red_d_increase_1_5': query.WeakYesterdayRedDIncrease1_5(),
-        },
-        'pattern': {
-            'left_head': query.LeftHead(),
-            'left_head_near_right': query.LeftHeadNearRight(),
-            'left_head_first_breakthrough': query.LeftHeadFirstBreakthrough(),
-            'decline': query.Decline(),
-            'platform': query.Platform(),
-        },
+        'weak': weak.LIST,
+        'pattern': pattern.LIST,
     }
 
     def __init__(self, csv_dir, stock=None):
