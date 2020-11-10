@@ -281,32 +281,6 @@ class Stock():
     def qDate(self, code=2330):
         return self.data.loc[code].loc[DATE]
 
-    def pattern(self, d1, d2, y, date=None, similarity=1, codes=None):
-        result = []
-        data = self.query(date, False)
-        dates = data.loc[2330].loc[name.DATE]
-        di = dates.index[0]
-        ys = self._pattern.ys(d1, d2, y)
-
-        if codes is None:
-            codes = data.index.levels[0].tolist()
-
-        for code in codes:
-            logging.info(f"{code} - {date} - pattern")
-
-            r = self._pattern.corr_coef(data.loc[code], d1, d2, ys, similarity)
-
-            if r is None:
-                continue
-
-            result.append([code, self.info(code)['name'], dates[di + r[0] - 1], date, r[1], r[2], r[3]])
-
-        logging.info(f"total: {len(result)}")
-
-        return pd.DataFrame(
-            result, columns=[name.CODE, name.NAME, name.START_DATE, name.END_DATE, name.SIMILARITY, name.LINE, name.MA]
-        ).sort_values(by='similarity', ascending=False)
-
 
 class Dealer():
     def __init__(self, dir):
@@ -763,52 +737,12 @@ class TrendData():
         return self._x_pos
 
 
-class Pattern():
-    def corr_coef(self, data, d1, d2, ys, similarity):
-        ma = data.loc[name.CLOSE].iloc[::-1].rolling(self.lw(d2)).mean().round(2).iloc[::-1][:d2]
-        s = dict()
-        for i in range((d2 + 1) - d1):
-            i = d1 + i
-            v = np.corrcoef(ma[:i].iloc[::-1].tolist(), ys[i])[0][1]
-
-            if v >= similarity:
-                s[i] = v
-
-        if len(s) > 0:
-            p = pd.Series(s)
-            i = p.idxmax()
-            return [i, round(p.max(), 4), ys[i].tolist(), ma[:i].iloc[::-1].tolist()]
-
-        return None
-
-    def ys(self, d1, d2, y):
-        ys = dict()
-        for i in range((d2 + 1) - d1):
-            ys[d1 + i] = self.spline(y, d1 + i)
-        return ys
-
-    def spline(self, y, l):
-        new_indices = np.linspace(0, len(y) - 1, l)
-        spl = UnivariateSpline(np.arange(0, len(y)), y, k=3, s=0)
-        return np.around(spl(new_indices).tolist(), decimals=2)
-
-    def lw(self, max):
-        if max >= 40:
-            return 5
-        return 2
-
-
 class Query():
     q = {
         'weak': {
             'all': query.WeaK(),
             'yesterday_red': query.WeakYesterdayRed(),
             'yesterday_red_d_increase_1_5': query.WeakYesterdayRedDIncrease1_5(),
-            'today_red_before_black_down': query.WeakTodayRedBeforeBlackDown(),
-            'today_red_before_black_down_4': query.WeakTodayRedBeforeBlackDown(day=4)
-        },
-        'down': {
-            'red_black_down_recent_2_black': query.TodayRedBeforeBlackDown()
         },
         'pattern': {
             'left_head': query.LeftHead(),
@@ -827,7 +761,7 @@ class Query():
 
         self._trend = Trend(csv_dir)
 
-    def run(self, start, strategy, end=None, codes=None, pattern=None, is_save=True):
+    def run(self, start, strategy, end=None, codes=None, is_save=True):
         name = os.path.normcase(strategy).split('strategy' + os.path.sep)[1]
         q = name.split(os.path.sep)
         query = self.q[q[-2]]
@@ -851,13 +785,6 @@ class Query():
         if stock.ndim == 1:
             stock = pd.DataFrame(stock)
 
-        if pattern is None:
-            pattern_path = os.path.join(strategy, 'pattern') + '.csv'
-            if os.path.exists(pattern_path) == False:
-                pattern = None
-            else:
-                pattern = pd.read_csv(pattern_path).dropna(axis=1).iloc[0][1:].astype(float).tolist()
-
         if end is None or end == '':
             range = enumerate([stock.columns[0]])
         else:
@@ -880,8 +807,7 @@ class Query():
                     value,
                     # self._trend.code(code, date),
                     None,
-                    self._stock.info(code),
-                    pattern=pattern
+                    self._stock.info(code)
                 )
 
                 if r is not None:
