@@ -227,6 +227,7 @@ class Industry():
 # 概念股
 class Concept():
     def run(self, output):
+        list = []
         resp = requests.get('https://www.moneydj.com/z/zg/zge_EH000237_1.djhtm')
         resp.encoding = 'big5'
 
@@ -247,10 +248,15 @@ class Concept():
                 stock.append([v[1][2:], v[3]])
 
             logging.info(value.text)
+            list.append(value.text)
 
             pd.DataFrame(stock, columns=['code', 'name']).to_csv(
                 os.path.join(output, value.text.replace('/', '_')) + '.csv', encoding="utf_8_sig", index=False,
             )
+
+        pd.DataFrame(list, columns=['name']).to_csv(
+            os.path.join(output, 'concept') + '.csv', encoding="utf_8_sig", index=False,
+        )
 
 
 class api():
