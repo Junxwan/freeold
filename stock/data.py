@@ -54,6 +54,125 @@ STOCK_COLUMNS = [
     'status'
 ]
 
+_tick_level = [50, 25, 10, 7.5, 5, 2.5, 1, 0.5, 0.25, 0.1, 0.05]
+
+
+# 股價tick
+def get_tick(close):
+    if close >= 1000:
+        return 5
+    elif close >= 500:
+        return 1
+    elif close >= 100:
+        return 0.5
+    elif close >= 50:
+        return 0.1
+    elif close >= 10:
+        return 0.05
+    else:
+        return 0.01
+
+
+# 股價區間內小數點
+def get_len(close):
+    if close < 50:
+        return 2
+    elif close < 500:
+        return 1
+
+    return 0
+
+
+# 漲停價
+def get_max(close):
+    # 漲停價為昨日收盤價上漲10%
+    max = round(close * 1.1, get_len(close))
+    mc = close
+
+    # 由於漲幅會受到股價不同區間而tick不同，
+    # 所以在計算股價時如果有跨區間時tick不同會造成計算漲幅超過10%
+    # 如昨日收盤價51.2，跌停為46.1，漲停為56.3，但tick跨越0.05跟0.1
+    # 到了50元股價就不能用0.05來計算否則會超過10%限制
+    while True:
+        t = get_tick(mc)
+
+        if max <= mc:
+            if round((((mc / close) - 1) * 100), 2) > 10:
+                max = mc - t
+
+            max = round(max, get_len(max))
+            break
+
+        mc = mc + t
+        mc = round(mc, get_len(mc))
+
+    return max
+
+
+# 跌停價
+def get_min(close):
+    # 跌停價為昨日收盤價下跌10%
+    min = round(close * 0.9, get_len(close))
+    mc = close
+
+    # 由於漲幅會受到股價不同區間而tick不同，
+    # 所以在計算股價時如果有跨區間時tick不同會造成計算漲幅超過10%
+    # 如昨日收盤價51.2，跌停為46.1，漲停為56.3，但tick跨越0.05跟0.1
+    # 到了50元股價就不能用0.05來計算否則會超過10%限制
+    while True:
+        t = get_tick(mc)
+
+        if min >= mc:
+            if round(((mc / close) - 1) * -100, 2) > 10:
+                min = mc + t
+
+            min = round(min, get_len(min))
+            break
+
+        mc = mc - t
+        mc = round(mc, get_len(mc))
+
+    return min
+
+
+# 該股價區間的y軸價格
+def tick(y_max, y_min):
+    diff = y_max - y_min
+    tick = _tick_level[0]
+
+    for i, t in enumerate(_tick_level):
+        d = (diff / t)
+        if d > 10:
+            tick = t
+            break
+    return tick
+
+
+# 該股價區間所有y軸價格
+def ticks(y_max, y_min):
+    diff = y_max - y_min
+    tick = _tick_level[0]
+
+    for i, t in enumerate(_tick_level):
+        d = (diff / t)
+        if d > 10:
+            tick = t
+            break
+
+    start = (y_min - (y_min % tick)) - tick
+    ticks = []
+
+    for i in range(30):
+        p = start + (tick * i)
+        ticks.append(start + (tick * i))
+
+        if p > y_max:
+            ticks.insert(0, start - tick)
+            ticks.append(p + tick)
+            break
+
+    return ticks
+
 
 class Stock():
     data = pd.DataFrame()
@@ -690,7 +809,10 @@ class Query():
         },
         'down': {
             'red_black_down_recent_2_black': query.TodayRedBeforeBlackDown()
-        }
+        },
+        'pattern': {
+            'left_head': query.LeftHead(),
+        },
     }
 
     def __init__(self, csv_dir, stock=None):
