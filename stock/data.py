@@ -812,6 +812,10 @@ class Query():
         },
         'pattern': {
             'left_head': query.LeftHead(),
+            'left_head_near_right': query.LeftHeadNearRight(),
+            'left_head_first_breakthrough': query.LeftHeadFirstBreakthrough(),
+            'decline': query.Decline(),
+            'platform': query.Platform(),
         },
     }
 

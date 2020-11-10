@@ -309,9 +309,6 @@ class LeftHead(Base):
     def run(self, index, code, stock, trend, info) -> bool:
         price = stock.iloc[:, :90]
 
-        if self.isMax(price):
-            return False
-
         _high = 0
         _low = price.iloc[:, 0].loc[name.CLOSE]
         increase = self.get_increase(price)
@@ -322,6 +319,12 @@ class LeftHead(Base):
 
         for index, value in price.items():
             close = value[name.CLOSE]
+            open = value[name.OPEN]
+
+            if close > open:
+                high = close
+            else:
+                high = open
 
             # 創新低
             if _low > close:
@@ -329,40 +332,28 @@ class LeftHead(Base):
                 flag = 1
 
             # 創新低之後開始反彈達某漲幅
-            if flag == 1 and (close - _low) >= increase:
+            if flag == 1 and (high - _low) >= increase:
                 flag = 2
-                _high = close
+                _high = high
                 self.leftBar = index
 
             # 開始反彈又創高
-            if flag == 2 and close > _high:
-                _high = close
+            if flag == 2 and high > _high:
+                _high = high
                 self.leftBar = index
 
             # 反彈後又回檔達某漲幅
-            if (_high - close) >= increase and index - self.leftBar > 3:
+            if (_high - high) >= increase and index - self.leftBar > 3:
                 self.leftBottomBar = index
                 break
 
-        if self.leftBar == 0 or self.leftBottomBar == 0:
+        if self.leftBar == 0 | self.leftBottomBar == 0:
+            return False
+
+        if stock[self.leftBar].loc[name.CLOSE] <= stock[self.rightBar].loc[name.CLOSE]:
             return False
 
         return True
-
-    # (1)收盤價大於(2)高點(黑k的開盤價,紅k的收盤價)
-    def isMax(self, data):
-        closeMax = data.loc[name.CLOSE].max()
-        openMax = data.loc[name.OPEN].max()
-
-        if closeMax > openMax:
-            max = closeMax
-        else:
-            max = openMax
-
-        if data.iloc[:, 0][name.CLOSE] >= max:
-            return True
-
-        return False
 
     # 左頭部漲幅
     def get_increase(self, price):
@@ -383,5 +374,204 @@ class LeftHead(Base):
     def columns(self):
         columns = self.file_columns.copy()
         for c in ['right_date', 'left_date', 'left_bottom_date']:
+            columns.append(c)
+        return columns
+
+
+#
+# 接近左頭
+#
+#     * * * * * (2)
+#    *         *                                    * (1)
+#   *           *                                 *
+#  *             *                              *
+# * (3)           *                           *
+#                  *                        *
+#                   *                     *
+#                     *                 *
+#                       * * * * * * * *
+#
+class LeftHeadNearRight(LeftHead):
+    def run(self, index, code, stock, trend, info) -> bool:
+        if LeftHead.run(self, index, code, stock, trend, info) == False:
+            return False
+
+        if round(stock[self.rightBar].loc[name.CLOSE] * 1.06, 2) < stock[self.leftBar].loc[name.CLOSE]:
+            return False
+
+        return True
+
+
+#
+# 股價今日突破左頭
+#
+#                                                       * (1)
+#     * * * * * (2)                                   *
+#    *         *                                    *
+#   *           *                                 *
+#  *             *                              *
+# * (3)           *                           *
+#                  *                        *
+#                   *                     *
+#                     *                 *
+#                       * * * * * * * *
+#
+class LeftHeadFirstBreakthrough(LeftHead):
+    def run(self, index, code, stock, trend, info) -> bool:
+        if LeftHead.run(self, index, code, stock.iloc[:, 1:], trend, info) == False:
+            return False
+
+        self.rightBar -= 1
+
+        if stock[self.rightBar].loc[name.CLOSE] < stock[self.leftBar].loc[name.CLOSE]:
+            return False
+
+        return True
+
+
+# 下降
+#
+#
+#  * * * * * (3)
+#            *
+#              *
+#                *
+#                  * * * * * (2)
+#                           *
+#                            *
+#                             *
+#                              * * * * * * * * (1)
+#
+# 1. 當前高點(黑k的開盤價,紅k的收盤價)必須大於前五期高點(黑k的開盤價,紅k的收盤價)
+# 2. 當前高點跟前五期高點必須達到某幅度
+# 3. 如果上述不成立則前五期改為前十期
+#
+class Decline(Base):
+    def run(self, index, code, stock, trend, info) -> bool:
+        price = stock.iloc[:, :90]
+
+        self.rightBar = price.columns[0]
+        self.leftBar = 0
+        t = data.tick(price.loc[name.HIGH].max(), price.loc[name.LOW].min())
+        increase = (t / 2)
+
+        for index, value in price.items():
+            close = value[name.CLOSE]
+            open = value[name.OPEN]
+
+            if close > open:
+                high = close
+            else:
+                high = open
+
+            i = index + 5
+            v = price[i]
+            v_close = v[name.CLOSE]
+            v_open = v[name.OPEN]
+
+            if v_close > v_open:
+                v_high = v_close
+            else:
+                v_high = v_open
+
+            if v_high <= high and round(v_high - high, 2) < increase:
+                i = index + 10
+                v = price[i]
+                v_close = v[name.CLOSE]
+                v_open = v[name.OPEN]
+
+                if v_close > v_open:
+                    v_high = v_close
+                else:
+                    v_high = v_open
+
+                if round(v_high - high, 2) < increase * 0.7:
+                    break
+
+            self.leftBar = i
+
+        if self.leftBar == 0:
+            return False
+
+        d = price.iloc[:, :self.leftBar - self.rightBar + 1]
+
+        if d.loc[name.CLOSE].max() > d.loc[name.OPEN].max():
+            self.leftBar = d.loc[name.CLOSE].astype(float).idxmax()
+        else:
+            self.leftBar = d.loc[name.OPEN].astype(float).idxmax()
+
+        return True
+
+    def data(self, data, index, code, stock, trend, info):
+        data.append(stock[self.rightBar].loc[name.DATE])
+        data.append(stock[self.leftBar].loc[name.DATE])
+        return data
+
+    def columns(self):
+        columns = self.file_columns.copy()
+        for c in ['right_date', 'left_date']:
+            columns.append(c)
+        return columns
+
+
+# 盤整
+#
+# * * * * * * * * * * * * *
+# *                       *
+# *                       *
+# *                       *
+# * * * * * * * * * * * * *
+#
+#
+class Platform(Base):
+    def run(self, index, code, stock, trend, info) -> bool:
+        price = stock.iloc[:, :90]
+
+        self.rightBar = price.columns[0]
+        self.leftBar = 0
+        _highs = []
+        _lows = []
+        l = 5
+
+        ts = data.ticks(price.loc[name.HIGH].max(), price.loc[name.LOW].min())
+        t = data.tick(price.loc[name.HIGH].max(), price.loc[name.LOW].min())
+        if len(ts) < 20:
+            increase = t * 2
+        else:
+            increase = t * 3
+
+        for index, value in price.items():
+            close = value[name.CLOSE]
+            open = value[name.OPEN]
+
+            if close > open:
+                _highs.insert(0, close)
+                _lows.insert(0, open)
+            else:
+                _highs.insert(0, open)
+                _lows.insert(0, close)
+
+            if len(_highs) > l:
+                if max(_highs) - min(_highs) > increase:
+                    break
+
+                if max(_lows) - min(_lows) > increase:
+                    break
+
+                self.leftBar = index
+
+        if self.leftBar == 0:
+            return False
+
+        return True
+
+    def data(self, data, index, code, stock, trend, info):
+        data.append(stock[self.rightBar].loc[name.DATE])
+        data.append(stock[self.leftBar].loc[name.DATE])
+        return data
+
+    def columns(self):
+        columns = self.file_columns.copy()
+        for c in ['right_date', 'left_date']:
             columns.append(c)
         return columns
