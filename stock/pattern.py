@@ -1,4 +1,4 @@
-from . import name, data, query, weak
+from . import name, data, query
 
 
 # 左頭
@@ -21,6 +21,8 @@ from . import name, data, query, weak
 # 6. (3)必須是(2)與(3)之間的最低點(黑k的收盤價,紅k的開盤價)
 #
 class LeftHead(query.Base):
+    cs = ['right_date', 'left_date', 'left_bottom_date']
+
     def run(self, index, code, stock, trend, info) -> bool:
         price = stock.iloc[:, :90]
 
@@ -59,13 +61,27 @@ class LeftHead(query.Base):
 
             # 反彈後又回檔達某漲幅
             if (_high - high) >= increase and index - self.leftBar > 3:
-                self.leftBottomBar = index
+                left = stock[self.leftBar]
+
+                if left.loc[name.CLOSE] > left.loc[name.OPEN]:
+                    p = left.loc[name.CLOSE]
+                else:
+                    p = left.loc[name.OPEN]
+
+                if p <= stock[self.rightBar].loc[name.CLOSE]:
+                    continue
+
+                i = self.leftBar - self.rightBar
+                p = price.iloc[:, i:index - self.leftBar + 1 + i]
+
+                if p.loc[name.CLOSE].min() > p.loc[name.OPEN].min():
+                    self.leftBottomBar = p.loc[name.OPEN].astype(float).idxmin()
+                else:
+                    self.leftBottomBar = p.loc[name.CLOSE].astype(float).idxmin()
+
                 break
 
-        if self.leftBar == 0 | self.leftBottomBar == 0:
-            return False
-
-        if stock[self.leftBar].loc[name.CLOSE] <= stock[self.rightBar].loc[name.CLOSE]:
+        if self.leftBar == 0 or self.leftBottomBar == 0:
             return False
 
         return True
@@ -88,7 +104,7 @@ class LeftHead(query.Base):
 
     def columns(self):
         columns = self.file_columns.copy()
-        for c in ['right_date', 'left_date', 'left_bottom_date']:
+        for c in self.cs:
             columns.append(c)
         return columns
 
@@ -137,8 +153,14 @@ class LeftHeadFirstBreakthrough(LeftHead):
             return False
 
         self.rightBar -= 1
+        d = stock[self.leftBar]
 
-        if stock[self.rightBar].loc[name.CLOSE] < stock[self.leftBar].loc[name.CLOSE]:
+        if d.loc[name.CLOSE] > d.loc[name.OPEN]:
+            left_high = d.loc[name.CLOSE]
+        else:
+            left_high = d.loc[name.OPEN]
+
+        if stock[self.rightBar].loc[name.CLOSE] <= left_high:
             return False
 
         return True
@@ -162,6 +184,8 @@ class LeftHeadFirstBreakthrough(LeftHead):
 # 3. 如果上述不成立則前五期改為前十期
 #
 class Decline(query.Base):
+    cs = ['right_date', 'left_date']
+
     def run(self, index, code, stock, trend, info) -> bool:
         price = stock.iloc[:, :90]
 
@@ -224,7 +248,7 @@ class Decline(query.Base):
 
     def columns(self):
         columns = self.file_columns.copy()
-        for c in ['right_date', 'left_date']:
+        for c in self.cs:
             columns.append(c)
         return columns
 
@@ -239,6 +263,8 @@ class Decline(query.Base):
 #
 #
 class Platform(query.Base):
+    cs = ['right_date', 'left_date']
+
     def run(self, index, code, stock, trend, info) -> bool:
         price = stock.iloc[:, :90]
 
