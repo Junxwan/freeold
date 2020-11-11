@@ -353,6 +353,7 @@ class Watch(SubAxes):
         return {
             'ma': MA(),
             'max_min': MaxMin(),
+            'marker_date': MarkerDate(),
             'range': Range(),
         }
 
@@ -543,6 +544,42 @@ class MaxMin(SubAxes):
 
         if self._min is not None:
             self._min.remove()
+
+
+# 標示日期
+class MarkerDate(SubAxes):
+    name = 'marker_date'
+
+    master_name = NAME
+
+    def __init__(self):
+        SubAxes.__init__(self)
+        self._markerDate = None
+
+    def plot(self, **kwargs):
+        marker = kwargs.get('marker_date')
+
+        if marker is None or len(marker) == 0:
+            return
+
+        dates = self._c_watch.date().tolist()
+        close = self._c_watch.close().tolist()
+        open = self._c_watch.open().tolist()
+        y_data = np.full(len(dates), np.nan)
+
+        for date in marker:
+            index = dates.index(date)
+            if close[index] > open[index]:
+                y_data[index] = open[index] * 0.99
+            else:
+                y_data[index] = close[index] * 0.99
+
+        self._markerDate = self.axes.scatter(np.arange(len(dates)), y_data, s=700, marker='^', color='#9933FF', alpha=1)
+
+    def _clear(self):
+        if self._markerDate is not None:
+            self._markerDate.remove()
+            self._markerDate = None
 
 
 # 選取範圍

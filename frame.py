@@ -461,6 +461,7 @@ class Watch():
         self.height = self.size.height
         self.dir = ''
         self.type = None
+        self.marker_dates = []
 
         # self.root.attributes('-fullscreen', True)
         self.config = config
@@ -492,10 +493,12 @@ class Watch():
         self.watch.pack()
 
         filename = os.path.join(path, datetime.now().strftime(f"%Y-%m-%d-watch.log"))
-        logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s [%(levelname)s] %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S',
-                            filename=filename)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s [%(levelname)s] %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            filename=filename
+        )
 
     def _mainLayout(self):
         self.watch_frame = tk.Frame(self.root, width=int(self.width * 0.9), height=self.height)
@@ -655,6 +658,11 @@ class Watch():
         else:
             self.end_date_range.set('')
 
+        self.marker_dates = []
+        for c in ['right_date', 'left_date', 'left_bottom_date']:
+            if c in data:
+                self.marker_dates.append(data[c].iloc[0])
+
         if self.type == 'k':
             self._plot_k()
         elif self.type == 'trend':
@@ -690,6 +698,7 @@ class Watch():
 
     def _update_config(self):
         self.plot_config['range'] = [self.start_date_range.get(), self.end_date_range.get()]
+        self.plot_config['marker_date'] = self.marker_dates
 
     def _save_code(self):
         name = self.type_name.get()

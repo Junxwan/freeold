@@ -15,6 +15,7 @@ class KWatch(k.Watch):
         return {
             'ma': MA(),
             'max_min': k.MaxMin(),
+            'marker_date': k.MarkerDate(),
         }
 
 
