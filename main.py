@@ -17,21 +17,6 @@ class app(tk.Tk):
         self.configs = dict(config['path'])
         self.title('股票')
 
-    def readConfig(self):
-        config = os.path.join(self.currentPath, 'config.json')
-
-        if os.path.exists(config):
-            return json.load(open(config, encoding='utf-8'))
-
-        return {
-            'data': '',
-            'json': '',
-            'trend': '',
-            'output': '',
-            'code': '',
-            'open': '',
-        }
-
     def menu(self):
         m = tk.Menu(self)
         fileMenu = tk.Menu(m, tearoff=0)
