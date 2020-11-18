@@ -5,7 +5,7 @@ from . import name, query, pattern
 class All(query.Base):
     check_stocks = [
         [name.OPEN, '>', 10],
-        [name.VOLUME, '>=', 1000],
+        [name.VOLUME, '>=', 500],
         [name.AMPLITUDE, '>=', 3],
         [name.OPEN, '>', name.CLOSE],
     ]
@@ -13,14 +13,16 @@ class All(query.Base):
     sort_key = [name.AMPLITUDE]
 
     def run(self, index, code, stock, trend, info) -> bool:
-        return True
+        return stock.loc[name.VOLUME][:5].mean() > 500
 
 
 # 弱勢股-昨天紅
 class YesterdayRed(All):
     def run(self, index, code, stock, trend, info) -> bool:
-        d = stock[index + 1]
-        return d[name.OPEN] < d[name.CLOSE]
+        if All.run(self, index, code, stock, trend, info):
+            d = stock[index + 1]
+            return d[name.OPEN] < d[name.CLOSE]
+        return False
 
     def data(self, data, index, code, stock, trend, info):
         d = stock[index + 1]

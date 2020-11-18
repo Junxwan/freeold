@@ -785,7 +785,10 @@ class Query():
             date = stock[index].iloc[0]
 
             for code in codes:
-                value = stock.loc[code].iloc[:, index_day:]
+                value = stock.loc[code].iloc[:, index_day:].dropna(axis=1)
+
+                if value.empty or value.columns[0] != index:
+                    continue
 
                 logging.info(f"exec code: {code} date: {date}")
 

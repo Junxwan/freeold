@@ -33,7 +33,7 @@ class Base():
         name.VOLUME
     ]
 
-    len = 90
+    len = 60
 
     def execute(self, index, code, stock, trend, info, check_offset_day=0):
         if stock.shape[1] < self.len:
