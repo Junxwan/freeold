@@ -478,9 +478,18 @@ class KData():
         for d in day:
             if f'{d}ma' not in self._data:
                 column = f'{d}ma'
-                self.set(column, self._data[CLOSE].rolling(d).mean().round(2).values)
+                self.set(column, self._data[name.CLOSE].rolling(d).mean().round(2).values)
 
         return self.get().loc[:, [f'{d}ma' for d in day]]
+
+    # 成交量均線
+    def get_volume_ma(self, day):
+        for d in day:
+            if f'{d}volume_ma' not in self._data:
+                column = f'{d}volume_ma'
+                self.set(column, self._data[name.VOLUME].rolling(d).mean().round(2).values)
+
+        return self.get().loc[:, [f'{d}volume_ma' for d in day]]
 
     # 最高xy座標
     def get_xy_max(self):

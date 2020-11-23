@@ -407,6 +407,14 @@ class Volume(SubAxes):
             ec=mplotting._adjust_color_brightness(colors, 0.90)
         )
 
+        v_ma = self._c_watch.get_volume_ma([5])
+
+        self.line[5] = self.axes.plot(
+            np.arange(len(v_ma)),
+            v_ma,
+            linewidth=1.8
+        )
+
         self._major(volumes)
         self._update_label()
 
