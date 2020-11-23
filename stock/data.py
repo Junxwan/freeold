@@ -213,6 +213,9 @@ class Stock():
         return self.query(start, end)
 
     def yesterday(self, code, date):
+        if code not in self.data.index.levels[0]:
+            return None
+
         data = self.data.loc[code]
         q = data.loc[DATE]
         return data[q[q < date].index[0]]
