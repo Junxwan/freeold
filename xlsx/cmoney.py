@@ -5,7 +5,6 @@ import glob
 import json
 import logging
 import os
-import time
 import openpyxl
 import pandas as pd
 import numpy as np
@@ -268,10 +267,14 @@ class year():
         logging.info('save start')
 
         for f_name, dates in self.data.items():
+            l = {}
+            for k, v in dates.items():
+                l[k] = len(v)
+
             i = 0
             data = {}
             filePath = os.path.join(path, f_name) + ".csv"
-            ck = list(dates[list(dates.keys())[0]].keys())
+            ck = list(dates[list(dates.keys())[list(l.values()).index(max(l.values()))]].keys())
             index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
 
             for date, codes in dates.items():
