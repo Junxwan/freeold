@@ -176,7 +176,7 @@ class day():
         self.date = os.path.basename(file).split('.')[0]
 
         for i, rows in pd.read_excel(file).iterrows():
-            for ii, value in enumerate(rows[2:]):
+            for ii, value in enumerate(rows[2:10]):
                 if pd.isna(value):
                     continue
 
