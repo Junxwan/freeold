@@ -20,12 +20,12 @@ class All(query.Base):
 class YesterdayRed(All):
     def run(self, index, code, stock, trend, info) -> bool:
         if All.run(self, index, code, stock, trend, info):
-            d = stock[index + 1]
+            d = stock[stock.columns[1]]
             return d[name.OPEN] < d[name.CLOSE]
         return False
 
     def data(self, data, index, code, stock, trend, info):
-        d = stock[index + 1]
+        d = stock[stock.columns[1]]
         data.append(d[name.OPEN])
         data.append(d[name.CLOSE])
         data.append(d[name.HIGH])
@@ -53,7 +53,7 @@ class YesterdayRed(All):
 class YesterdayRedDIncrease1_5(YesterdayRed):
     def run(self, index, code, stock, trend, info) -> bool:
         if YesterdayRed.run(self, index, code, stock, trend, info):
-            return stock[index + 1][name.D_INCREASE] >= 1.5
+            return stock[stock.columns[1]][name.D_INCREASE] >= 1.5
         return False
 
 
