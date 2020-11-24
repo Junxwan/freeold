@@ -33,7 +33,7 @@ class TrendHigh10Low11(All):
 
     def run(self, index, code, stock, info) -> bool:
         if All.run(self, index, code, stock, info):
-            date = stock.loc[name.DATE][0]
+            date = stock.loc[name.DATE].iloc[0]
             trend = self.trendQ.code(code, date)
 
             if trend is None:
@@ -41,6 +41,9 @@ class TrendHigh10Low11(All):
 
             trend = trend.dropna(how='all', axis=1)
             trend.loc[name.PRICE] = trend.loc[name.PRICE].astype(float)
+
+            if trend.loc[name.PRICE].dropna().empty:
+                return False
 
             # 當日高點在10點前
             self.max = trend[trend.loc[name.PRICE].astype(float).idxmax()]
