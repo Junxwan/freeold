@@ -40,6 +40,8 @@ class ToCsv():
 
 class StockToCsv(ToCsv):
     def to_csv(self, output):
+        self.stock.readAll()
+
         for date, paths in self.trends.items():
             self._to_csv(date, paths, output)
 
@@ -111,7 +113,6 @@ class StockToCsv(ToCsv):
         codes = sorted(list(stock.keys()))
 
         data = {}
-        self.stock.readAll()
 
         for i in range(270):
             values = []
