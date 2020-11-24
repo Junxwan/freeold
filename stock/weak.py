@@ -54,12 +54,18 @@ class YesterdayRed(All):
         return columns
 
 
-# 弱勢股-走勢圖拉高(10)走低(11)
+# 弱勢股-昨天紅-走勢圖拉高(10)走低(11)
 # 1. 當日高點在10點前
 # 2. 當日11點前低點與當日最高點差距有1%
-class TrendHigh10Low11(All):
+class YesterdayRedTrendHigh10Low11(YesterdayRed):
+    sort_key = ['max_min_diff']
+
+    def __init__(self):
+        self.max = None
+        self.min = None
+
     def run(self, index, code, stock, info) -> bool:
-        if All.run(self, index, code, stock, info):
+        if YesterdayRed.run(self, index, code, stock, info):
             date = stock.loc[name.DATE][0]
             trend = self.trendQ.code(code, date)
 
@@ -70,20 +76,38 @@ class TrendHigh10Low11(All):
             trend.loc[name.PRICE] = trend.loc[name.PRICE].astype(float)
 
             # 當日高點在10點前
-            max = trend[trend.loc[name.PRICE].astype(float).idxmax()]
-            if max.loc[name.TIME] > f'{date} 10:00:00':
+            self.max = trend[trend.loc[name.PRICE].astype(float).idxmax()]
+            if self.max.loc[name.TIME] > f'{date} 10:00:00':
                 return False
 
             # 當日11點前低點與當日最高點差距有1%
             q = trend.loc[name.TIME]
             ts = q[(q >= f'{date} 09:00:00') & (q <= f'{date} 11:00:00')]
             data = trend.loc[:, ts.index[0]:ts.index[-1]]
-            min = trend[data.loc[:, ts.index[0]:ts.index[-1]].loc[name.PRICE].astype(float).idxmin()]
+            self.min = trend[data.loc[:, ts.index[0]:ts.index[-1]].loc[name.PRICE].astype(float).idxmin()]
 
-            if max[name.PRICE] / min[name.PRICE] > 1:
+            if self.max[name.PRICE] / self.min[name.PRICE] > 1:
                 return True
 
         return False
+
+    def data(self, data, index, code, stock, info):
+        data = YesterdayRed.data(self, data, index, code, stock, info)
+        data.append(self.max[name.TIME])
+        data.append(self.max[name.PRICE])
+        data.append(self.min[name.TIME])
+        data.append(self.min[name.PRICE])
+        data.append(round(self.max[name.PRICE] / self.min[name.PRICE], 2))
+        return data
+
+    def columns(self):
+        columns = YesterdayRed.columns(self).copy()
+        columns.append(f'max_{name.TIME}')
+        columns.append(f'max_{name.PRICE}')
+        columns.append(f'min_{name.TIME}')
+        columns.append(f'min_{name.PRICE}')
+        columns.append('max_min_diff')
+        return columns
 
 
 # 弱勢股-昨天紅-當日上漲大於等於1.5%
@@ -215,8 +239,8 @@ class YesterdayRedDIncrease1_5_Platform(query.Base):
 
 LIST = {
     'all': All(),
-    'trend_high10_low11': TrendHigh10Low11(),
     'yesterday_red': YesterdayRed(),
+    'yesterday_red_trend_high10_low11': YesterdayRedTrendHigh10Low11(),
     'yesterday_red_d_increase_1_5': YesterdayRedDIncrease1_5(),
     'yesterday_red_d_increase_1_5_left_head': YesterdayRedDIncrease1_5_LeftHead(),
     'yesterday_red_d_increase_1_5_left_head_near_right': YesterdayRedDIncrease1_5_LeftHeadNearRight(),
