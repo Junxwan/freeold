@@ -21,43 +21,10 @@ class All(query.Base):
         return d.mean() > 500
 
 
-# 弱勢股-昨天紅
-class YesterdayRed(All):
-    def run(self, index, code, stock, info) -> bool:
-        if All.run(self, index, code, stock, info):
-            d = stock[stock.columns[1]]
-            return d[name.OPEN] < d[name.CLOSE]
-        return False
-
-    def data(self, data, index, code, stock, info):
-        d = stock[stock.columns[1]]
-        data.append(d[name.OPEN])
-        data.append(d[name.CLOSE])
-        data.append(d[name.HIGH])
-        data.append(d[name.LOW])
-        data.append(d[name.INCREASE])
-        data.append(d[name.D_INCREASE])
-        data.append(d[name.AMPLITUDE])
-        data.append(d[name.VOLUME])
-        return data
-
-    def columns(self):
-        columns = self.file_columns.copy()
-        columns.append(f'y_{name.OPEN}')
-        columns.append(f'y_{name.CLOSE}')
-        columns.append(f'y_{name.HIGH}')
-        columns.append(f'y_{name.LOW}')
-        columns.append(f'y_{name.INCREASE}')
-        columns.append(f'y_{name.D_INCREASE}')
-        columns.append(f'y_{name.AMPLITUDE}')
-        columns.append(f'y_{name.VOLUME}')
-        return columns
-
-
-# 弱勢股-昨天紅-走勢圖拉高(10)走低(11)
+# 弱勢股-走勢圖拉高(10)走低(11)
 # 1. 當日高點在10點前
 # 2. 當日11點前低點與當日最高點差距有1%
-class YesterdayRedTrendHigh10Low11(YesterdayRed):
+class TrendHigh10Low11(All):
     sort_key = ['max_min_diff']
 
     def __init__(self):
@@ -65,7 +32,7 @@ class YesterdayRedTrendHigh10Low11(YesterdayRed):
         self.min = None
 
     def run(self, index, code, stock, info) -> bool:
-        if YesterdayRed.run(self, index, code, stock, info):
+        if All.run(self, index, code, stock, info):
             date = stock.loc[name.DATE][0]
             trend = self.trendQ.code(code, date)
 
@@ -92,7 +59,6 @@ class YesterdayRedTrendHigh10Low11(YesterdayRed):
         return False
 
     def data(self, data, index, code, stock, info):
-        data = YesterdayRed.data(self, data, index, code, stock, info)
         data.append(self.max[name.TIME])
         data.append(self.max[name.PRICE])
         data.append(self.min[name.TIME])
@@ -101,13 +67,81 @@ class YesterdayRedTrendHigh10Low11(YesterdayRed):
         return data
 
     def columns(self):
-        columns = YesterdayRed.columns(self).copy()
+        columns = self.file_columns.copy()
         columns.append(f'max_{name.TIME}')
         columns.append(f'max_{name.PRICE}')
         columns.append(f'min_{name.TIME}')
         columns.append(f'min_{name.PRICE}')
         columns.append('max_min_diff')
         return columns
+
+
+# 弱勢股-昨天紅
+class YesterdayRed(All):
+    def run(self, index, code, stock, info) -> bool:
+        if All.run(self, index, code, stock, info):
+            return self.isRed(stock)
+
+        return False
+
+    def isRed(self, stock):
+        d = stock[stock.columns[1]]
+        return d[name.OPEN] < d[name.CLOSE]
+
+    def data(self, data, index, code, stock, info):
+        return data + self.get_data(stock)
+
+    def columns(self):
+        return self.file_columns.copy() + self.get_columns()
+
+    def get_data(self, stock):
+        data = []
+        d = stock[stock.columns[1]]
+        data.append(d[name.OPEN])
+        data.append(d[name.CLOSE])
+        data.append(d[name.HIGH])
+        data.append(d[name.LOW])
+        data.append(d[name.INCREASE])
+        data.append(d[name.D_INCREASE])
+        data.append(d[name.AMPLITUDE])
+        data.append(d[name.VOLUME])
+        return data
+
+    def get_columns(self):
+        columns = []
+        columns.append(f'y_{name.OPEN}')
+        columns.append(f'y_{name.CLOSE}')
+        columns.append(f'y_{name.HIGH}')
+        columns.append(f'y_{name.LOW}')
+        columns.append(f'y_{name.INCREASE}')
+        columns.append(f'y_{name.D_INCREASE}')
+        columns.append(f'y_{name.AMPLITUDE}')
+        columns.append(f'y_{name.VOLUME}')
+        return columns
+
+
+# 弱勢股-昨天紅-走勢圖拉高(10)走低(11)
+# 1. 當日高點在10點前
+# 2. 當日11點前低點與當日最高點差距有1%
+class YesterdayRedTrendHigh10Low11(TrendHigh10Low11):
+    sort_key = ['max_min_diff']
+
+    def __init__(self):
+        TrendHigh10Low11.__init__(self)
+        self.yesterday_red = YesterdayRed()
+
+    def run(self, index, code, stock, info) -> bool:
+        if TrendHigh10Low11.run(self, index, code, stock, info):
+            return self.yesterday_red.isRed(stock)
+
+        return False
+
+    def data(self, data, index, code, stock, info):
+        return TrendHigh10Low11.data(self, data, index, code, stock, info) + \
+               self.yesterday_red.get_data(stock)
+
+    def columns(self):
+        return TrendHigh10Low11.columns(self) + self.yesterday_red.get_columns()
 
 
 # 弱勢股-昨天紅-當日上漲大於等於1.5%
@@ -239,6 +273,7 @@ class YesterdayRedDIncrease1_5_Platform(query.Base):
 
 LIST = {
     'all': All(),
+    'trend_high10_low11': TrendHigh10Low11(),
     'yesterday_red': YesterdayRed(),
     'yesterday_red_trend_high10_low11': YesterdayRedTrendHigh10Low11(),
     'yesterday_red_d_increase_1_5': YesterdayRedDIncrease1_5(),

@@ -33,7 +33,7 @@ class Base():
         name.VOLUME
     ]
 
-    len = 60
+    len = 70
 
     trendQ = None
 
