@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+import pandas as pd
 import matplotlib.ticker as mticks
 from . import k
 from stock import data, name
@@ -15,6 +16,7 @@ class Watch(k.SubAxes):
         '高': name.HIGH,
         '低': name.LOW,
         '量': name.VOLUME,
+        '價': name.PRICE
     }
 
     name = NAME
@@ -83,7 +85,6 @@ class Watch(k.SubAxes):
         return {
             name.AVG: Avg(),
             'max_min_text': MaxMinText(),
-            'max_min': MaxMin(),
         }
 
     def _update_label(self):
@@ -196,38 +197,23 @@ class MaxMinText(k.SubAxes):
             self._min.remove()
 
 
-class MaxMin(k.SubAxes):
-    name = 'max_min'
-
-    master_name = NAME
-
-    def plot(self, **kwargs) -> bool:
-        x = self._c_watch.x()
-        y = self._c_watch.y()
-        high = self._c_watch.high().tolist()
-        low = self._c_watch.low().tolist()
-        high.insert(0, y[0])
-        high.insert(1, y[1])
-        low.insert(0, y[0])
-        low.insert(1, y[1])
-
-        self.line[name.HIGH] = self.axes.plot(x, high, linewidth=1, color='red')
-        self.line[name.LOW] = self.axes.plot(x, low, linewidth=1, color='green')
-        return True
-
-
 class Avg(k.SubAxes):
     name = name.AVG
 
     master_name = NAME
 
     def plot(self, **kwargs) -> bool:
-        tick = self._c_watch.avg().tolist()
         y = self._c_watch.y()
-        tick.insert(0, y[0])
-        tick.insert(1, y[1])
+        tick = [y[0], y[1]]
+
+        for i, t in enumerate(self._c_watch.time()):
+            tick.append(self._c_watch.values[t][name.AVG])
+
+            if pd.isna(self._c_watch.values[t][name.PRICE_1]) == False:
+                tick.append(self._c_watch.values[t][name.AVG])
 
         self.line[self.name] = self.axes.plot(self._c_watch.x(), tick, linewidth=1, color='#FF00FF')
+
         return True
 
 

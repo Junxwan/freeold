@@ -7,15 +7,16 @@ import logging
 import os
 import pandas as pd
 import numpy as np
-from stock import name
+from stock import name, data
 
 
 class ToCsv():
     columns = [name.TIME, name.PRICE, name.VOLUME, 'max', 'min']
 
-    def __init__(self, dir):
+    def __init__(self, dir, stock_path):
         self.dir = dir
         self.trends = {}
+        self.stock = data.Stock(stock_path)
 
         trend_files = glob.glob(os.path.join(dir, '*.json'))
         if len(trend_files) == 0:
@@ -43,7 +44,11 @@ class StockToCsv(ToCsv):
             self._to_csv(date, paths, output)
 
     def _to_csv(self, date, paths, output):
-        columns = [name.TIME, name.OPEN, name.CLOSE, name.VOLUME, name.HIGH, name.LOW, name.AVG]
+        columns = [
+            name.TIME, name.OPEN, name.CLOSE, name.VOLUME, name.HIGH, name.LOW, name.PRICE,
+            name.PRICE_1, name.AVG
+        ]
+
         file = os.path.join(output, date) + '.csv'
         names = ['code', 'name']
 
@@ -93,26 +98,124 @@ class StockToCsv(ToCsv):
 
         for code, rows in stock.items():
             stock[code][0][name.OPEN] = np.nan
+            stock[code][0][name.PRICE] = np.nan
+            stock[code][0][name.PRICE_1] = np.nan
             stock[code][0][name.AVG] = np.nan
 
             for i, value in enumerate(rows[1:]):
                 stock[code][i + 1][name.OPEN] = np.nan
+                stock[code][i + 1][name.PRICE] = np.nan
+                stock[code][i + 1][name.PRICE_1] = np.nan
                 stock[code][i + 1][name.AVG] = np.nan
 
         codes = sorted(list(stock.keys()))
 
         data = {}
+        self.stock.readAll()
+
         for i in range(270):
             values = []
 
             for c in codes:
+                v1 = np.nan
+
                 if len(stock[c]) <= i:
                     [values.append(np.nan) for _ in range(len(columns))]
                 else:
                     for n in columns:
                         v = stock[c][i][n]
-                        if n == 'time':
+
+                        if n == name.TIME:
                             v = pd.Timestamp(v, unit='s')
+
+                        elif n == name.PRICE:
+                            a = stock[c][i]
+                            v = 0
+                            v1 = np.nan
+
+                            if i == 0:
+                                b = self.stock.yesterday(int(c), date)
+
+                                if b is None:
+                                    logging.error(f'{c} not {date} yesterday')
+                                    return None, None
+                            else:
+                                b = stock[c][i - 1]
+
+                            # 1. 當前1分K最高點大於前一根K棒最高點
+                            # 2. 當前1分K最低點小於前一根K棒最低點
+                            #
+                            #   (前)        (當)
+                            #            * * * *
+                            #            *     *
+                            # * * * *    *     *
+                            # *     *    *     *
+                            # *     *    *     *
+                            # *     *    *     *
+                            # * * * *    *     *
+                            #            *     *
+                            #            * * * *
+                            #
+                            #
+                            if (a[name.HIGH] > b[name.HIGH]) and (a[name.LOW] < b[name.LOW]):
+                                v = a[name.HIGH]
+                                v1 = a[name.LOW]
+
+                            # 1. 當前1分K最高點小於等於前一根K棒最高點
+                            # 2. 當前1分K最低點大於等於前一根K棒最低點
+                            #
+                            #   (前)        (當)
+                            #
+                            # * * * *
+                            # *     *
+                            # *     *   * * * *
+                            # *     *   *     *
+                            # *     *   *     *
+                            # *     *   *     *
+                            # *     *   * * * *
+                            # * * * *
+                            #
+                            elif (a[name.HIGH] <= b[name.HIGH]) and (a[name.LOW] >= b[name.LOW]):
+                                v = a[name.CLOSE]
+
+                            # 1. 當前1分K最高點大於前一根K棒最高點
+                            # 2. 當前1分K最低點大於前一根K棒最低點
+                            #
+                            #  (前)       (當)
+                            #
+                            #           * * * *
+                            #           *     *
+                            # * * * *   *     *
+                            # *     *   *     *
+                            # *     *   *     *
+                            # *     *   *     *
+                            # *     *   * * * *
+                            # *     *
+                            # * * * *
+                            #
+                            elif (a[name.HIGH] > b[name.HIGH]) and (a[name.LOW] >= b[name.LOW]):
+                                v = a[name.HIGH]
+
+                            # 1. 當前1分K最高點小於前一根K棒最高點
+                            # 2. 當前1分K最低點小於前一根K棒最低點
+                            #
+                            #  (前)       (當)
+                            #
+                            # * * * *
+                            # *     *
+                            # *     *   * * * *
+                            # *     *   *     *
+                            # *     *   *     *
+                            # * * * *   *     *
+                            #           *     *
+                            #           * * * *
+                            #
+                            elif (a[name.HIGH] <= b[name.HIGH]) and (a[name.LOW] < b[name.LOW]):
+                                v = a[name.LOW]
+
+                        elif n == name.PRICE_1:
+                            v = v1
+
                         values.append(v)
 
             data[i] = values

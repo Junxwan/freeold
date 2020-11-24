@@ -31,7 +31,6 @@ class TrendWatch(trend.Watch):
         return {
             name.AVG: trend.Avg(),
             'max_min_text': MaxMinText(),
-            'max_min': trend.MaxMin(),
         }
 
 

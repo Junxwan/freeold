@@ -120,6 +120,7 @@ class StockTrendToCsv(ui.process):
 
         self.input = tk.StringVar()
         self.output = tk.StringVar()
+        self.config = config
 
         if config != None:
             self.output.set(other.stock_trend_csv_path(config))
@@ -145,7 +146,7 @@ class StockTrendToCsv(ui.process):
         self.addRunBtn(master)
 
     def run(self):
-        trend.StockToCsv(self.input.get()).output(self.output.get())
+        trend.StockToCsv(self.input.get(), other.stock_csv_path(self.config)).output(self.output.get())
         self.showSuccess()
 
 

@@ -649,9 +649,12 @@ class TrendData():
         data.loc[name.LOW] = self._data.loc[name.LOW].astype(float)
         data.loc[name.AVG] = self._data.loc[name.AVG].astype(float)
         data.loc[name.OPEN] = self._data.loc[name.OPEN].astype(float)
+        data.loc[name.PRICE] = self._data.loc[name.PRICE].astype(float)
+        data.loc[name.PRICE_1] = self._data.loc[name.PRICE_1].astype(float)
         data.loc[name.TIME] = self._data.loc[name.TIME].transform(lambda x: x[11:])
         data.columns = self._data.columns.astype(int)
         self._data = data
+        self.values = {v['time']: v for i, v in data.to_dict().items()}
 
     def value(self):
         return self._data
@@ -688,6 +691,9 @@ class TrendData():
         self._x = [x_lim[0], 0]
 
         for i, t in enumerate(self.time()):
+            if pd.isna(self.values[t][name.PRICE_1]) == False:
+                self._x.append(self.times[t])
+
             self._x.append(self.times[t])
 
         return self._x
@@ -696,9 +702,13 @@ class TrendData():
         if len(self._y) > 0:
             return self._y
 
-        self._y = self.close().tolist()
-        self._y.insert(0, close)
-        self._y.insert(1, close)
+        self._y = [close, close]
+
+        for i, t in enumerate(self.time()):
+            self._y.append(self.values[t][name.PRICE])
+
+            if pd.isna(self.values[t][name.PRICE_1]) == False:
+                self._y.append(self.values[t][name.PRICE_1])
 
         return self._y
 
@@ -708,15 +718,13 @@ class TrendData():
 
     def x_max(self):
         if self._x_max == 0:
-            max = self.y_max()
-            self._x_max = self.times[self.time()[(self.high() == max)].iloc[0]]
+            self._x_max = self.times[self.time()[(self.high() == self.y_max())].iloc[0]]
 
         return self._x_max
 
     def x_min(self):
         if self._x_min == 0:
-            min = self.y_min()
-            self._x_min = self.times[self.time()[self.low() == min].iloc[0]]
+            self._x_min = self.times[self.time()[self.low() == self.y_min()].iloc[0]]
 
         return self._x_min
 
@@ -732,9 +740,13 @@ class TrendData():
 
     def y_volume(self):
         if len(self._y_volume) == 0:
-            self._y_volume = self.volume().tolist()
-            self._y_volume.insert(0, 0)
-            self._y_volume.insert(1, 0)
+            self._y_volume = [0, 0]
+
+            for i, t in enumerate(self.time()):
+                self._y_volume.append(self.values[t][name.VOLUME])
+
+                if pd.isna(self.values[t][name.PRICE_1]) == False:
+                    self._y_volume.append(self.values[t][name.VOLUME])
 
         return self._y_volume
 
