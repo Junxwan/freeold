@@ -35,25 +35,28 @@ class Base():
 
     len = 60
 
-    def execute(self, index, code, stock, trend, info, check_offset_day=0):
+    trendQ = None
+
+    stockQ = None
+
+    def execute(self, index, code, stock, info, check_offset_day=0):
         if stock.shape[1] < self.len:
             return None
 
         self.stock = stock
-        self.trend = trend
 
         if self.check_stock(self.check_stocks, i=check_offset_day) == False:
             return None
 
-        if self.run(index, code, stock, trend, info):
+        if self.run(index, code, stock, info):
             d = stock[index][1:].tolist()
             d.insert(0, code)
             d.insert(1, info['name'])
-            return self.data(d, index, code, stock, trend, info)
+            return self.data(d, index, code, stock, info)
 
         return None
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         return data
 
     def columns(self):
@@ -105,7 +108,7 @@ class Base():
                 return False
         return True
 
-    def run(self, index, code, stock, trend, info) -> bool:
+    def run(self, index, code, stock, info) -> bool:
         return False
 
     def sort(self, data):

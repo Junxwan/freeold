@@ -785,6 +785,9 @@ class Query():
         if len(q) >= 2:
             query = query[q[-1]]
 
+        query.trendQ = self._trend
+        query.stockQ = self._stock
+
         if end is None or end == '':
             stock = self._stock.query(start, False)
         else:
@@ -825,8 +828,6 @@ class Query():
                     index,
                     code,
                     value,
-                    # self._trend.code(code, date),
-                    None,
                     self._stock.info(code)
                 )
 

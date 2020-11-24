@@ -12,19 +12,24 @@ class All(query.Base):
 
     sort_key = [name.AMPLITUDE]
 
-    def run(self, index, code, stock, trend, info) -> bool:
-        return stock.loc[name.VOLUME][:5].mean() > 500
+    def run(self, index, code, stock, info) -> bool:
+        d = stock.loc[name.VOLUME][1:6]
+
+        if len(d) != 5:
+            raise ValueError('volume mean day is not 5')
+
+        return d.mean() > 500
 
 
 # 弱勢股-昨天紅
 class YesterdayRed(All):
-    def run(self, index, code, stock, trend, info) -> bool:
-        if All.run(self, index, code, stock, trend, info):
+    def run(self, index, code, stock, info) -> bool:
+        if All.run(self, index, code, stock, info):
             d = stock[stock.columns[1]]
             return d[name.OPEN] < d[name.CLOSE]
         return False
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         d = stock[stock.columns[1]]
         data.append(d[name.OPEN])
         data.append(d[name.CLOSE])
@@ -49,10 +54,42 @@ class YesterdayRed(All):
         return columns
 
 
+# 弱勢股-走勢圖拉高(10)走低(11)
+# 1. 當日高點在10點前
+# 2. 當日11點前低點與當日最高點差距有1%
+class TrendHigh10Low11(All):
+    def run(self, index, code, stock, info) -> bool:
+        if All.run(self, index, code, stock, info):
+            date = stock.loc[name.DATE][0]
+            trend = self.trendQ.code(code, date)
+
+            if trend is None:
+                raise ValueError(f'{code} {date} not trend')
+
+            trend = trend.dropna(how='all', axis=1)
+            trend.loc[name.PRICE] = trend.loc[name.PRICE].astype(float)
+
+            # 當日高點在10點前
+            max = trend[trend.loc[name.PRICE].astype(float).idxmax()]
+            if max.loc[name.TIME] > f'{date} 10:00:00':
+                return False
+
+            # 當日11點前低點與當日最高點差距有1%
+            q = trend.loc[name.TIME]
+            ts = q[(q >= f'{date} 09:00:00') & (q <= f'{date} 11:00:00')]
+            data = trend.loc[:, ts.index[0]:ts.index[-1]]
+            min = trend[data.loc[:, ts.index[0]:ts.index[-1]].loc[name.PRICE].astype(float).idxmin()]
+
+            if max[name.PRICE] / min[name.PRICE] > 1:
+                return True
+
+        return False
+
+
 # 弱勢股-昨天紅-當日上漲大於等於1.5%
 class YesterdayRedDIncrease1_5(YesterdayRed):
-    def run(self, index, code, stock, trend, info) -> bool:
-        if YesterdayRed.run(self, index, code, stock, trend, info):
+    def run(self, index, code, stock, info) -> bool:
+        if YesterdayRed.run(self, index, code, stock, info):
             return stock[stock.columns[1]][name.D_INCREASE] >= 1.5
         return False
 
@@ -65,20 +102,20 @@ class YesterdayRedDIncrease1_5_LeftHead(query.Base):
         self.query_result = None
         self.pattern_result = None
 
-    def run(self, index, code, stock, trend, info) -> bool:
-        self.query_result = self.query.execute(index, code, stock, trend, info)
+    def run(self, index, code, stock, info) -> bool:
+        self.query_result = self.query.execute(index, code, stock, info)
 
         if self.query_result is None:
             return False
 
-        self.pattern_result = self.pattern.execute(index + 1, code, stock.iloc[:, 1:], trend, info)
+        self.pattern_result = self.pattern.execute(index + 1, code, stock.iloc[:, 1:], info)
 
         if self.pattern_result is None:
             return False
 
         return True
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         for v in self.pattern_result[-3:]:
             self.query_result.append(v)
 
@@ -114,20 +151,20 @@ class YesterdayRedDIncrease1_5_Decline(query.Base):
         self.query_result = None
         self.pattern_result = None
 
-    def run(self, index, code, stock, trend, info) -> bool:
-        self.query_result = self.query.execute(index, code, stock, trend, info)
+    def run(self, index, code, stock, info) -> bool:
+        self.query_result = self.query.execute(index, code, stock, info)
 
         if self.query_result is None:
             return False
 
-        self.pattern_result = self.pattern.execute(index + 2, code, stock.iloc[:, 2:], trend, info)
+        self.pattern_result = self.pattern.execute(index + 2, code, stock.iloc[:, 2:], info)
 
         if self.pattern_result is None:
             return False
 
         return True
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         for v in self.pattern_result[-2:]:
             self.query_result.append(v)
 
@@ -149,20 +186,20 @@ class YesterdayRedDIncrease1_5_Platform(query.Base):
         self.query_result = None
         self.pattern_result = None
 
-    def run(self, index, code, stock, trend, info) -> bool:
-        self.query_result = self.query.execute(index, code, stock, trend, info)
+    def run(self, index, code, stock, info) -> bool:
+        self.query_result = self.query.execute(index, code, stock, info)
 
         if self.query_result is None:
             return False
 
-        self.pattern_result = self.pattern.execute(index + 2, code, stock.iloc[:, 2:], trend, info)
+        self.pattern_result = self.pattern.execute(index + 2, code, stock.iloc[:, 2:], info)
 
         if self.pattern_result is None:
             return False
 
         return True
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         for v in self.pattern_result[-2:]:
             self.query_result.append(v)
 
@@ -178,6 +215,7 @@ class YesterdayRedDIncrease1_5_Platform(query.Base):
 
 LIST = {
     'all': All(),
+    'trend_high10_low11': TrendHigh10Low11(),
     'yesterday_red': YesterdayRed(),
     'yesterday_red_d_increase_1_5': YesterdayRedDIncrease1_5(),
     'yesterday_red_d_increase_1_5_left_head': YesterdayRedDIncrease1_5_LeftHead(),
