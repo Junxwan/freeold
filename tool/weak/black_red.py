@@ -10,7 +10,7 @@ NAME = 'weak_black_red'
 config = configparser.ConfigParser()
 config.read('../config.ini')
 data_path = os.path.abspath(dict(config['path'])['data'])
-weak_path = os.path.join(data_path, 'csv', 'strategy', 'weak', 'all')
+weak_path = os.path.join(data_path, 'csv', 'strategy', '', 'all')
 stock = data.Stock(os.path.join(data_path, 'csv', 'stock'))
 stock.readAll()
 dates = stock.dates()

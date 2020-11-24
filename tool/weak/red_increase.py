@@ -30,7 +30,7 @@ def tick(price):
 
 
 def toCsv(data_path, result_path, stock=None, year=None):
-    weak_path = os.path.join(data_path, 'csv', 'strategy', 'weak', 'yesterday_red')
+    weak_path = os.path.join(data_path, 'csv', 'strategy', '', 'yesterday_red')
 
     if stock is None:
         stock = data.Stock(os.path.join(data_path, 'csv', 'stock'))
