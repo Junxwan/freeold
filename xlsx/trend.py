@@ -78,6 +78,10 @@ class StockToCsv(ToCsv):
                 data_frame.loc[index, :] = rows.tolist()
         else:
             data, codes = self._get(date, paths, columns)
+
+            if data is None:
+                return
+
             data_frame = pd.DataFrame(
                 data,
                 index=(pd.MultiIndex.from_product([codes, columns], names=names))
@@ -113,6 +117,7 @@ class StockToCsv(ToCsv):
         codes = sorted(list(stock.keys()))
 
         data = {}
+        ybs = {}
 
         for i in range(270):
             values = []
@@ -123,23 +128,23 @@ class StockToCsv(ToCsv):
                 if len(stock[c]) <= i:
                     [values.append(np.nan) for _ in range(len(columns))]
                 else:
+
+                    if c not in ybs:
+                        ybs[c] = self.stock.yesterday(int(c), date)
+
                     for n in columns:
                         v = stock[c][i][n]
 
                         if n == name.TIME:
                             v = pd.Timestamp(v, unit='s')
 
-                        elif n == name.PRICE:
+                        elif ybs[c] is not None and n == name.PRICE:
                             a = stock[c][i]
                             v = 0
                             v1 = np.nan
 
                             if i == 0:
-                                b = self.stock.yesterday(int(c), date)
-
-                                if b is None:
-                                    logging.error(f'{c} not {date} yesterday')
-                                    return None, None
+                                b = ybs[c]
                             else:
                                 b = stock[c][i - 1]
 

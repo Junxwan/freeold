@@ -218,7 +218,12 @@ class Stock():
 
         data = self.data.loc[code]
         q = data.loc[DATE]
-        return data[q[q < date].index[0]]
+        q = q[q < date]
+
+        if q.empty:
+            return None
+
+        return data[q.index[0]]
 
     def readAll(self):
         for dk, path in self.csv.items():
