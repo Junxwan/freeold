@@ -126,7 +126,7 @@ stock = data.Stock(os.path.join(data_path, 'csv', 'stock'))
 stock.readAll()
 
 for year in ['*', '2020', '2019', '2018', '2017']:
-    result_dir = os.path.join(data_path, 'result', NAME)
+    result_dir = os.path.join(data_path, 'statistics', NAME)
 
     if os.path.exists(result_dir) == False:
         os.mkdir(result_dir)
