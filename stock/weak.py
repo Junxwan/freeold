@@ -151,6 +151,41 @@ class YesterdayRedTrendHigh10Low11(TrendHigh10Low11):
         return TrendHigh10Low11.columns(self) + self.yesterday_red.get_columns()
 
 
+# 弱勢股-昨天紅-左頭-走勢圖拉高(10)走低(11)
+# 1. 當日高點在10點前
+# 2. 當日11點前低點與當日最高點差距有1%
+class YesterdayRedTrendHigh10Low11_LeftHead(YesterdayRedTrendHigh10Low11):
+    def __init__(self):
+        YesterdayRedTrendHigh10Low11.__init__(self)
+        self.pattern = pattern.LeftHead()
+        self.pattern_result = None
+
+    def run(self, index, code, stock, info) -> bool:
+        if YesterdayRedTrendHigh10Low11.run(self, index, code, stock, info) == False:
+            return False
+
+        self.pattern_result = self.pattern.execute(stock.columns[1], code, stock.iloc[:, 1:], info)
+
+        if self.pattern_result is None:
+            return False
+
+        return True
+
+    def data(self, data, index, code, stock, info):
+        data = YesterdayRedTrendHigh10Low11.data(self, data, index, code, stock, info)
+        for v in self.pattern_result[-3:]:
+            data.append(v)
+
+        return data
+
+    def columns(self):
+        columns = YesterdayRedTrendHigh10Low11.columns(self).copy()
+        for v in self.pattern.cs:
+            columns.append(v)
+
+        return columns
+
+
 # 弱勢股-昨天紅-當日上漲大於等於1.5%
 class YesterdayRedDIncrease1_5(YesterdayRed):
     def run(self, index, code, stock, info) -> bool:
@@ -283,7 +318,8 @@ LIST = {
     'trend_high10_low11': TrendHigh10Low11(),
     'yesterday_red': YesterdayRed(),
     'yesterday_red_trend_high10_low11': YesterdayRedTrendHigh10Low11(),
-    'yesterday_red_d_increase_1_5': YesterdayRedDIncrease1_5(),
+    'yesterday_red_trend_high10_low11_left_head': YesterdayRedTrendHigh10Low11_LeftHead(),
+
     'yesterday_red_d_increase_1_5_left_head': YesterdayRedDIncrease1_5_LeftHead(),
     'yesterday_red_d_increase_1_5_left_head_near_right': YesterdayRedDIncrease1_5_LeftHeadNearRight(),
     'yesterday_red_d_increase_1_5_left_head_first_breakthrough': YesterdayRedDIncrease1_5_LeftHeadFirstBreakthrough(),
