@@ -88,6 +88,10 @@ class YesterdayRed(All):
         return False
 
     def isRed(self, stock):
+        # 不准因事件性因素而出現跨日
+        if stock.columns[1] - stock.columns[0] > 1:
+            return False
+
         d = stock[stock.columns[1]]
         return d[name.OPEN] < d[name.CLOSE]
 
