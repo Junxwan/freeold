@@ -243,6 +243,7 @@ class StockIndustry(ui.process):
         crawler.Industry().run(self.output.get())
         self.showSuccess()
 
+
 class StockConcept(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
@@ -271,6 +272,7 @@ class stock(Trend):
         Trend.__init__(self, root, master, w, h, config=config)
 
         self.code = tk.StringVar()
+        self.config = config
 
         if config != None:
             self.code.set(config['code'])
@@ -290,7 +292,7 @@ class stock(Trend):
 
     def run(self):
         if self.crawler == None:
-            self.crawler = crawler.stock(self.output.get())
+            self.crawler = crawler.stock(self.output.get(), other.stock_csv_path(self.config))
 
         self.crawler.get(self.date.get(), self.code.get())
 

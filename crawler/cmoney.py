@@ -9,7 +9,7 @@ import pandas as pd
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 from datetime import datetime
-from stock import name
+from stock import name, data
 from bs4 import BeautifulSoup
 
 USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
@@ -40,6 +40,10 @@ class Trend():
 
 
 class stock(Trend):
+    def __init__(self, dir, csv_dir):
+        Trend.__init__(self, dir)
+        self.stock = data.Stock(csv_dir)
+
     def read(self, path):
         return [c[0] for c in pd.read_csv(path, index_col=False, header=None).to_numpy().tolist()]
 
@@ -57,11 +61,16 @@ class stock(Trend):
 
             return True
         elif (code == '') and (os.path.isfile(date)):
-            return self._get(os.path.basename(date).split('.')[0], self.read(date))
+            for date in self.read(date):
+                if self._get(date, self.stock.date(date).index.levels[0].tolist()) == False:
+                    return False
+
         elif (os.path.isfile(code)) and (date != ''):
             return self._get(date, self.read(code))
         elif (code != '') & (date != ''):
             return self._get(date, [code])
+        elif (code == '') and (date != ''):
+            return self._get(date, self.stock.date(date).index.levels[0].tolist())
 
         return False
 
@@ -97,7 +106,7 @@ class stock(Trend):
 
             tData = self.api.trend(code, t)
 
-            time.sleep(1.5)
+            time.sleep(1)
 
             if tData == None:
                 logging.info(f'code: {code} date: {date} empty - {str(count)}')
@@ -120,7 +129,8 @@ class stock(Trend):
             else:
                 trend = tData
 
-            date = datetime.fromtimestamp(tData[0]['time']).date().__str__()
+            if datetime.fromtimestamp(tData[0]['time']).date().__str__() != date:
+                continue
 
             if self.save(trend, int(code), date, filePath):
                 ok += 1
