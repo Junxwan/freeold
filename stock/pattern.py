@@ -23,7 +23,7 @@ from . import name, data, query
 class LeftHead(query.Base):
     cs = ['right_date', 'left_date', 'left_bottom_date']
 
-    def run(self, index, code, stock, trend, info) -> bool:
+    def run(self, index, code, stock, info) -> bool:
         price = stock.iloc[:, :90]
 
         _high = 0
@@ -76,13 +76,26 @@ class LeftHead(query.Base):
 
                 if p.loc[name.CLOSE].min() > p.loc[name.OPEN].min():
                     self.leftBottomBar = p.loc[name.OPEN].astype(float).idxmin()
+                elif self.leftBottomBar == 0:
+                    self.leftBottomBar = index
                 else:
                     self.leftBottomBar = p.loc[name.CLOSE].astype(float).idxmin()
 
                 break
 
-        if self.leftBar == 0 or self.leftBottomBar == 0:
+        if self.leftBar == 0:
             return False
+
+        # 當前收盤價大於左頭
+        if stock[self.leftBar][name.OPEN] > stock[self.leftBar][name.CLOSE]:
+            if stock[self.rightBar][name.CLOSE] > stock[self.leftBar][name.OPEN]:
+                return False
+        else:
+            if stock[self.rightBar][name.CLOSE] > stock[self.leftBar][name.CLOSE]:
+                return False
+
+        if self.leftBottomBar == 0:
+            self.leftBottomBar = index
 
         return True
 
@@ -96,7 +109,7 @@ class LeftHead(query.Base):
 
         return t * 3
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         data.append(stock[self.rightBar].loc[name.DATE])
         data.append(stock[self.leftBar].loc[name.DATE])
         data.append(stock[self.leftBottomBar].loc[name.DATE])
@@ -110,7 +123,7 @@ class LeftHead(query.Base):
 
 
 #
-# 接近左頭
+# 接近左頭(0-6%)
 #
 #     * * * * * (2)
 #    *         *                                    * (1)
@@ -123,11 +136,13 @@ class LeftHead(query.Base):
 #                       * * * * * * * *
 #
 class LeftHeadNearRight(LeftHead):
-    def run(self, index, code, stock, trend, info) -> bool:
-        if LeftHead.run(self, index, code, stock, trend, info) == False:
+    def run(self, index, code, stock, info) -> bool:
+        if LeftHead.run(self, index, code, stock, info) == False:
             return False
 
-        if round(stock[self.rightBar].loc[name.CLOSE] * 1.06, 2) < stock[self.leftBar].loc[name.CLOSE]:
+        diff = round(stock[self.leftBar].loc[name.CLOSE] / stock[self.rightBar].loc[name.CLOSE], 2)
+
+        if diff < 1 or diff >= 1.07:
             return False
 
         return True
@@ -148,8 +163,8 @@ class LeftHeadNearRight(LeftHead):
 #                       * * * * * * * *
 #
 class LeftHeadFirstBreakthrough(LeftHead):
-    def run(self, index, code, stock, trend, info) -> bool:
-        if LeftHead.run(self, index, code, stock.iloc[:, 1:], trend, info) == False:
+    def run(self, index, code, stock, info) -> bool:
+        if LeftHead.run(self, index, code, stock.iloc[:, 1:], info) == False:
             return False
 
         self.rightBar -= 1
@@ -186,7 +201,7 @@ class LeftHeadFirstBreakthrough(LeftHead):
 class Decline(query.Base):
     cs = ['right_date', 'left_date']
 
-    def run(self, index, code, stock, trend, info) -> bool:
+    def run(self, index, code, stock, info) -> bool:
         price = stock.iloc[:, :90]
 
         self.rightBar = price.columns[0]
@@ -241,7 +256,7 @@ class Decline(query.Base):
 
         return True
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         data.append(stock[self.rightBar].loc[name.DATE])
         data.append(stock[self.leftBar].loc[name.DATE])
         return data
@@ -265,7 +280,7 @@ class Decline(query.Base):
 class Platform(query.Base):
     cs = ['right_date', 'left_date']
 
-    def run(self, index, code, stock, trend, info) -> bool:
+    def run(self, index, code, stock, info) -> bool:
         price = stock.iloc[:, :90]
 
         self.rightBar = price.columns[0]
@@ -306,7 +321,7 @@ class Platform(query.Base):
 
         return True
 
-    def data(self, data, index, code, stock, trend, info):
+    def data(self, data, index, code, stock, info):
         data.append(stock[self.rightBar].loc[name.DATE])
         data.append(stock[self.leftBar].loc[name.DATE])
         return data
