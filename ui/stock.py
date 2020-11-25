@@ -18,6 +18,7 @@ class select(ui.process):
         self.endDate = tk.StringVar()
         self.dir = tk.StringVar()
         self.output = tk.StringVar()
+        self.codes = tk.StringVar()
 
         self.startDate.set(datetime.now().date())
 
@@ -49,6 +50,15 @@ class select(ui.process):
             command=lambda:
             self.output.set(ui.openDir())
         ).place(x=self.w * 50, y=self.h * 28)
+        tk.Label(master, text='個股:', font=ui.FONT).place(x=10, y=self.ey * 4)
+        tk.Entry(master, textvariable=self.codes, font=ui.FONT).place(x=self.ex, y=self.ey * 4)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=lambda:
+            self.codes.set(ui.openDir())
+        ).place(x=self.w * 50, y=self.h * 38)
 
         self.addRunBtn(master)
 
@@ -60,6 +70,7 @@ class select(ui.process):
             self.startDate.get(),
             self.output.get(),
             end=self.endDate.get(),
+            codes=self.codes.get(),
         )
 
         self.showSuccess()

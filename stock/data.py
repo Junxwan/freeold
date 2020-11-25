@@ -799,6 +799,11 @@ class Query():
 
         if codes is None:
             codes = stock.index.levels[0]
+        elif os.path.isdir(codes):
+            codes = {
+                os.path.basename(path).split('.')[0]: path for path in
+                glob.glob(os.path.join(codes, '*', '*.csv'))
+            }
 
         logging.info(f'======= exec {name} =======')
 
@@ -816,7 +821,13 @@ class Query():
             result = []
             date = stock[index].iloc[0]
 
-            for code in codes:
+            cs = []
+            if type(codes) == dict:
+                if date not in codes:
+                    raise ValueError(f'codes is not {date}')
+                cs = pd.read_csv(codes[date])['code']
+
+            for code in cs:
                 value = stock.loc[code].iloc[:, index_day:].dropna(axis=1)
 
                 if value.empty or value.columns[0] != index:
