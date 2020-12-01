@@ -493,11 +493,11 @@ class KData():
     # 成交量均線
     def get_volume_ma(self, day):
         for d in day:
-            if f'{d}volume_ma' not in self._data:
-                column = f'{d}volume_ma'
+            if f'{d}vma' not in self._data:
+                column = f'{d}vma'
                 self.set(column, self._data[name.VOLUME].rolling(d).mean().round(2).values)
 
-        return self.get().loc[:, [f'{d}volume_ma' for d in day]]
+        return self.get().loc[:, [f'{d}vma' for d in day]]
 
     # 最高xy座標
     def get_xy_max(self):
@@ -578,6 +578,9 @@ class Trend():
         return None
 
     def code(self, code, date):
+        if len(self.data) > 30:
+            self.data = {}
+
         if date is None:
             date = self.now_date()
 
@@ -797,13 +800,15 @@ class Query():
             logging.info(f'======= not data for {start} to {end} =======')
             return
 
-        if codes is None:
+        if codes is None or codes == '':
             codes = stock.index.levels[0]
         elif os.path.isdir(codes):
             codes = {
                 os.path.basename(path).split('.')[0]: path for path in
                 glob.glob(os.path.join(codes, '*', '*.csv'))
             }
+        elif type(codes) == str:
+            codes = [int(codes)]
 
         logging.info(f'======= exec {name} =======')
 
@@ -821,11 +826,12 @@ class Query():
             result = []
             date = stock[index].iloc[0]
 
-            cs = []
             if type(codes) == dict:
                 if date not in codes:
                     raise ValueError(f'codes is not {date}')
                 cs = pd.read_csv(codes[date])['code']
+            else:
+                cs = codes
 
             for code in cs:
                 value = stock.loc[code].iloc[:, index_day:].dropna(axis=1)

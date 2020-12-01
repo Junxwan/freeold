@@ -18,12 +18,21 @@ class All(query.Base):
         if len(d) != 5:
             raise ValueError('volume mean day is not 5')
 
-        return d.mean() > 500
+        if d.mean() < 500:
+            return False
+
+        date = stock.loc[name.DATE].iloc[0]
+        trend = self.trendQ.code(code, date)
+
+        if trend is not None and trend.dropna(how='all', axis=1).shape[1] <= 54:
+            return False
+
+        return True
 
 
 # 弱勢股-走勢圖拉高(10)走低(11)
 # 1. 當日高點在10點前
-# 2. 當日11點前低點與當日最高點差距有1%
+# 2. 當日11點前低點與當日最高點差距有2%
 class TrendHigh10Low11(All):
     sort_key = ['max_min_diff']
 
@@ -50,13 +59,13 @@ class TrendHigh10Low11(All):
             if self.max.loc[name.TIME] > f'{date} 10:00:00':
                 return False
 
-            # 當日11點前低點與當日最高點差距有1%
+            # 當日11點前低點與當日最高點差距有2%
             q = trend.loc[name.TIME]
             ts = q[(q >= f'{date} 09:00:00') & (q <= f'{date} 11:00:00')]
             data = trend.loc[:, ts.index[0]:ts.index[-1]]
             self.min = trend[data.loc[:, ts.index[0]:ts.index[-1]].loc[name.PRICE].astype(float).idxmin()]
 
-            if self.max[name.PRICE] / self.min[name.PRICE] > 1:
+            if (self.max[name.PRICE] / self.min[name.PRICE] > 1.02) and (self.max[name.TIME] < self.min[name.TIME]):
                 return True
 
         return False
@@ -66,7 +75,7 @@ class TrendHigh10Low11(All):
         data.append(self.max[name.PRICE])
         data.append(self.min[name.TIME])
         data.append(self.min[name.PRICE])
-        data.append(round(self.max[name.PRICE] / self.min[name.PRICE], 2))
+        data.append(round(((self.max[name.PRICE] / self.min[name.PRICE]) - 1) * 100, 2))
         return data
 
     def columns(self):
@@ -103,33 +112,67 @@ class YesterdayRed(All):
 
     def get_data(self, stock):
         data = []
-        d = stock[stock.columns[1]]
-        data.append(d[name.OPEN])
-        data.append(d[name.CLOSE])
-        data.append(d[name.HIGH])
-        data.append(d[name.LOW])
-        data.append(d[name.INCREASE])
-        data.append(d[name.D_INCREASE])
-        data.append(d[name.AMPLITUDE])
-        data.append(d[name.VOLUME])
+        volume = stock.loc[name.VOLUME]
+        d1 = stock[stock.columns[1]]
+
+        if volume.iloc[2] > 0:
+            vb1 = round(d1[name.VOLUME] / volume.iloc[2], 2)
+        else:
+            vb1 = d1[name.VOLUME]
+
+        vma5_1 = round(volume[1:6].sum() / 5)
+        vma10_1 = round(volume[1:11].sum() / 10)
+        vma20_1 = round(volume[1:21].sum() / 20)
+        vma60_1 = round(volume[1:61].sum() / 60)
+
+        data.append(d1[name.OPEN])
+        data.append(d1[name.CLOSE])
+        data.append(d1[name.HIGH])
+        data.append(d1[name.LOW])
+        data.append(d1[name.INCREASE])
+        data.append(d1[name.D_INCREASE])
+        data.append(d1[name.AMPLITUDE])
+        data.append(d1[name.VOLUME])
+        data.append(volume.iloc[2])
+        data.append(round(volume.iloc[0] / d1[name.VOLUME], 2))
+        data.append(vb1)
+        data.append(vma5_1)
+        data.append(vma10_1)
+        data.append(vma20_1)
+        data.append(vma60_1)
+        data.append(round(d1[name.VOLUME] / vma5_1, 2))
+        data.append(round(d1[name.VOLUME] / vma10_1, 2))
+        data.append(round(d1[name.VOLUME] / vma20_1, 2))
+        data.append(round(d1[name.VOLUME] / vma60_1, 2))
         return data
 
     def get_columns(self):
         columns = []
-        columns.append(f'y_{name.OPEN}')
-        columns.append(f'y_{name.CLOSE}')
-        columns.append(f'y_{name.HIGH}')
-        columns.append(f'y_{name.LOW}')
-        columns.append(f'y_{name.INCREASE}')
-        columns.append(f'y_{name.D_INCREASE}')
-        columns.append(f'y_{name.AMPLITUDE}')
-        columns.append(f'y_{name.VOLUME}')
+        columns.append(f'{name.OPEN}[1]')
+        columns.append(f'{name.CLOSE}[1]')
+        columns.append(f'{name.HIGH}[1]')
+        columns.append(f'{name.LOW}[1]')
+        columns.append(f'{name.INCREASE}[1]')
+        columns.append(f'{name.D_INCREASE}[1]')
+        columns.append(f'{name.AMPLITUDE}[1]')
+        columns.append(f'{name.VOLUME}[1]')
+        columns.append(f'{name.VOLUME}[2]')
+        columns.append('y_volume%')
+        columns.append('y_volume[1]%')
+        columns.append('5vma[1]')
+        columns.append('10vma[1]')
+        columns.append('20vma[1]')
+        columns.append('60vma[1]')
+        columns.append('5vma[1]%')
+        columns.append('10vma[1]%')
+        columns.append('20vma[1]%')
+        columns.append('60vma[1]%')
         return columns
 
 
 # 弱勢股-昨天紅-走勢圖拉高(10)走低(11)
 # 1. 當日高點在10點前
-# 2. 當日11點前低點與當日最高點差距有1%
+# 2. 當日11點前低點與當日最高點差距有2%
 class YesterdayRedTrendHigh10Low11(TrendHigh10Low11):
     sort_key = ['max_min_diff']
 
@@ -153,7 +196,7 @@ class YesterdayRedTrendHigh10Low11(TrendHigh10Low11):
 
 # 弱勢股-昨天紅-左頭-走勢圖拉高(10)走低(11)
 # 1. 當日高點在10點前
-# 2. 當日11點前低點與當日最高點差距有1%
+# 2. 當日11點前低點與當日最高點差距有2%
 class YesterdayRedTrendHigh10Low11_LeftHead(YesterdayRedTrendHigh10Low11):
     def __init__(self):
         YesterdayRedTrendHigh10Low11.__init__(self)

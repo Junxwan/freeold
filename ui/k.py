@@ -378,6 +378,8 @@ class Volume(SubAxes):
 
     master_name = NAME
 
+    x_text_offset = 1.2
+
     def plot(self, **kwargs):
         self.axes.name = data.VOLUME
         self.axes.grid(True)
@@ -418,6 +420,9 @@ class Volume(SubAxes):
         self._major(volumes)
         self._update_label()
 
+    def plot_text(self, text, **kwargs):
+        text.add('5vma', '5vma', self.line[5][0].get_ydata()[-1], color='#FF3399', offset_x=self.x_text_offset)
+
     def _major(self, volume):
         self.axes.yaxis.set_major_locator(VolumeLocator(volume, len=3))
         self.axes.yaxis.set_major_formatter(VolumeFormatter())
@@ -429,6 +434,11 @@ class Volume(SubAxes):
     def _clear(self):
         if len(self.axes.containers) > 0:
             self.axes.containers[0].remove()
+
+        for name, line in self.line.items():
+            line[0].remove()
+
+        self.line.clear()
 
 
 # 均線
