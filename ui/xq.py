@@ -3,8 +3,9 @@
 import os
 import tkinter as tk
 import openpyxl
-from . import ui
+from . import ui, other
 from auto import xq as xq
+from stock import data
 
 
 class stockImage(ui.process):
@@ -151,62 +152,30 @@ class move(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
-        self.dir = tk.StringVar()
-        self.date = tk.StringVar()
-        self.allDate = tk.StringVar()
-        self.historyTrendDate = tk.StringVar()
-        self.historyKDate = tk.StringVar()
+        self.start_now_date = tk.StringVar()
+        self.end_date = tk.StringVar()
+        self.stock = data.Stock(other.stock_csv_path(config))
 
-        if config != None:
-            self.dir.set(config['json'])
+        tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.end_date, font=ui.FONT).place(x=self.ex * 1.5, y=10)
 
-        tk.Label(master, text='檔案:', font=ui.FONT).place(x=10, y=10)
-        tk.Entry(master, textvariable=self.dir, font=ui.FONT).place(x=self.ex * 1.5, y=10)
-        tk.Button(
-            master,
-            text='選擇目錄',
-            font=ui.BTN_FONT,
-            command=lambda:
-            self.dir.set(ui.openDir())
-        ).place(x=self.w * 55, y=10)
-
-        tk.Label(master, text='日期:', font=ui.FONT).place(x=10, y=self.ey)
-        tk.Entry(master, textvariable=self.date, font=ui.FONT).place(x=self.ex * 1.5, y=self.ey)
+        tk.Label(master, text='現在開始年月:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.start_now_date, font=ui.FONT).place(x=self.ex * 1.5, y=self.ey)
 
         tk.Button(
             master,
-            text='個籌',
+            text='K',
             font=ui.BTN_FONT,
-            command=lambda: self.all()
+            command=lambda: self.k()
         ).place(x=10, y=self.h * 18)
-
-        tk.Button(
-            master,
-            text='走勢',
-            font=ui.BTN_FONT,
-            command=lambda: self.historyTrend()
-        ).place(x=self.ex * 0.5, y=self.h * 18)
-
-        tk.Button(
-            master,
-            text='技術分析',
-            font=ui.BTN_FONT,
-            command=lambda: self.historyK()
-        ).place(x=self.ex, y=self.h * 18)
 
         self.keyEvent(root)
 
-    def all(self, event=None):
-        xq.marketHistory(self.date.get(), self.dir.get()).moveToK()
-
-    def historyTrend(self, event=None):
-        xq.stockHistory(self.date.get(), self.dir.get()).moveTrend()
-
-    def historyK(self, event=None):
-        xq.stockHistory(self.date.get(), self.dir.get()).moveK()
+    def k(self, event=None):
+        xq.k().dates(self.stock.afterDates(self.end_date.get())[90], self.end_date.get(),
+                     year=int(self.start_now_date.get()[:4]),
+                     month=int(self.start_now_date.get()[5:7]))
 
     def keyEvent(self, master):
         master.focus_set()
-        master.bind("<F1>", self.all)
-        master.bind("<F2>", self.historyTrend)
-        master.bind("<F3>", self.historyK)
+        master.bind("<F1>", self.k)

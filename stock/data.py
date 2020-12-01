@@ -887,9 +887,9 @@ def calendar_xy(date, year=None, month=None):
     dayY = dateT.isocalendar()[1] % 6
 
     if year != dateT.year:
-        prevMonth += ((year - dateT.year) * 12)
+        prevMonth += ((year - dateT.year) * 12) - abs(month - dateT.month)
 
-    if month != dateT.month:
+    elif month != dateT.month:
         prevMonth += abs(month - dateT.month)
 
     if dateT.isocalendar()[2] != 7:

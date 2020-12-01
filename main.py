@@ -23,6 +23,7 @@ class app(tk.Tk):
         fileMenu.add_command(label='資料', command=lambda: self.runDate())
         fileMenu.add_command(label='圖', command=lambda: self.runImage())
         fileMenu.add_command(label='看盤', command=lambda: self.runWatch())
+        fileMenu.add_command(label='XQ', command=lambda: self.runXQ())
 
         m.add_cascade(label="功能", menu=fileMenu)
         self.config(menu=m)
@@ -43,5 +44,9 @@ class app(tk.Tk):
 
     def runWatch(self):
         self.run(lambda: frame.Watch(self, config=self.configs, path=self.currentPath))
+
+    def runXQ(self):
+        self.run(lambda: frame.XQ(self, config=self.configs, path=self.currentPath))
+
 
 app().runDate()
