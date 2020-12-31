@@ -202,21 +202,21 @@ class stockHistory(stock):
 
 
 class k():
-    def dates(self, start, end, year=None, month=None):
+    def dates(self, start, end, year=None, month=None, nYear=None, nMonth=None):
         [m, x, y] = data.calendar_xy(start, year=year, month=month)
         pyautogui.click(550, 2000)
-        time.sleep(0.5)
+        time.sleep(0.2)
         pyautogui.click(450, 1700, m)
-        time.sleep(0.5)
+        time.sleep(0.2)
         pyautogui.click(383 + (57 * x), 1746 + (31 * y))
 
-        [m, x, y] = data.calendar_xy(end)
+        [m, x, y] = data.calendar_xy(end, year=nYear, month=nMonth)
         pyautogui.click(750, 2000)
-        time.sleep(0.5)
+        time.sleep(0.2)
         pyautogui.click(650, 1700, m)
         pyautogui.click(583 + (57 * x), 1746 + (31 * y))
 
-        time.sleep(0.5)
+        time.sleep(0.2)
         pyautogui.click(800, 2000)
 
 

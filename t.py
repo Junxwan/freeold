@@ -1,10 +1,13 @@
+import json
 import math
 import os
+import glob
 import time
 from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import codecs
 import tkinter as tk
 from bs4 import BeautifulSoup
 import requests
@@ -13,7 +16,8 @@ from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.ticker as ticker
 import tkinter
-from stock import data, name
+from xlsx import trend
+from stock import data, name, weak
 from ui import pattern
 from scipy.interpolate import UnivariateSpline
 from tkinter import ttk
@@ -22,6 +26,103 @@ from pywinauto.application import Application
 import pyautogui
 import mplfinance as mpf
 from ui import k
+
+d = []
+stock = data.Stock("D:\\data\\csv\\stock")
+trend = data.Trend("D:\\data\\csv")
+
+# paths = glob.glob(
+#     os.path.join('D:\\data\\csv\\strategy\\weak\\yesterday_red_trend_high10_low11_left_head', '*', '*.csv'))
+#
+# for path in sorted(paths, reverse=True):
+#     date = os.path.basename(path).split('.')[0]
+#
+#     for i, v in pd.read_csv(path).iterrows():
+#         d.append([
+#             v['code'],
+#             v['name'],
+#             date,
+#             v['increase'],
+#             v['d_increase'],
+#             v['increase[1]'],
+#             v['d_increase[1]'],
+#             v['max_time'],
+#             v['max_min_diff'],
+#             v['volume'],
+#             v['volume[1]'],
+#             v['volume[2]'],
+#             v['y_volume%'],
+#             v['y_volume[1]%'],
+#             v['5vma[1]'],
+#             v['10vma[1]'],
+#             v['20vma[1]'],
+#             v['60vma[1]'],
+#             v['5vma[1]%'],
+#             v['10vma[1]%'],
+#             v['20vma[1]%'],
+#             v['60vma[1]%'],
+#         ])
+#
+# pd.DataFrame(d, columns=[
+#     'code', 'name', 'date', 'increase', 'd_increase', 'increase[1]', 'd_increase[1]', 'max_time', 'max_min_diff', 'volume',
+#     'volume[1]',
+#     'volume[2]', 'y_volume%', 'y_volume[1]%', '5vma[1]', '10vma[1]', '20vma[1]', '60vma[1]', '5vma[1]%', '10vma[1]%',
+#     '20vma[1]%', '60vma[1]%',
+# ]).to_csv('D:\\data\\csv\\strategy\\weak\\yesterday_red_trend_high10_low11_left_head\\r.csv', encoding='utf-8-sig',
+#           index=False)
+
+# ==========================================
+
+# vt = [
+#     15, 10, 8, 6, 5, 4, 4, 3.7, 3.5, 3.3, 3.1, 2.9
+# ]
+#
+# execl = pd.read_excel('D:\\data\\csv\\strategy\\weak\\yesterday_red_trend_high10_low11_left_head\\1.xlsx')
+#
+# for i, raws in execl.iterrows():
+#     vv = []
+#     date = raws['date'].__str__()[:10]
+#     t = trend.code(raws['code'], date)
+#
+#     for i, ts in enumerate(pd.date_range(start=f'{date} 09:05:00', end=f'{date} 10:00:00', freq='5min')):
+#         q = t.loc['time']
+#         r = q[q <= ts.__str__()]
+#
+#         if len(r) == 0:
+#             vv.append(0)
+#         else:
+#             vv.append(int(t.loc[name.VOLUME].astype(float)[:int(r.index[-1])].sum()) * vt[i])
+#
+#     print(f"{date} {raws['code']}")
+#
+#     d.append(raws.tolist() + vv)
+#
+# pd.DataFrame(d, columns=execl.columns.tolist() + [v.__str__()[10:] for v in
+#                                                   pd.date_range(start='09:05:00', end='10:00:00', freq='5min')]). \
+#     to_excel('D:\\data\\csv\\strategy\\weak\\yesterday_red_trend_high10_low11_left_head\\研究.xlsx',encoding='utf-8-sig',index=False)
+
+# ================================
+
+
+paths = glob.glob(
+    os.path.join('D:\\data\\csv\\strategy\\weak\\trend_high0930_low11', '*', '*.csv'))
+
+for path in sorted(paths, reverse=True):
+    date = os.path.basename(path).split('.')[0]
+
+    for i, v in pd.read_csv(path).iterrows():
+        d.append([
+            v['code'],
+            v['name'],
+            date,
+            v['max_time'],
+            v['max_min_diff']
+        ])
+
+pd.DataFrame(d, columns=['code', 'name', 'date', 'max_time', 'max_min_diff']).to_csv('D:\\data\\csv\\strategy\\weak\\trend_high0930_low11\\r.csv',
+                                   encoding='utf-8-sig', index=False)
+
+r = 0
 
 
 # 股價tick
@@ -340,8 +441,9 @@ def m(data, _time=30):
             ]
 
 
-trend = data.Trend("C:\\Users\\hugh8\\Desktop\\research\\data\\csv")
-stock = data.Stock("C:\\Users\\hugh8\\Desktop\\research\\data\\csv\\stock")
+trend = data.Trend("D:\\data\\csv")
+stock = data.Stock("D:\\data\\csv\\stock")
+query = data.Query("D:\\data\\csv", stock=stock)
 
 _tick_level = [50, 25, 10, 7.5, 5, 2.5, 1, 0.5, 0.25, 0.1, 0.05]
 
@@ -383,56 +485,8 @@ def ticks(y_max, y_min):
     return ticks
 
 
-def m1():
-    data = trend.code(3016, '2020-10-22').dropna(axis=1)
-    data.loc[name.OPEN] = data.loc[name.OPEN].astype(float)
-    data.loc[name.CLOSE] = data.loc[name.CLOSE].astype(float)
-    data.loc[name.VOLUME] = data.loc[name.VOLUME].astype(int)
-    data.loc[name.HIGH] = data.loc[name.HIGH].astype(float)
-    data.loc[name.LOW] = data.loc[name.LOW].astype(float)
-    data.loc[name.AVG] = data.loc[name.AVG].astype(float)
-
-    a = m(data)
-
-    stock.read('202010')
-    b_close = stock.yesterday(3016, '2020-10-22')[name.CLOSE]
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-
-    ax.set_ylim(get_min(b_close), get_max(b_close))
-    ax.grid(True)
-
-    xl = np.arange(len(data.loc[name.CLOSE]))
-    n = np.full(len(data.loc[name.CLOSE]), np.nan)
-
-    f1 = n.copy()
-    f1[a[0]['bar']] = a[0]['close']
-
-    f2 = n.copy()
-    f2[a[1]['bar']] = a[1]['close']
-
-    f3 = n.copy()
-    f3[a[2]['bar']] = a[2]['close']
-
-    f4 = n.copy()
-    f4[a[3]['bar']] = a[3]['close']
-
-    ax.plot(xl, data.loc[name.CLOSE])
-    ax.plot(xl, data.loc[name.HIGH], color='red')
-    ax.plot(xl, data.loc[name.LOW], color='green')
-    ax.plot(xl, f1, 'o', color='black')
-    ax.plot(xl, f2, 'o', color='black')
-    ax.plot(xl, f3, 'o', color='black')
-    ax.plot(xl, f4, 'o', color='black')
-
-    plt.show()
-
-
 #
 # 左頭
-# 1. (2)收盤與該型態最低價相差大於幾%
-# 2. (3)起漲至(2)需大於幾%
 #
 #     * * * * * (2)
 #    *         *                                    * (1)
@@ -444,124 +498,47 @@ def m1():
 #                     *                 *
 #                       * * * * * * * *
 #
+# 1. 如果(2)高點(黑k的開盤價,紅k的收盤價)必須大於(1)收盤價
+# 2. (1)必須先創低(小於黑k的收盤價,紅k的開盤價)
+# 3. 創低需達到某幅度
+# 4. 創低後開始反彈且達到某幅度為(2)，持續創高則更新(2)
+# 5. (2)開始不繼續創高差距達幾根K棒後確認為(3)，也就是(2)必須是高點大於(3)跟(1)
+# 6. (3)必須是(2)與(3)之間的最低點(黑k的收盤價,紅k的開盤價)
+#
 def q(code, date):
-    stock.read('202001')
-    stock.read('2019')
+    stock.readAll()
     dates = stock.data.loc[(2330, name.DATE), :].tolist()
-    flag1Bar = dates.index(date)
 
+    flag1Bar = dates.index(date)
     data = stock.data.loc[code].dropna(axis=1)
     data.loc[name.OPEN] = data.loc[name.OPEN].astype(float)
     data.loc[name.CLOSE] = data.loc[name.CLOSE].astype(float)
     data.loc[name.VOLUME] = data.loc[name.VOLUME].astype(float)
     data.loc[name.HIGH] = data.loc[name.HIGH].astype(float)
     data.loc[name.LOW] = data.loc[name.LOW].astype(float)
-    data = data.iloc[:, flag1Bar:90 + flag1Bar]
+    data = data.iloc[:, flag1Bar:]
+    q = weak.YesterdayRedTrendHigh10Low11_LeftHead()
+    q.stockQ = stock
+    q.trendQ = trend
 
-    cx = data.loc[name.CLOSE].max()
-    ox = data.loc[name.OPEN].max()
-
-    if cx > ox:
-        mx = cx
-    else:
-        mx = ox
-
-    if data.iloc[:, 0][name.CLOSE] == mx:
+    if q.run(data.columns[0], code, data, stock.info(code)) == False:
         return []
-
-    t = tick(data.loc[name.HIGH].max(), data.loc[name.LOW].min())
-    ts = ticks(data.loc[name.HIGH].max(), data.loc[name.LOW].min())
-
-    if len(ts) < 20:
-        bt = t * 2
-    else:
-        bt = t * 3
-
-    _high = 0
-    _low = data[flag1Bar].loc[name.CLOSE]
-    flag2Bar = 0
-    flag3Bar = 0
-    flag = 1
-    for index, value in data.items():
-        close = value[name.CLOSE]
-        open = value[name.OPEN]
-
-        if close > open:
-            high = close
-            low = open
-        else:
-            high = open
-            low = close
-
-        # 創新低
-        if _low > low:
-            _low = low
-            flag = 1
-
-        # 創新低之後開始反彈達某漲幅
-        elif flag == 1 and (high - _low) >= bt and high > data[flag1Bar].loc[name.CLOSE]:
-            flag = 2
-            _high = high
-            flag2Bar = index
-
-        # 開始反彈又創高
-        if flag == 2 and high > _high:
-            _high = high
-            flag2Bar = index
-
-            # i = index - data.columns[0]
-            # data.iloc[:, i:10 + i].loc[name.CLOSE].rolling(5).mean().round(2).dropna()
-            # vs = {}
-            #
-            # for value in data.iloc[:, i:10 + i].loc[name.CLOSE].rolling(5).mean().round(2).dropna():
-            #     v = math.floor(abs(ts[0] - value) / t)
-            #
-            #     if v not in vs:
-            #         vs[v] = 1
-            #     else:
-            #         vs[v] += 1
-            #
-            # if len(vs) < 3:
-            #     flag3Bar = index+9
-            #     break
-
-        # 反彈後又回檔達某漲幅
-        if (_high - low) >= bt and index - flag2Bar > 3:
-            flag3Bar = index
-            break
-
-    if flag2Bar == 0 or flag3Bar == 0:
-        return []
-
-    q = data.iloc[:, flag2Bar - flag1Bar:].iloc[:, :flag3Bar - flag2Bar + 1]
-
-    if q.loc[name.CLOSE].min() > q.loc[name.OPEN].min():
-        flag3Bar = q.loc[name.OPEN].astype(float).idxmin()
-    else:
-        flag3Bar = q.loc[name.CLOSE].astype(float).idxmin()
 
     return [
-        [flag1Bar, data.loc[name.DATE][flag1Bar]],
-        [flag2Bar, data.loc[name.DATE][flag2Bar]],
-        [flag3Bar, data.loc[name.DATE][flag3Bar]],
+        [q.pattern.rightBar, data.loc[name.DATE][q.pattern.rightBar]],
+        [q.pattern.leftBar, data.loc[name.DATE][q.pattern.leftBar]],
+        [q.pattern.leftBottomBar, data.loc[name.DATE][q.pattern.leftBottomBar]],
     ]
 
 
-def q1(code, date):
-    stock.read('202001')
-    stock.read('2019')
-    dates = stock.data.loc[2330].loc[name.DATE].tolist()
-    a = q(code, dates[dates.index(date) + 1])
-    if len(a) == 0:
-        return []
-
-    draw_k(code, dates[dates.index(date) + 1], a, title='q')
-
-
-def q2(d):
+def q1(d):
     for date, codes in d.items():
         for code in codes:
-            q1(code, date)
+            a = q(code, date)
+            if len(a) == 0:
+                return []
+
+            draw_k(code, date, a, title='q')
 
 
 #
@@ -583,53 +560,35 @@ def g(code, date):
     stock.read('202001')
     stock.read('2019')
     dates = stock.data.loc[(2330, name.DATE), :].tolist()
-    a = q(code, date)
 
-    if len(a) == 0:
-        return a
+    flag1Bar = dates.index(date)
+    data = stock.data.loc[code].dropna(axis=1)
+    data.loc[name.OPEN] = data.loc[name.OPEN].astype(float)
+    data.loc[name.CLOSE] = data.loc[name.CLOSE].astype(float)
+    data.loc[name.VOLUME] = data.loc[name.VOLUME].astype(float)
+    data.loc[name.HIGH] = data.loc[name.HIGH].astype(float)
+    data.loc[name.LOW] = data.loc[name.LOW].astype(float)
+    data = data.iloc[:, flag1Bar:]
+    q = weak.YesterdayRedDIncrease1_5_LeftHeadNearRight()
 
-    w = stock.data.loc[code].loc[name.DATE]
-    i1 = w[w == dates[a[1][0]]].index[0]
-    i2 = w[w == date].index[0]
-
-    f1 = stock.data.loc[code][i2].loc[name.CLOSE]
-
-    fv2 = stock.data.loc[code][i1]
-    if fv2.loc[name.CLOSE] > fv2.loc[name.OPEN]:
-        f2 = fv2.loc[name.CLOSE]
-    else:
-        f2 = fv2.loc[name.OPEN]
-
-    if f1 > f2:
+    if q.run(data.columns[0], code, data, None, stock.info(code)) == False:
         return []
 
-    data = stock.data.loc[code].iloc[:, dates.index(date):dates.index(date) + 90]
-    t = tick(data.loc[name.HIGH].max(), data.loc[name.LOW].min())
-
-    if data[a[0][0]].loc[name.CLOSE] * 1.06 < data[a[1][0]].loc[name.CLOSE]:
-        return []
-
-    if (f2 - f1) > t * 2:
-        return []
-
-    return a
+    return [
+        [q.pattern.rightBar, data.loc[name.DATE][q.pattern.rightBar]],
+        [q.pattern.leftBar, data.loc[name.DATE][q.pattern.leftBar]],
+        [q.pattern.leftBottomBar, data.loc[name.DATE][q.pattern.leftBottomBar]],
+    ]
 
 
-def g1(code, date):
-    stock.read('202001')
-    stock.read('2019')
-    dates = stock.data.loc[2330].loc[name.DATE].tolist()
-    a = g(code, dates[dates.index(date) + 1])
-    if len(a) == 0:
-        return []
-
-    draw_k(code, dates[dates.index(date) + 1], a, title='g')
-
-
-def g2(d):
+def g1(d):
     for date, codes in d.items():
         for code in codes:
-            g1(code, date)
+            a = g(code, date)
+            if len(a) == 0:
+                return []
+
+            draw_k(code, date, a, title='g')
 
 
 #
@@ -651,52 +610,35 @@ def e(code, date):
     stock.read('202001')
     stock.read('2019')
     dates = stock.data.loc[(2330, name.DATE), :].tolist()
-    a = q(code, dates[dates.index(date) + 1])
 
-    if len(a) == 0:
-        return a
+    flag1Bar = dates.index(date)
+    data = stock.data.loc[code].dropna(axis=1)
+    data.loc[name.OPEN] = data.loc[name.OPEN].astype(float)
+    data.loc[name.CLOSE] = data.loc[name.CLOSE].astype(float)
+    data.loc[name.VOLUME] = data.loc[name.VOLUME].astype(float)
+    data.loc[name.HIGH] = data.loc[name.HIGH].astype(float)
+    data.loc[name.LOW] = data.loc[name.LOW].astype(float)
+    data = data.iloc[:, flag1Bar:]
+    q = weak.YesterdayRedDIncrease1_5_LeftHeadFirstBreakthrough()
 
-    w = stock.data.loc[code].loc[name.DATE]
-    i1 = w[w == dates[a[1][0]]].index[0]
-    i2 = w[w == date].index[0]
-
-    f1 = stock.data.loc[code][i2].loc[name.CLOSE]
-
-    fv2 = stock.data.loc[code][i1]
-    if fv2.loc[name.CLOSE] > fv2.loc[name.OPEN]:
-        f2 = fv2.loc[name.CLOSE]
-    else:
-        f2 = fv2.loc[name.OPEN]
-
-    f3 = stock.data.loc[code][i2 + 1].loc[name.CLOSE]
-
-    if f1 < f2:
+    if q.run(data.columns[0], code, data, None, stock.info(code)) == False:
         return []
 
-    if f2 < f3:
-        return []
-
-    a[0][0] += 1
-    a[0][1] = date
-
-    return a
+    return [
+        [q.pattern.rightBar, data.loc[name.DATE][q.pattern.rightBar]],
+        [q.pattern.leftBar, data.loc[name.DATE][q.pattern.leftBar]],
+        [q.pattern.leftBottomBar, data.loc[name.DATE][q.pattern.leftBottomBar]],
+    ]
 
 
-def e1(code, date):
-    stock.read('202001')
-    stock.read('2019')
-    dates = stock.data.loc[2330].loc[name.DATE].tolist()
-    a = e(code, dates[dates.index(date) + 1])
-    if len(a) == 0:
-        return []
-
-    draw_k(code, a[0][1], a, title='e')
-
-
-def e2(d):
+def e1(d):
     for date, codes in d.items():
         for code in codes:
-            e1(code, date)
+            a = e(code, date)
+            if len(a) == 0:
+                return []
+
+            draw_k(code, date, a, title='e')
 
 
 # 下降
@@ -715,170 +657,70 @@ def e2(d):
 def f(code, date):
     stock.read('202001')
     stock.read('2019')
-    dates = stock.data.loc[2330].loc[name.DATE].tolist()
-    data = stock.data.loc[code].iloc[:, dates.index(date):dates.index(date) + 90]
+    dates = stock.data.loc[(2330, name.DATE), :].tolist()
 
-    flag1Bar = data.columns[0]
-    flag2Bar = 0
-    d = data.loc[name.CLOSE].rolling(5).mean().round(2).dropna()
-    t = tick(data.loc[name.HIGH].max(), data.loc[name.LOW].min())
-    ts = ticks(data.loc[name.HIGH].max(), data.loc[name.LOW].min())
+    flag1Bar = dates.index(date)
+    data = stock.data.loc[code].dropna(axis=1)
+    data.loc[name.OPEN] = data.loc[name.OPEN].astype(float)
+    data.loc[name.CLOSE] = data.loc[name.CLOSE].astype(float)
+    data.loc[name.VOLUME] = data.loc[name.VOLUME].astype(float)
+    data.loc[name.HIGH] = data.loc[name.HIGH].astype(float)
+    data.loc[name.LOW] = data.loc[name.LOW].astype(float)
+    data = data.iloc[:, flag1Bar:]
+    q = weak.YesterdayRedDIncrease1_5_Decline()
 
-    for index, value in d.items():
-        if d[index + 1] < value:
-            i = index - 2
-
-            if i not in d:
-                break
-
-            if d[i] > value:
-                break
-
-        flag2Bar = index - 4
-
-    if flag2Bar == 0:
+    if q.run(data.columns[0], code, data, None, stock.info(code)) == False:
         return []
-
-    p = data.iloc[:, flag2Bar - data.columns[0]:]
-    for index, value in p.items():
-        if value[name.CLOSE] > value[name.OPEN]:
-            max = value[name.CLOSE]
-        else:
-            max = value[name.OPEN]
-
-        if p[index + 1].loc[name.CLOSE] > p[index + 1].loc[name.OPEN]:
-            b_max = p[index + 1].loc[name.CLOSE]
-        else:
-            b_max = p[index + 1].loc[name.OPEN]
-
-        flag2Bar = index
-
-        if max > b_max:
-            break
-
-    if (flag2Bar - flag1Bar) < 5:
-        return []
-
-    if data[flag2Bar].loc[name.CLOSE] > data[flag2Bar].loc[name.OPEN]:
-        f2max = data[flag2Bar].loc[name.CLOSE]
-    else:
-        f2max = data[flag2Bar].loc[name.OPEN]
-
-    if round((f2max - data[flag1Bar].loc[name.CLOSE]), 2) <= t:
-        return []
-
-    if round(f2max - data[flag1Bar].loc[name.CLOSE], 2) < t * 1.5:
-        return []
-
-    # if data[flag1Bar].loc[name.CLOSE] > data[flag1Bar].loc[name.OPEN]:
-    #     cx = data[flag1Bar].loc[name.CLOSE]
-    # else:
-    #     cx = data[flag1Bar].loc[name.OPEN]
-    #
-    # if abs(cx - data.iloc[:, :flag2Bar - flag1Bar + 1].loc[name.CLOSE].min()) >= t:
-    #     return []
 
     return [
-        [flag1Bar, data[flag1Bar][name.DATE]],
-        [flag2Bar, data[flag2Bar][name.DATE]],
+        [q.pattern.rightBar, data.loc[name.DATE][q.pattern.rightBar]],
+        [q.pattern.leftBar, data.loc[name.DATE][q.pattern.leftBar]],
     ]
 
 
-def f1(code, date):
-    stock.read('202001')
-    stock.read('2019')
-    dates = stock.data.loc[2330].loc[name.DATE].tolist()
-    a = f(code, dates[dates.index(date) + 2])
-    if len(a) == 0:
-        return []
-
-    draw_k(code, dates[dates.index(date) + 2], a, title='f')
-
-
-def f2(d):
+def f1(d):
     for date, codes in d.items():
         for code in codes:
-            f1(code, date)
+            a = f(code, date)
+            if len(a) == 0:
+                return []
+
+            draw_k(code, date, a, title='f')
 
 
 # 平台
 def r(code, date):
     stock.read('202001')
     stock.read('2019')
-    dates = stock.data.loc[2330].loc[name.DATE].tolist()
-    data = stock.data.loc[code].iloc[:, dates.index(date):dates.index(date) + 90]
+    dates = stock.data.loc[(2330, name.DATE), :].tolist()
 
-    flag1Bar = data.columns[0]
-    flag2Bar = 0
-    t = tick(data.loc[name.HIGH].max(), data.loc[name.LOW].min())
-    ts = ticks(data.loc[name.HIGH].max(), data.loc[name.LOW].min())
+    flag1Bar = dates.index(date)
+    data = stock.data.loc[code].dropna(axis=1)
+    data.loc[name.OPEN] = data.loc[name.OPEN].astype(float)
+    data.loc[name.CLOSE] = data.loc[name.CLOSE].astype(float)
+    data.loc[name.VOLUME] = data.loc[name.VOLUME].astype(float)
+    data.loc[name.HIGH] = data.loc[name.HIGH].astype(float)
+    data.loc[name.LOW] = data.loc[name.LOW].astype(float)
+    data = data.iloc[:, flag1Bar:]
+    q = weak.YesterdayRedDIncrease1_5_Platform()
 
-    if len(ts) < 20:
-        mt = t * 2
-    elif len(ts) >= 25:
-        mt = t * 4
-    else:
-        mt = t * 3
-
-    if data.iloc[:, :10].loc[name.CLOSE].max() > data.iloc[:, :10].loc[name.OPEN].max():
-        _high = data.iloc[:, :10].loc[name.CLOSE].max()
-    else:
-        _high = data.iloc[:, :10].loc[name.OPEN].max()
-
-    if data.iloc[:, :10].loc[name.CLOSE].min() > data.iloc[:, :10].loc[name.OPEN].min():
-        _low = data.iloc[:, :10].loc[name.OPEN].min()
-    else:
-        _low = data.iloc[:, :10].loc[name.CLOSE].min()
-
-    if (_high - _low) > mt:
-        return []
-
-    for index, value in data.iloc[:, 10:].items():
-        close = value[name.CLOSE]
-        open = value[name.OPEN]
-
-        if close > open:
-            high = close
-            low = open
-        else:
-            high = open
-            low = close
-
-        if high > _high:
-            _high = high
-
-        if _low > low:
-            _low = low
-
-        if (_high - _low) > mt:
-            break
-
-        flag2Bar = index
-
-    if flag2Bar == 0:
+    if q.run(data.columns[0], code, data, None, stock.info(code)) == False:
         return []
 
     return [
-        [flag1Bar, data[flag1Bar][name.DATE]],
-        [flag2Bar, data[flag2Bar][name.DATE]],
+        [q.pattern.rightBar, data.loc[name.DATE][q.pattern.rightBar]],
+        [q.pattern.leftBar, data.loc[name.DATE][q.pattern.leftBar]],
     ]
 
 
-def r1(code, date):
-    stock.read('202001')
-    stock.read('2019')
-    dates = stock.data.loc[2330].loc[name.DATE].tolist()
-    a = r(code, dates[dates.index(date) + 2])
-    if len(a) == 0:
-        return []
-
-    draw_k(code, dates[dates.index(date) + 1], a, title='r', h=True)
-
-
-def r2(d):
+def r1(d):
     for date, codes in d.items():
         for code in codes:
-            r1(code, date)
+            a = r(code, date)
+            if len(a) == 0:
+                return []
+
+            draw_k(code, date, a, title='r', h=True)
 
 
 def draw_k(code, date, a, title='', h=False):
@@ -952,11 +794,15 @@ def draw_k(code, date, a, title='', h=False):
 # 平台
 # 左頭
 def hh(code, date):
-    g1(code, date)
-    e1(code, date)
-    f1(code, date)
-    r1(code, date)
-    q1(code, date)
+    v = {
+        date: [code],
+    }
+
+    g1(v)
+    e1(v)
+    f1(v)
+    r1(v)
+    q1(v)
 
 
 # g1(3376, '2020-01-02')
@@ -964,10 +810,10 @@ def hh(code, date):
 # f1(1313, '2020-01-03')
 # q1(6426, '2020-01-02')
 # r1(6426, '2020-01-02')
-hh(8341, '2020-01-31')
+# hh(8341, '2020-01-31')
 
 # 股價接近左頭(相差幾%)
-g2({
+g1({
     '2020-01-31': [
         # 4746, 1907
     ],
@@ -1006,12 +852,12 @@ g2({
         # 3588, 6121, 6125, 2449, 6414, 4953
     ],
     '2020-01-02': [
-        # 3083, 8155, 3661
+        # 3083, 8155
     ],
 })
 
 # 股價今日突破左頭
-e2({
+e1({
     '2020-01-31': [
         # 6582, 1720, 4746, 4121, 8341
     ],
@@ -1049,10 +895,13 @@ e2({
         # 6488, 6284, 6269, 3105, 3376,
         # 2345, 6166, 3035, 2489, 3105
     ],
+    '2020-01-02': [
+        # 8155
+    ],
 })
 
 # 下降
-f2({
+f1({
     '2020-01-31': [
         # 6582, 1907
     ],
@@ -1084,12 +933,12 @@ f2({
         # 3588, 3413, 6121, 8088, 8046, 2489, 6414
     ],
     '2020-01-02': [
-        # 6612, 2313
+        # 6612
     ],
 })
 
 # 平台
-r2({
+r1({
     '2020-01-31': [
         # 6582, 1720, 2108, 8341
     ],
@@ -1130,50 +979,6 @@ r2({
 })
 
 # 左頭
-q2({
-    '2020-01-31': [
-        # 6239, 1626, 9938, 3533, 2101, 2108
-    ],
-    '2020-01-30': [
-        # 8086, 3406, 8105, 3698, 8039, 6138, 8182
-    ],
-    '2020-01-18': [
-        # 8088
-    ],
-    '2020-01-17': [
-        # 3631, 6188, 3026, 2492, 6438, 3406
-    ],
-    '2020-01-16': [
-        # 4908, 4161, 9919
-    ],
-    '2020-01-15': [
-        # 3527, 2455, 2327, 3624, 3026
-    ],
-    '2020-01-14': [
-        # 2461, 6251
-    ],
-    '2020-01-13': [
-        # 1589
-    ],
-    '2020-01-10': [
-        # 3081, 4974, 8048, 1795, 9955, 6213, 3450
-    ],
-    '2020-01-09': [
-        # 2456, 2492
-    ],
-    '2020-01-08': [
-        # 6219
-    ],
-    '2020-01-07': [
-        # 6170, 2481, 4908
-    ],
-    '2020-01-06': [
-        # 2455, 1305
-    ],
-    '2020-01-03': [
-        # 6213, 9935, 8086, 3221, 3707, 3037, 2316
-    ],
-    '2020-01-02': [
-        # 4979, 3236, 4142
-    ],
+q1({
+    '2020-10-19': [2201],
 })

@@ -8,7 +8,7 @@ import os
 import openpyxl
 import pandas as pd
 import numpy as np
-from stock import data as dt, name
+from stock import name, data as dt
 
 
 class Tick():
@@ -224,6 +224,8 @@ class year():
     def __init__(self, path):
         self.data = {}
         self.path = path
+        self.ck = {}
+
         self.columns.insert(0, dt.DATE)
         years = [os.path.basename(f).split('.')[0] for f in glob.glob(os.path.join(path, dt.OPEN, '*.xlsx'))]
         last = years[-1]
@@ -245,6 +247,9 @@ class year():
                         code = rows[0]
                         d = rows.index[ii + 2]
                         date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
+
+                        if code not in self.ck:
+                            self.ck[code] = True
 
                         if year == last:
                             m = d[:6]
@@ -274,7 +279,8 @@ class year():
             i = 0
             data = {}
             filePath = os.path.join(path, f_name) + ".csv"
-            ck = list(dates[list(dates.keys())[list(l.values()).index(max(l.values()))]].keys())
+            # ck = list(dates[list(dates.keys())[list(l.values()).index(max(l.values()))]].keys())
+            ck = list(self.ck.keys())
             index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
 
             for date, codes in dates.items():
@@ -286,7 +292,11 @@ class year():
                     else:
                         close = codes[c][name.CLOSE]
                         open = codes[c][name.OPEN]
-                        codes[c][name.D_INCREASE] = round(((close - open) / open) * 100, 2)
+
+                        if close == open:
+                            codes[c][name.D_INCREASE] = 0
+                        else:
+                            codes[c][name.D_INCREASE] = round(((close - open) / open) * 100, 2)
 
                         [values.append(v) for n, v in codes[c].items()]
 

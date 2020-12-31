@@ -4,23 +4,14 @@ from . import name, query, pattern
 # 弱勢股
 class All(query.Base):
     check_stocks = [
-        [name.OPEN, '>', 10],
         [name.VOLUME, '>=', 500],
         [name.AMPLITUDE, '>=', 3],
         [name.OPEN, '>', name.CLOSE],
     ]
 
-    sort_key = [name.AMPLITUDE]
+    sort_key = [name.D_INCREASE]
 
     def run(self, index, code, stock, info) -> bool:
-        d = stock.loc[name.VOLUME][1:6]
-
-        if len(d) != 5:
-            raise ValueError('volume mean day is not 5')
-
-        if d.mean() < 500:
-            return False
-
         date = stock.loc[name.DATE].iloc[0]
         trend = self.trendQ.code(code, date)
 
@@ -30,11 +21,11 @@ class All(query.Base):
         return True
 
 
-# 弱勢股-走勢圖拉高(10)走低(11)
-# 1. 當日高點在10點前
+# 弱勢股-走勢圖拉高(0930)走低(11)
+# 1. 當日高點在0930點前
 # 2. 當日11點前低點與當日最高點差距有2%
-class TrendHigh10Low11(All):
-    sort_key = ['max_min_diff']
+class TrendHigh0930Low11(All):
+    sort_key = [name.D_INCREASE]
 
     def __init__(self):
         self.max = None
@@ -54,9 +45,9 @@ class TrendHigh10Low11(All):
             if trend.loc[name.PRICE].dropna().empty:
                 return False
 
-            # 當日高點在10點前
+            # 當日高點在0930點前
             self.max = trend[trend.loc[name.PRICE].astype(float).idxmax()]
-            if self.max.loc[name.TIME] > f'{date} 10:00:00':
+            if self.max.loc[name.TIME] > f'{date} 09:30:00':
                 return False
 
             # 當日11點前低點與當日最高點差距有2%
@@ -173,38 +164,38 @@ class YesterdayRed(All):
 # 弱勢股-昨天紅-走勢圖拉高(10)走低(11)
 # 1. 當日高點在10點前
 # 2. 當日11點前低點與當日最高點差距有2%
-class YesterdayRedTrendHigh10Low11(TrendHigh10Low11):
+class YesterdayRedTrendHigh0930Low11(TrendHigh0930Low11):
     sort_key = ['max_min_diff']
 
     def __init__(self):
-        TrendHigh10Low11.__init__(self)
+        TrendHigh0930Low11.__init__(self)
         self.yesterday_red = YesterdayRed()
 
     def run(self, index, code, stock, info) -> bool:
-        if TrendHigh10Low11.run(self, index, code, stock, info):
+        if TrendHigh0930Low11.run(self, index, code, stock, info):
             return self.yesterday_red.isRed(stock)
 
         return False
 
     def data(self, data, index, code, stock, info):
-        return TrendHigh10Low11.data(self, data, index, code, stock, info) + \
+        return TrendHigh0930Low11.data(self, data, index, code, stock, info) + \
                self.yesterday_red.get_data(stock)
 
     def columns(self):
-        return TrendHigh10Low11.columns(self) + self.yesterday_red.get_columns()
+        return TrendHigh0930Low11.columns(self) + self.yesterday_red.get_columns()
 
 
 # 弱勢股-昨天紅-左頭-走勢圖拉高(10)走低(11)
 # 1. 當日高點在10點前
 # 2. 當日11點前低點與當日最高點差距有2%
-class YesterdayRedTrendHigh10Low11_LeftHead(YesterdayRedTrendHigh10Low11):
+class YesterdayRedTrendHigh0930Low11_LeftHead(YesterdayRedTrendHigh0930Low11):
     def __init__(self):
-        YesterdayRedTrendHigh10Low11.__init__(self)
+        YesterdayRedTrendHigh0930Low11.__init__(self)
         self.pattern = pattern.LeftHead()
         self.pattern_result = None
 
     def run(self, index, code, stock, info) -> bool:
-        if YesterdayRedTrendHigh10Low11.run(self, index, code, stock, info) == False:
+        if YesterdayRedTrendHigh0930Low11.run(self, index, code, stock, info) == False:
             return False
 
         self.pattern_result = self.pattern.execute(stock.columns[1], code, stock.iloc[:, 1:], info)
@@ -215,14 +206,14 @@ class YesterdayRedTrendHigh10Low11_LeftHead(YesterdayRedTrendHigh10Low11):
         return True
 
     def data(self, data, index, code, stock, info):
-        data = YesterdayRedTrendHigh10Low11.data(self, data, index, code, stock, info)
+        data = YesterdayRedTrendHigh0930Low11.data(self, data, index, code, stock, info)
         for v in self.pattern_result[-3:]:
             data.append(v)
 
         return data
 
     def columns(self):
-        columns = YesterdayRedTrendHigh10Low11.columns(self).copy()
+        columns = YesterdayRedTrendHigh0930Low11.columns(self).copy()
         for v in self.pattern.cs:
             columns.append(v)
 
@@ -358,10 +349,10 @@ class YesterdayRedDIncrease1_5_Platform(query.Base):
 
 LIST = {
     'all': All(),
-    'trend_high10_low11': TrendHigh10Low11(),
+    'trend_high0930_low11': TrendHigh0930Low11(),
     'yesterday_red': YesterdayRed(),
-    'yesterday_red_trend_high10_low11': YesterdayRedTrendHigh10Low11(),
-    'yesterday_red_trend_high10_low11_left_head': YesterdayRedTrendHigh10Low11_LeftHead(),
+    'yesterday_red_trend_high0930_low11': YesterdayRedTrendHigh0930Low11(),
+    'yesterday_red_trend_high0930_low11_left_head': YesterdayRedTrendHigh0930Low11_LeftHead(),
 
     'yesterday_red_d_increase_1_5_left_head': YesterdayRedDIncrease1_5_LeftHead(),
     'yesterday_red_d_increase_1_5_left_head_near_right': YesterdayRedDIncrease1_5_LeftHeadNearRight(),

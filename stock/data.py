@@ -32,7 +32,7 @@ AMPLITUDE = name.AMPLITUDE
 # 成交量
 VOLUME = name.VOLUME
 
-COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, name.D_INCREASE, AMPLITUDE, VOLUME]
+COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, name.D_INCREASE, AMPLITUDE, VOLUME, name.MAIN, name.FUND, name.FOREIGN]
 
 # 個股基本資料
 INFO_FILE_NAME = 'stock'
@@ -106,6 +106,11 @@ def get_max(close):
         mc = round(mc, get_len(mc))
 
     return max
+
+
+def get_max_v2(close):
+    max = close * 1.1
+    return round(max - (max % get_tick(close)), 2)
 
 
 # 跌停價
@@ -233,7 +238,7 @@ class Stock():
     def read(self, dk):
         dk = str(dk)
         if dk not in self.dk:
-            data = pd.read_csv(os.path.join(self.dir, f'{dk}.csv'), index_col=[0, 1], header=[0])
+            data = pd.read_csv(os.path.join(self.dir, f'{dk}.csv'), index_col=[0, 1], header=[0], low_memory=False)
 
             # 將除了DATE以外的index value 字串轉為float
             pIndex = pd.IndexSlice[:, data.index.levels[1].copy().drop(DATE).tolist()]
@@ -882,15 +887,14 @@ def calendar_xy(date, year=None, month=None):
     if year is None:
         year = datetime.now().year
 
-    prevMonth = 0
+    prevMonth = ((year - dateT.year) * 12)
     dayX = 1
     dayY = dateT.isocalendar()[1] % 6
 
-    if year != dateT.year:
-        prevMonth += ((year - dateT.year) * 12) - abs(month - dateT.month)
-
-    elif month != dateT.month:
-        prevMonth += abs(month - dateT.month)
+    if month > dateT.month:
+        prevMonth += abs(dateT.month - month)
+    else:
+        prevMonth -= abs(dateT.month - month)
 
     if dateT.isocalendar()[2] != 7:
         dayX = dateT.isocalendar()[2] + 1
@@ -900,5 +904,8 @@ def calendar_xy(date, year=None, month=None):
     for index in range(weeks.__len__()):
         if dateT.day in weeks[index]:
             dayY = index + 1
+
+    if weeks[0][0] == 1:
+        dayY += 1
 
     return prevMonth, dayX, dayY

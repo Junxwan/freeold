@@ -2,6 +2,7 @@
 
 import glob
 import os
+import time
 import tkinter as tk
 import logging
 import pandas as pd
@@ -762,6 +763,7 @@ class XQ():
         self.code = tk.StringVar()
         self.date = tk.StringVar()
         self.start_date = tk.StringVar()
+        self.now_date = tk.StringVar()
 
         tk.Label(self.bottom_frame, text='個股:', font=ui.FONT).place(x=10, y=10)
         tk.Entry(self.bottom_frame, width=8, textvariable=self.code, font=ui.FONT).place(x=130, y=10)
@@ -769,13 +771,22 @@ class XQ():
         tk.Entry(self.bottom_frame, width=10, textvariable=self.date, font=ui.BTN_FONT).place(x=130, y=100)
         tk.Label(self.bottom_frame, text='現年月:', font=ui.FONT).place(x=10, y=200)
         tk.Entry(self.bottom_frame, width=8, textvariable=self.start_date, font=ui.BTN_FONT).place(x=180, y=200)
+        tk.Label(self.bottom_frame, text='起年月:', font=ui.FONT).place(x=10, y=300)
+        tk.Entry(self.bottom_frame, width=8, textvariable=self.now_date, font=ui.BTN_FONT).place(x=180, y=300)
 
         tk.Button(
             self.bottom_frame,
             text='載',
             font=ui.SMALL_FONT,
             command=self._open_dir_stock,
-        ).place(x=10, y=300)
+        ).place(x=10, y=400)
+
+        tk.Button(
+            self.bottom_frame,
+            text='切',
+            font=ui.SMALL_FONT,
+            command=lambda: self._update(self.code.get()),
+        ).place(x=100, y=400)
 
     def _list_layout(self):
         date_list = tk.Frame(self.top_frame, width=self.right_width, height=int(self.height * 0.15))
@@ -812,7 +823,7 @@ class XQ():
 
         self._stock_listbox.bind('<KeyRelease-Up>', self._stock_event)
         self._stock_listbox.bind('<KeyRelease-Down>', self._stock_event)
-        self._stock_listbox.bind('<Button-1>', self._stock_event)
+        self._stock_listbox.bind('<ButtonRelease-1>', self._stock_btn_event)
 
         date_Scrollbar.config(command=self._date_listbox.yview)
         stock_Scrollbar.config(command=self._stock_listbox.yview)
@@ -840,17 +851,33 @@ class XQ():
         for index, row in self._date_list[date].iterrows():
             self._stock_listbox.insert(tk.END, f"{row['code']}-{row['name']}")
 
+    def _stock_btn_event(self, event):
+        time.sleep(1)
+        self._stock_event(event)
+
     def _stock_event(self, event):
-        value = self._stock_listbox.get(tk.ACTIVE)
+        value = self._stock_listbox.get(event.widget.curselection()[0])
         code = value.split('-')[0]
         self.code.set(code)
+        self._update(code)
 
+    def _update(self, code):
         pyautogui.click(1800, 90)
         pyautogui.write(str(code))
         pyautogui.press('enter')
 
-        xqa.k().dates(self.stock.afterDates(self.date.get())[90], self.date.get(),
+        nYear = None
+        nMonth = None
+
+        if self.now_date.get() != '':
+            nYear = int(self.now_date.get()[:4])
+            nMonth = int(self.now_date.get()[5:7])
+
+        xqa.k().dates(self.stock.afterDates(self.date.get())[60], self.date.get(),
                       year=int(self.start_date.get()[:4]),
-                      month=int(self.start_date.get()[5:7]))
+                      month=int(self.start_date.get()[5:7]),
+                      nYear=nYear,
+                      nMonth=nMonth
+                      )
 
         pyautogui.click(3500, 1700)
