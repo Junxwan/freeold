@@ -19,6 +19,9 @@ HIGH = 'high'
 # 最低價
 LOW = 'low'
 
+# 漲停價
+MAX = 'max'
+
 # 漲幅
 INCREASE = 'increase'
 
@@ -30,6 +33,15 @@ AMPLITUDE = 'amplitude'
 
 # 成交量
 VOLUME = 'volume'
+
+# 主力買賣超
+MAIN = 'main'
+
+# 投信買賣超
+FUND = 'fund'
+
+# 外資買賣超
+FOREIGN = 'foreign'
 
 # 時間
 TIME = 'time'

@@ -172,7 +172,7 @@ class move(ui.process):
         self.keyEvent(root)
 
     def k(self, event=None):
-        xq.k().dates(self.stock.afterDates(self.end_date.get())[90], self.end_date.get(),
+        xq.k().dates(self.stock.afterDates(self.end_date.get())[70], self.end_date.get(),
                      year=int(self.start_now_date.get()[:4]),
                      month=int(self.start_now_date.get()[5:7]))
 

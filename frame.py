@@ -2,6 +2,7 @@
 
 import glob
 import os
+import time
 import tkinter as tk
 import logging
 import pandas as pd
@@ -777,6 +778,13 @@ class XQ():
             command=self._open_dir_stock,
         ).place(x=10, y=300)
 
+        tk.Button(
+            self.bottom_frame,
+            text='切',
+            font=ui.SMALL_FONT,
+            command=lambda: self._update(self.code.get()),
+        ).place(x=100, y=300)
+
     def _list_layout(self):
         date_list = tk.Frame(self.top_frame, width=self.right_width, height=int(self.height * 0.15))
         date_list.pack(side=tk.TOP)
@@ -812,7 +820,7 @@ class XQ():
 
         self._stock_listbox.bind('<KeyRelease-Up>', self._stock_event)
         self._stock_listbox.bind('<KeyRelease-Down>', self._stock_event)
-        self._stock_listbox.bind('<Button-1>', self._stock_event)
+        self._stock_listbox.bind('<ButtonRelease-1>', self._stock_btn_event)
 
         date_Scrollbar.config(command=self._date_listbox.yview)
         stock_Scrollbar.config(command=self._stock_listbox.yview)
@@ -840,16 +848,22 @@ class XQ():
         for index, row in self._date_list[date].iterrows():
             self._stock_listbox.insert(tk.END, f"{row['code']}-{row['name']}")
 
+    def _stock_btn_event(self, event):
+        time.sleep(1)
+        self._stock_event(event)
+
     def _stock_event(self, event):
-        value = self._stock_listbox.get(tk.ACTIVE)
+        value = self._stock_listbox.get(event.widget.curselection()[0])
         code = value.split('-')[0]
         self.code.set(code)
+        self._update(code)
 
+    def _update(self, code):
         pyautogui.click(1800, 90)
         pyautogui.write(str(code))
         pyautogui.press('enter')
 
-        xqa.k().dates(self.stock.afterDates(self.date.get())[90], self.date.get(),
+        xqa.k().dates(self.stock.afterDates(self.date.get())[60], self.date.get(),
                       year=int(self.start_date.get()[:4]),
                       month=int(self.start_date.get()[5:7]))
 
