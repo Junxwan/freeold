@@ -8,16 +8,16 @@ import glob
 from stock import data, name
 import matplotlib.pyplot as plt
 
-data.calendar_xy('2020-01-03')
-data.calendar_xy('2020-02-03')
-data.calendar_xy('2020-03-03')
+data.ema([63.7, 64.4, 61.1, 61, 59.9, 61.2, 61.4, 61.2, 62, 62.3, 61, 62.1, 61.3, 61.7, 56.8], 5)
 
 stock = data.Stock('D:\\data\\csv\\stock')
+trend = data.Trend("D:\\data\\csv")
 
-# data.calendar_xy('2019-01-02')  # 23 4 1
-# data.calendar_xy('2020-01-02')  # 11 5 1
-# data.calendar_xy('2019-01-02', year=2020, month=8)  # 19 4 1
-# data.calendar_xy('2018-09-21', year=2020, month=8)  # 23 6 4
+data.calendar_xy('2017-01-11', year=2020, month=12)  # 47 4 3
+data.calendar_xy('2019-01-02')  # 24 4 1
+data.calendar_xy('2020-01-02')  # 12 5 1
+data.calendar_xy('2019-01-02', year=2020, month=8)  # 19 4 1
+data.calendar_xy('2018-09-21', year=2020, month=8)  # 23 6 4
 
 d = {}
 d1 = []
@@ -32,6 +32,7 @@ def DirToCode(path):
                                                               index=False)
 
 
+# xq報告
 def ToDirCsv(path):
     for i, v in pd.read_csv(path).iterrows():
         code = v['name'].split('(')[1].split('.')[0]
@@ -41,7 +42,7 @@ def ToDirCsv(path):
                 code) <= 999:
             continue
 
-        if int(code) >= 6200 and int(code) <= 6299:
+        if int(code) >= 6205 and int(code) <= 6208:
             continue
 
         if v['date'] not in d:
@@ -78,7 +79,6 @@ def ToData(path):
         name.CODE,
         name.NAME,
         name.DATE,
-        'm',
 
         name.OPEN,
         name.CLOSE,
@@ -98,6 +98,11 @@ def ToData(path):
         f"y{name.D_INCREASE}",
         f"y{name.AMPLITUDE}",
         f"y{name.MAX}",
+        f"y{name.MAIN}",
+        f"y{name.FUND}",
+        f"y{name.FUND_BUY}",
+        f"y{name.FUND_SELL}",
+        f"y{name.FOREIGN}",
 
         f"yy{name.OPEN}",
         f"yy{name.CLOSE}",
@@ -145,14 +150,27 @@ def ToData(path):
         'y5v%',
         'y10v%',
         'y20v%',
+
+        'ema[1]',
+        'ema[2]',
+        'ema[3]',
+        'ema[4]',
+        'ema[5]',
+        'ema[6]',
+
+        f"y5{name.MAIN}",
+        f"y10{name.MAIN}",
+        f"y5{name.FUND}",
+        f"y10{name.FUND}",
+        f"y5{name.FOREIGN}",
+        f"y10{name.FOREIGN}",
+
+        "isoyc",
     ]
 
     stock.readAll()
 
     for i, v in pd.read_csv(path).iterrows():
-        if str(v[name.CODE])[-1] == 'L':
-            continue
-
         try:
             value = stock.date(v[name.DATE]).loc[int(v[name.CODE])]
             yesterday = stock.yesterday(int(v[name.CODE]), v[name.DATE])
@@ -205,22 +223,17 @@ def ToData(path):
             else:
                 yv = 0
 
-            open = value.loc[name.OPEN]
-            open_m = open * 1000
-            open_fee = round((open_m * 0.001425) * (6 / 10))
-            tax = open_m * 0.0015
-            open_t = open_m - open_fee - tax
+            ec = values.loc[name.CLOSE][:15]
 
-            close = value.loc[name.CLOSE]
-            close_m = close * 1000
-            close_fee = round((close_m * 0.001425) * (6 / 10))
-            close_t = (close_m + close_fee) * -1
+            if len(ec) != 15:
+                ema = [0, 0, 0, 0, 0, 0, 0]
+            else:
+                ema = data.ema(values.loc[name.CLOSE][values.loc[name.CLOSE] > 0][:15], 5)
 
             d1.append([
                 v[name.CODE],
                 v[name.NAME],
                 v[name.DATE],
-                round(((open_t / -close_t) - 1) * 100, 2),
 
                 value[name.OPEN],
                 value[name.CLOSE],
@@ -240,6 +253,11 @@ def ToData(path):
                 yesterday[name.D_INCREASE],
                 yesterday[name.AMPLITUDE],
                 data.get_max_v2(yyesterday[name.CLOSE]),
+                yesterday[name.MAIN],
+                yesterday[name.FUND],
+                yesterday[name.FUND_BUY],
+                yesterday[name.FUND_SELL],
+                yesterday[name.FOREIGN],
 
                 yyesterday[name.OPEN],
                 yyesterday[name.CLOSE],
@@ -300,14 +318,77 @@ def ToData(path):
                 # 10日均量比
                 round(yesterday[name.VOLUME] / values.loc[name.VOLUME][1:11].mean(), 1),
                 # 20日均量比
-                round(yesterday[name.VOLUME] / values.loc[name.VOLUME][1:21].mean(), 1)
+                round(yesterday[name.VOLUME] / values.loc[name.VOLUME][1:21].mean(), 1),
+
+                ema[1],
+                ema[2],
+                ema[3],
+                ema[4],
+                ema[5],
+                ema[6],
+
+                values.loc[name.MAIN][1:6].sum(),
+                values.loc[name.MAIN][1:11].sum(),
+                values.loc[name.FUND][1:6].sum(),
+                values.loc[name.FUND][1:11].sum(),
+                values.loc[name.FOREIGN][1:6].sum(),
+                values.loc[name.FOREIGN][1:11].sum(),
+
+                value[name.OPEN] > yesterday[name.CLOSE],
             ])
 
         except Exception as e:
-            pass
+            continue
 
     pd.DataFrame(d1, columns=columns).to_csv(
         os.path.join(os.path.dirname(path), 'data.csv'),
+        encoding='utf-8-sig',
+        index=False
+    )
+
+
+def ToDataTrend(path):
+    columns = [
+        name.CODE,
+        name.NAME,
+        name.DATE,
+
+        # 開盤到10點前低點績效
+        'c-1000l-m'
+        # 0910-到收盤績效
+        '0910-m'
+        # 0910-10點前低績效
+        '0910-1000l-m',
+
+        '0910',
+        '1000l'
+    ]
+
+    stock.readAll()
+
+    try:
+        for i, v in pd.read_csv(path).iterrows():
+            td = trend.code(v[name.CODE], v[name.DATE])
+            value = stock.date(v[name.DATE]).loc[int(v[name.CODE])]
+            q = td.loc[name.TIME]
+            l1000 = float(td.loc[name.LOW][(q <= f"{v[name.DATE]} 10:00:00")].min())
+            c0910 = float(td.loc[name.CLOSE][(q <= f"{v[name.DATE]} 09:10:00")][-1])
+
+            d1.append([
+                v[name.CODE],
+                v[name.NAME],
+                v[name.DATE],
+                m(value[name.OPEN], l1000),
+                m(c0910, value[name.CLOSE]),
+                m(c0910, l1000),
+                c0910,
+                l1000
+            ])
+    except Exception as e:
+        pass
+
+    pd.DataFrame(d1, columns=columns).to_csv(
+        os.path.join(os.path.dirname(path), 'data_trend.csv'),
         encoding='utf-8-sig',
         index=False
     )
@@ -393,8 +474,27 @@ def ToDirM(path):
         )
 
 
-ToDirM("D:\\data\\csv\\strategy\\weak\\all\\data.csv")
+def m(buy, sell, num=1, low=20, off=6, taxOff=0.5):
+    sell_m = sell * 1000 * num
+    sell_fee = round((sell_m * 0.001425) * (off / 10))
+    tax = round(sell_m * 0.003 * taxOff)
 
-# ToData("D:\\data\\csv\\strategy\\weak\\all\\code.csv")
+    if sell_fee < low:
+        sell_fee = low
+
+    sell_t = sell_m - sell_fee - tax
+
+    buy_m = buy * 1000 * num
+    buy_fee = round((buy_m * 0.001425) * (off / 10))
+
+    if buy_fee < low:
+        buy_fee = low
+
+    buy_t = -(buy_m + buy_fee)
+
+    return [sell_t + buy_t, round(((sell_t / -buy_t) - 1) * 100, 2), sell_t, sell_fee, tax, buy_t, buy_fee]
+
+
+ToData("D:\\data\\research\\漲停\\code.csv")
 
 f = 0

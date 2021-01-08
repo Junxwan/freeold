@@ -40,6 +40,12 @@ MAIN = 'main'
 # 投信買賣超
 FUND = 'fund'
 
+# 投信買張
+FUND_BUY = 'fund_buy'
+
+# 投信賣張
+FUND_SELL = 'fund_sell'
+
 # 外資買賣超
 FOREIGN = 'foreign'
 

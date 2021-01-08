@@ -32,7 +32,8 @@ AMPLITUDE = name.AMPLITUDE
 # 成交量
 VOLUME = name.VOLUME
 
-COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, name.D_INCREASE, AMPLITUDE, VOLUME, name.MAIN, name.FUND, name.FOREIGN]
+COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, name.D_INCREASE, AMPLITUDE, VOLUME, name.MAIN, name.FUND, name.FUND_BUY,
+           name.FUND_SELL, name.FOREIGN]
 
 # 個股基本資料
 INFO_FILE_NAME = 'stock'
@@ -909,3 +910,17 @@ def calendar_xy(date, year=None, month=None):
         dayY += 1
 
     return prevMonth, dayX, dayY
+
+
+def ema(price, n):
+    avg = round(sum(price[-n:]) / n, 2)
+    price = price[:-n]
+    ema = []
+
+    for p in price[::-1]:
+        if len(ema) > 0:
+            avg = ema[-1]
+
+        ema.append(round((2 / (n + 1)) * p + (n - 1) / (n + 1) * avg, 2))
+
+    return ema[::-1]

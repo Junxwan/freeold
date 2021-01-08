@@ -228,7 +228,11 @@ class year():
 
         self.columns.insert(0, dt.DATE)
         years = [os.path.basename(f).split('.')[0] for f in glob.glob(os.path.join(path, dt.OPEN, '*.xlsx'))]
-        last = years[-1]
+
+        for year in years:
+            for code in pd.read_excel(os.path.join(path, dt.OPEN, f'{year}.xlsx'))['股票代號'].tolist():
+                if code not in self.ck:
+                    self.ck[code] = True
 
         for year in years:
             for column in self.dataColumns:
@@ -248,13 +252,7 @@ class year():
                         d = rows.index[ii + 2]
                         date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
 
-                        if code not in self.ck:
-                            self.ck[code] = True
-
-                        if year == last:
-                            m = d[:6]
-                        else:
-                            m = year
+                        m = year
 
                         if m not in self.data:
                             self.data[m] = {}
@@ -279,7 +277,6 @@ class year():
             i = 0
             data = {}
             filePath = os.path.join(path, f_name) + ".csv"
-            # ck = list(dates[list(dates.keys())[list(l.values()).index(max(l.values()))]].keys())
             ck = list(self.ck.keys())
             index = pd.MultiIndex.from_product([ck, self.columns], names=['code', 'name'])
 
