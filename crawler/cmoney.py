@@ -301,7 +301,7 @@ class api():
             try:
                 tData = resp.json()['DataPrice']
             except json.decoder.JSONDecodeError as e:
-                logging.error('code: ' + code + ' date: ' + date + ' error: ' + e.__str__())
+                logging.error('code: ' + str(code) + ' date: ' + date + ' error: ' + e.__str__())
                 return None
 
         if len(tData) == 0:

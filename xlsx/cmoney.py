@@ -305,3 +305,41 @@ class year():
             logging.info(f'save {f_name}')
 
         logging.info('save end')
+
+
+# 轉成一般年
+class YearToYear():
+    def __init__(self, path, toPath):
+        data = {}
+
+        n = os.path.basename(path)
+
+        logging.info(f'exec {n}')
+
+        for p in glob.glob(os.path.join(path, "*.xlsx")):
+            y = os.path.basename(p).split('.')[0]
+
+            for i, rows in pd.read_excel(p).iterrows():
+                for ii, value in enumerate(rows[2:]):
+                    if pd.isna(value):
+                        continue
+
+                    code = rows[0]
+                    d = rows.index[ii + 2]
+                    date = d[:4] + '-' + d[4:6] + '-' + d[6:8]
+
+                    if date not in data:
+                        data[date] = []
+
+                    data[date].append([code, value])
+
+            dir = os.path.join(toPath, n, y)
+            if os.path.exists(dir) == False:
+                os.makedirs(dir)
+
+            for date, v in data.items():
+                pd.DataFrame(v, columns=['code', 'value']).to_csv(os.path.join(dir, f"{date}.csv"),index=False)
+
+                logging.info(f'save {n} {date}')
+
+            data = {}

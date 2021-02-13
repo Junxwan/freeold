@@ -6,6 +6,7 @@ import openpyxl
 from . import ui, other
 from auto import xq as xq
 from stock import data
+from xlsx import xq as execl
 
 
 class stockImage(ui.process):
@@ -172,10 +173,69 @@ class move(ui.process):
         self.keyEvent(root)
 
     def k(self, event=None):
-        xq.k().dates(self.stock.afterDates(self.end_date.get())[70], self.end_date.get(),
+        xq.k().dates(self.stock.afterDates(self.end_date.get())[40], self.end_date.get(),
                      year=int(self.start_now_date.get()[:4]),
                      month=int(self.start_now_date.get()[5:7]))
 
     def keyEvent(self, master):
         master.focus_set()
         master.bind("<F1>", self.k)
+
+class toData(ui.process):
+    def __init__(self, root, master, w, h, config=None):
+        ui.process.__init__(self, master, w, h)
+
+        self.input = tk.StringVar()
+        self.output = tk.StringVar()
+
+        if config != None:
+            self.output.set(os.path.join(config['data'], 'csv'))
+
+        self.default_output()
+
+        tk.Label(master, text='xlsx:', font=ui.FONT).place(x=10, y=10)
+        tk.Entry(master, textvariable=self.input, font=ui.FONT).place(x=self.ex, y=10)
+        tk.Button(
+            master,
+            text=self.openInputText(),
+            font=ui.BTN_FONT,
+            command=self.openInput
+        ).place(x=self.w * 50, y=10)
+
+        tk.Label(master, text='輸出:', font=ui.FONT).place(x=10, y=self.ey)
+        tk.Entry(master, textvariable=self.output, font=ui.FONT).place(x=self.ex, y=self.ey)
+        tk.Button(
+            master,
+            text='選擇目錄',
+            font=ui.BTN_FONT,
+            command=self.openOutPut
+        ).place(x=self.w * 50, y=self.h * 8)
+
+        self.addRunBtn(master)
+
+    def default_output(self):
+        pass
+
+    def openInputText(self):
+        return ""
+
+    def openInput(self):
+        pass
+
+    def openOutPut(self):
+        pass
+
+
+class ToYear(toData):
+    def openInputText(self):
+        return '選擇檔案'
+
+    def openInput(self):
+        self.input.set(ui.openDir())
+
+    def openOutPut(self):
+        self.output.set(ui.openDir())
+
+    def run(self):
+        execl.ToYear(self.input.get(), self.output.get())
+        self.showSuccess()

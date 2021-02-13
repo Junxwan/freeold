@@ -409,3 +409,18 @@ class stockToData(toData):
     def run(self):
         xlsx.stock(self.input.get()).output(self.output.get())
         self.showSuccess()
+
+# 資料轉成一般年
+class YearToYear(toData):
+    def openInputText(self):
+        return '選擇檔案'
+
+    def openInput(self):
+        self.input.set(ui.openDir())
+
+    def openOutPut(self):
+        self.output.set(ui.openDir())
+
+    def run(self):
+        xlsx.YearToYear(self.input.get(), self.output.get())
+        self.showSuccess()

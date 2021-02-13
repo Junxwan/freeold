@@ -12,7 +12,7 @@ from stock import name, data
 from datetime import datetime
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from ui import cmoney, xq, stock, log, other, ui, watch
+from ui import cmoney, xq, stock, log, other, ui, watch, execl
 from auto import xq as xqa
 
 
@@ -73,6 +73,12 @@ class main():
 
         btn = tk.Button(self.btnFrame, text='其他', command=lambda: self.switchBtn(self.otherButtonGroup))
         btn.place(x=5, y=self.h * 6)
+
+        btn = tk.Button(self.btnFrame, text='xq', command=lambda: self.switchBtn(self.xqButtonGroup))
+        btn.place(x=self.w * 5, y=self.h * 6)
+
+        btn = tk.Button(self.btnFrame, text='execl', command=lambda: self.switchBtn(self.execlButtonGroup))
+        btn.place(x=self.w * 10, y=self.h * 6)
 
         self.btnGroupFrame = tk.Frame(self.btnFrame, width=int(self.width * 0.25), bg='#eeeeee',
                                       height=int(self.topHeight * 0.7))
@@ -197,6 +203,12 @@ class main():
             command=lambda: self.switchArg(cmoney.StockTickToCsv)
         ).place(x=5, y=self.h * 30)
 
+        tk.Button(
+            self.btnGroupFrame,
+            text='轉成一般年',
+            command=lambda: self.switchArg(cmoney.YearToYear)
+        ).place(x=5, y=self.h * 36)
+
         self.setLog('cmoney')
 
     # 選股功能按鈕組
@@ -212,6 +224,20 @@ class main():
         btn.place(x=5, y=5)
 
         self.setLog('other')
+
+    # xq功能按鈕組群
+    def xqButtonGroup(self):
+        btn = tk.Button(self.btnGroupFrame, text='轉年', command=lambda: self.switchArg(xq.ToYear))
+        btn.place(x=5, y=5)
+
+        self.setLog('sq')
+
+    # execl功能按鈕組群
+    def execlButtonGroup(self):
+        btn = tk.Button(self.btnGroupFrame, text='csv', command=lambda: self.switchArg(execl.ToCsv))
+        btn.place(x=5, y=5)
+
+        self.setLog('execl')
 
     # 切換 按鈕群組 layout內容
     def switchBtn(self, pack):
@@ -873,7 +899,7 @@ class XQ():
             nYear = int(self.now_date.get()[:4])
             nMonth = int(self.now_date.get()[5:7])
 
-        xqa.k().dates(self.stock.afterDates(self.date.get())[60], self.date.get(),
+        xqa.k().dates(self.stock.afterDatesV2(self.date.get())[40], self.date.get(),
                       year=int(self.start_date.get()[:4]),
                       month=int(self.start_date.get()[5:7]),
                       nYear=nYear,

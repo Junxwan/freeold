@@ -32,8 +32,8 @@ AMPLITUDE = name.AMPLITUDE
 # 成交量
 VOLUME = name.VOLUME
 
-COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, name.D_INCREASE, AMPLITUDE, VOLUME, name.MAIN, name.FUND, name.FUND_BUY,
-           name.FUND_SELL, name.FOREIGN]
+COLUMNS = [OPEN, CLOSE, HIGH, LOW, INCREASE, name.D_INCREASE, AMPLITUDE, VOLUME, name.DAY_VOLUME, name.MAIN, name.FUND,
+           name.FOREIGN]
 
 # 個股基本資料
 INFO_FILE_NAME = 'stock'
@@ -187,6 +187,7 @@ class Stock():
     def __init__(self, dir):
         self.dir = dir
         self.dk = {}
+        self.dates = None
 
         if self.stock.empty:
             self.stock = pd.read_csv(os.path.join(dir, INFO_FILE_NAME) + '.csv')
@@ -289,6 +290,13 @@ class Stock():
         q = self.qDate()
         r = q[q <= date]
         return self.data.iloc[0, int(r.index[0]):(r.index[-1])].to_numpy().tolist()
+
+    def afterDatesV2(self, date):
+        if self.dates is None:
+            self.dates = pd.read_csv(os.path.join(self.dir, 'date.csv'), parse_dates=True)
+
+        q = self.dates[name.DATE]
+        return q[q <= date].tolist()
 
     def qDate(self, code=2330):
         return self.data.loc[code].loc[DATE]
