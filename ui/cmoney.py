@@ -2,8 +2,11 @@
 import os
 import time
 import tkinter as tk
+import logging
+import requests
+from datetime import datetime
 from auto import cmoney as cm
-from crawler import cmoney as crawler
+from crawler import cmoney as crawler, twse
 from xlsx import cmoney as xlsx, trend
 from . import ui, other
 
@@ -410,6 +413,7 @@ class stockToData(toData):
         xlsx.stock(self.input.get()).output(self.output.get())
         self.showSuccess()
 
+
 # 資料轉成一般年
 class YearToYear(toData):
     def openInputText(self):
@@ -424,3 +428,4 @@ class YearToYear(toData):
     def run(self):
         xlsx.YearToYear(self.input.get(), self.output.get())
         self.showSuccess()
+

@@ -1,4 +1,4 @@
-from stock import name
+from stock import name, data
 import codecs
 import glob
 import json
@@ -14,10 +14,10 @@ def ToYear(path, toPath):
 
     for p in glob.glob(os.path.join(path, "*.csv")):
         code = os.path.basename(p).split('.')[0]
-        data = pd.read_csv(p)
-        c = data.columns.tolist()[1:]
+        d = pd.read_csv(p)
+        c = d.columns.tolist()[1:]
 
-        for i, rows in data.iterrows():
+        for i, rows in d.iterrows():
             date = f"{str(rows[name.DATE])[:4]}-{str(rows[name.DATE])[4:6]}-{str(rows[name.DATE])[6:8]}"
 
             for cc in c:

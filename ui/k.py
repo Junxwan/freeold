@@ -238,7 +238,6 @@ class Watch(SubAxes):
         '高': name.HIGH,
         '低': name.LOW,
         '漲': name.INCREASE,
-        '%': name.D_INCREASE,
         '量': name.VOLUME,
         '振': name.AMPLITUDE,
     }

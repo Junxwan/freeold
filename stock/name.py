@@ -34,6 +34,15 @@ AMPLITUDE = 'amplitude'
 # 成交量
 VOLUME = 'volume'
 
+# 5日均成交量
+VOLUME_5 = 'volume_5'
+
+# 10日均成交量
+VOLUME_10 = 'volume_10'
+
+# 20日均成交量
+VOLUME_20 = 'volume_20'
+
 # 當沖成交量
 DAY_VOLUME = 'day_volume'
 

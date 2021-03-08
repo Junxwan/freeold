@@ -230,7 +230,11 @@ class Stock():
         if q.empty:
             return None
 
-        return data[q.index[0]]
+        for i in q.index:
+            if data[i].loc[name.OPEN] > 0:
+                return data[i]
+
+        return None
 
     def readAll(self):
         for dk, path in self.csv.items():
@@ -301,6 +305,25 @@ class Stock():
     def qDate(self, code=2330):
         return self.data.loc[code].loc[DATE]
 
+
+class Point():
+    def __init__(self, dir):
+        self.dir = dir
+        self.data = {}
+
+    def date(self, date):
+        if len(self.data) > 60:
+            self.data = {}
+
+        if date not in self.data:
+            self.data[date] = pd.read_csv(os.path.join(self.dir, date[:4], f"{date}.csv"))
+
+        return self.data[date]
+
+    def get(self, code, date):
+        point = self.date(date)
+        i = point['code'].tolist().index(code)
+        return point.iloc[i]
 
 class Dealer():
     def __init__(self, dir):

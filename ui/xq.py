@@ -181,12 +181,14 @@ class move(ui.process):
         master.focus_set()
         master.bind("<F1>", self.k)
 
+
 class toData(ui.process):
     def __init__(self, root, master, w, h, config=None):
         ui.process.__init__(self, master, w, h)
 
         self.input = tk.StringVar()
         self.output = tk.StringVar()
+        self.config = config
 
         if config != None:
             self.output.set(os.path.join(config['data'], 'csv'))

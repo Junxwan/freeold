@@ -338,8 +338,38 @@ class YearToYear():
                 os.makedirs(dir)
 
             for date, v in data.items():
-                pd.DataFrame(v, columns=['code', 'value']).to_csv(os.path.join(dir, f"{date}.csv"),index=False)
+                pd.DataFrame(v, columns=['code', 'value']).to_csv(os.path.join(dir, f"{date}.csv"), index=False)
 
                 logging.info(f'save {n} {date}')
 
             data = {}
+
+
+def ToPoint(path, toPath):
+    c = ['code', 'name'] \
+        + [f"b{i + 1}" for i in range(15)] \
+        + [f"s{i + 1}" for i in range(15)] \
+        + [f"b{i + 1}n" for i in range(15)] \
+        + [f"s{i + 1}n" for i in range(15)]
+
+    for p in glob.glob(os.path.join(path, "*.csv")):
+        date = os.path.basename(p).split('.')[0]
+        d = pd.read_csv(p, encoding="ANSI")
+
+        if len(c) != len(d.columns):
+            logging.info(f'{p} columns error')
+            break
+
+        if d.columns[2][:8] != f"{date[:4]}{date[5:7]}{date[8:10]}":
+            logging.info(f'{p} date is not {date}')
+            break
+
+        f = os.path.join(toPath, date[:4], f"{date}.csv")
+
+        if os.path.exists(f):
+            continue
+
+        pd.DataFrame(d.to_numpy().tolist(), columns=c).to_csv(f,
+                                                              encoding='utf_8_sig',index=False)
+
+        logging.info(f'save {date}')

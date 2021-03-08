@@ -9,13 +9,13 @@ from stock import data, name
 def ToCsv(path, toPath, year="*"):
     dd = {}
     codes = {}
-    stock = data.Stock(toPath)
-    stock.readAll()
+    # stock = data.Stock(toPath)
+    # stock.readAll()
 
     columns = [name.OPEN, name.CLOSE, name.HIGH, name.LOW, name.INCREASE, name.AMPLITUDE, name.VOLUME, name.DAY_VOLUME,
-               name.MAIN, name.FUND, name.FOREIGN]
+               name.MAIN, name.FUND, name.FOREIGN, name.VOLUME_5, name.VOLUME_10, name.VOLUME_20]
 
-    dates = [os.path.basename(d).split('.')[0] for d in glob.glob(os.path.join(path, name.OPEN, year, "*.csv"))][::-1]
+    dates = [os.path.basename(d).split('.')[0] for d in glob.glob(os.path.join(path, name.OPEN, '2021', "*.csv"))][::-1]
 
     try:
         for p in glob.glob(os.path.join(path, name.OPEN, "*", "*.csv")):
@@ -37,13 +37,19 @@ def ToCsv(path, toPath, year="*"):
                 dd[y][date] = {}
 
             for c in columns:
-                for i, v in pd.read_csv(os.path.join(path, c, date[:4], f"{date}.csv")).iterrows():
-                    code = int(v['code'])
-                    if code not in dd[y][date]:
-                        dd[y][date][code] = {}
-                        dd[y][date][code][name.DATE] = date
+                f = os.path.join(path, c, date[:4], f"{date}.csv")
 
-                    dd[y][date][code][c] = v['value']
+                if os.path.exists(f):
+                    for i, v in pd.read_csv(f).iterrows():
+                        code = int(v['code'])
+                        if code not in dd[y][date]:
+                            dd[y][date][code] = {}
+                            dd[y][date][code][name.DATE] = date
+
+                        dd[y][date][code][c] = v['value']
+                else:
+                    for code in list(dd[y][date].keys()):
+                        dd[y][date][code][c] = np.nan
 
     except Exception as e:
         logging.error(e.__str__())
