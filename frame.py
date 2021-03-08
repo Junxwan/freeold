@@ -12,7 +12,7 @@ from stock import name, data
 from datetime import datetime
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from ui import cmoney, xq, stock, log, other, ui, watch, execl
+from ui import cmoney, xq, stock, log, other, ui, watch, execl, twse
 from auto import xq as xqa
 
 
@@ -141,6 +141,24 @@ class main():
         btn = tk.Button(self.btnGroupFrame, text='個股概念股', command=lambda: self.switchArg(cmoney.StockConcept))
         btn.place(x=5, y=self.h * 18)
 
+        btn = tk.Button(self.btnGroupFrame, text='月營收', command=lambda: self.switchArg(twse.MonthRevenue))
+        btn.place(x=5, y=self.h * 24)
+
+        btn = tk.Button(self.btnGroupFrame, text='資產負債表', command=lambda: self.switchArg(twse.BalanceSheet))
+        btn.place(x=5, y=self.h * 30)
+
+        btn = tk.Button(self.btnGroupFrame, text='綜合損益表',
+                        command=lambda: self.switchArg(twse.ConsolidatedIncomeStatement))
+        btn.place(x=5, y=self.h * 36)
+
+        btn = tk.Button(self.btnGroupFrame, text='現金流量表',
+                        command=lambda: self.switchArg(twse.CashFlowStatement))
+        btn.place(x=self.h * 15, y=5)
+
+        btn = tk.Button(self.btnGroupFrame, text='權益變動表',
+                        command=lambda: self.switchArg(twse.ChangesInEquity))
+        btn.place(x=self.h * 15, y=self.h * 6)
+
         self.setLog('data')
 
     # 自動化功能按鈕組群
@@ -236,6 +254,28 @@ class main():
     def execlButtonGroup(self):
         btn = tk.Button(self.btnGroupFrame, text='csv', command=lambda: self.switchArg(execl.ToCsv))
         btn.place(x=5, y=5)
+
+        btn = tk.Button(self.btnGroupFrame, text='合併資產負債表', command=lambda: self.switchArg(twse.MergeBalanceSheet))
+        btn.place(x=5, y=self.h * 6)
+
+        btn = tk.Button(self.btnGroupFrame, text='合併綜合損益表',
+                        command=lambda: self.switchArg(twse.MergeConsolidatedIncomeStatement))
+        btn.place(x=5, y=self.h * 12)
+
+        btn = tk.Button(self.btnGroupFrame, text='合併現金流量表', command=lambda: self.switchArg(twse.MergeCashFlowStatement))
+        btn.place(x=5, y=self.h * 18)
+
+        btn = tk.Button(self.btnGroupFrame, text='合併權益變動表', command=lambda: self.switchArg(twse.MergeChangesInEquity))
+        btn.place(x=5, y=self.h * 24)
+
+        btn = tk.Button(self.btnGroupFrame, text='合併月收盤價', command=lambda: self.switchArg(twse.MergeMonthClosePrice))
+        btn.place(x=5, y=self.h * 30)
+
+        btn = tk.Button(self.btnGroupFrame, text='合併財報', command=lambda: self.switchArg(twse.MergeFinancial))
+        btn.place(x=5, y=self.h * 36)
+
+        btn = tk.Button(self.btnGroupFrame, text='一鍵合併財報', command=lambda: self.switchArg(twse.MergeFinancials))
+        btn.place(x=self.h * 20, y=5)
 
         self.setLog('execl')
 
@@ -899,7 +939,7 @@ class XQ():
             nYear = int(self.now_date.get()[:4])
             nMonth = int(self.now_date.get()[5:7])
 
-        xqa.k().dates(self.stock.afterDatesV2(self.date.get())[40], self.date.get(),
+        xqa.k().dates(self.stock.afterDates(self.date.get())[40], self.date.get(),
                       year=int(self.start_date.get()[:4]),
                       month=int(self.start_date.get()[5:7]),
                       nYear=nYear,
