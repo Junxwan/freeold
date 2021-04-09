@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import numpy as np
 from io import StringIO
+import logging
 
 USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
 
@@ -50,13 +51,6 @@ def balance_sheet(code, year, season):
         12: "Q4",
     }
 
-    ct = [
-        [0, 1, 2],
-        [0, 3, 4],
-        [0, 5, 6],
-        [0, 7, 8],
-    ]
-
     r = requests.post("https://mops.twse.com.tw/mops/web/ajax_t164sb03", {
         'encodeURIComponent': 1,
         'step': 1,
@@ -84,19 +78,18 @@ def balance_sheet(code, year, season):
     table = table[-1]
     columns = table.columns.tolist()[1:]
 
-    for i in range(int(len(columns) / 2)):
-        d = columns[i * 2][2]
+    d = columns[0][2]
 
-        if len(d) != 10:
-            break
+    if len(d) != 10:
+        return {}
 
-        if d[4:6] == '01':
-            continue
+    if d[4:6] == '01':
+        return {}
 
-        data[f"{int(d[:3]) + 1911}{st[int(d[4:6])]}"] = pd.DataFrame(
-            table.iloc[:, ct[i]].to_numpy().tolist(),
-            columns=['項目', '金額', '%']
-        )
+    data[f"{int(d[:3]) + 1911}{st[int(d[4:6])]}"] = pd.DataFrame(
+        table.iloc[:, [0, 1, 2]].to_numpy().tolist(),
+        columns=['項目', '金額', '%']
+    )
 
     return data
 
@@ -106,11 +99,6 @@ def consolidated_income_statement(code, year, season):
     data = {}
     year = year - 1911
     season = "%02d" % season
-
-    ct = [
-        [0, 1, 2],
-        [0, 3, 4],
-    ]
 
     r = requests.post("https://mops.twse.com.tw/mops/web/ajax_t164sb04", {
         'encodeURIComponent': 1,
@@ -139,33 +127,32 @@ def consolidated_income_statement(code, year, season):
     table = table[-1]
     columns = table.columns.tolist()[1:]
 
-    for i in range(2):
-        d = columns[i * 2][2]
+    d = columns[0][2]
 
-        if len(d) == 21:
-            if d[4:6] == '01' and d[15:17] == '03':
-                s = "Q1"
-            elif d[4:6] == '01' and d[15:17] == '06':
-                s = "Q2"
-            elif d[4:6] == '01' and d[15:17] == '09':
-                s = "Q3"
-            else:
-                return {}
-        elif len(d) == 7:
-            s = f"Q{d[5:6]}"
-        elif len(d) == 5:
-            s = "Q4"
-        elif d[3:] == '年上半年度':
+    if len(d) == 21:
+        if d[4:6] == '01' and d[15:17] == '03':
+            s = "Q1"
+        elif d[4:6] == '01' and d[15:17] == '06':
             s = "Q2"
-        elif d[3:] == '年度':
-            s = "Q4"
+        elif d[4:6] == '01' and d[15:17] == '09':
+            s = "Q3"
         else:
             return {}
+    elif len(d) == 7:
+        s = f"Q{d[5:6]}"
+    elif len(d) == 5:
+        s = "Q4"
+    elif d[3:] == '年上半年度':
+        s = "Q2"
+    elif d[3:] == '年度':
+        s = "Q4"
+    else:
+        return {}
 
-        data[f"{int(d[:3]) + 1911}{s}"] = pd.DataFrame(
-            table.iloc[:, ct[i]].to_numpy().tolist(),
-            columns=['項目', '金額', '%']
-        )
+    data[f"{int(d[:3]) + 1911}{s}"] = pd.DataFrame(
+        table.iloc[:, [0, 1, 2]].to_numpy().tolist(),
+        columns=['項目', '金額', '%']
+    )
 
     return data
 
@@ -203,28 +190,29 @@ def cash_flow_statement(code, year, season):
     table = table[-1]
     columns = table.columns.tolist()[1:]
 
-    for i in range(2):
-        s = ''
-        d = columns[i][2]
+    s = ''
+    d = columns[0][2]
 
-        if len(d) == 21:
-            if d[4:6] == '01' and d[15:17] == '03':
-                s = "Q1"
-            if d[4:6] == '01' and d[15:17] == '06':
-                s = "Q2"
-            if d[4:6] == '01' and d[15:17] == '09':
-                s = "Q3"
-        elif len(d) == 7:
-            s = f"Q{d[5:6]}"
-        elif len(d) == 5:
+    if len(d) == 21:
+        if d[4:6] == '01' and d[15:17] == '03':
+            s = "Q1"
+        if d[4:6] == '01' and d[15:17] == '06':
+            s = "Q2"
+        if d[4:6] == '01' and d[15:17] == '09':
+            s = "Q3"
+        if d[4:6] == '01' and d[15:17] == '12':
             s = "Q4"
-        else:
-            return {}
+    elif len(d) == 7:
+        s = f"Q{d[5:6]}"
+    elif len(d) == 5:
+        s = "Q4"
+    else:
+        return {}
 
-        data[f"{int(d[:3]) + 1911}{s}"] = pd.DataFrame(
-            table.iloc[:, [0, i + 1]].to_numpy().tolist(),
-            columns=['項目', '金額']
-        )
+    data[f"{int(d[:3]) + 1911}{s}"] = pd.DataFrame(
+        table.iloc[:, [0, 1]].to_numpy().tolist(),
+        columns=['項目', '金額']
+    )
 
     return data
 
@@ -259,26 +247,58 @@ def changes_in_equity(code, year, season):
     if len(table) <= 1:
         return {}
 
-    table = table[1:]
+    if table[1].shape[1] == 1:
+        return {}
 
-    for v in table:
-        c = v.columns.tolist()[0][0]
+    c = table[1].columns.tolist()[0][0]
 
-        if c[5:] == '年度':
-            s = "Q4"
-        elif c[5:] == '年前3季':
-            s = 'Q3'
-        elif c[5:] == '年上半年度':
-            s = 'Q2'
-        elif c[5:] == '年第1季':
-            s = 'Q1'
-        else:
-            return {}
+    if c[5:] == '年度':
+        s = "Q4"
+    elif c[5:] == '年前3季':
+        s = 'Q3'
+    elif c[5:] == '年上半年度':
+        s = 'Q2'
+    elif c[5:] == '年第1季':
+        s = 'Q1'
+    else:
+        return {}
 
-        d = v.to_numpy().tolist()
-        data[f"{int(c[2:5]) + 1911}{s}"] = pd.DataFrame(d[1:], columns=d[0])
+    d = table[1].to_numpy().tolist()
+    data[f"{int(c[2:5]) + 1911}{s}"] = pd.DataFrame(d[1:], columns=d[0])
 
     return data
+
+
+# 股利
+def dividend(year):
+    data = {}
+
+    qs = [
+        f"MARKET_CAT=%E4%B8%8A%E5%B8%82&INDUSTRY_CAT=%E5%85%A8%E9%83%A8&YEAR={year}",
+        f"MARKET_CAT=%E4%B8%8A%E6%AB%83&INDUSTRY_CAT=%E5%85%A8%E9%83%A8&YEAR={year}",
+    ]
+
+    for q in qs:
+        r = requests.get(
+            f"https://goodinfo.tw/StockInfo/StockDividendPolicyList.asp?{q}",
+            headers=HEADERS)
+
+        r.encoding = 'utf8'
+        table = pd.read_html(r.text)
+
+        for i, v in table[9].iterrows():
+            code = str(v[1])
+
+            if code[-1] == 'B' or code[-1] == 'T' or code[0:2] == '00' or code[-1] == 'A' or code[-1] == 'E' or code[-1] == 'F' or code[-1] == 'C' or code[
+                -1] == 'T' or code[-1] == 'C':
+                continue
+
+            if code not in data:
+                data[code] = [code, v[9], v[12]]
+
+                logging.info(f"read {year} {code}")
+
+    return pd.DataFrame(list(data.values()), columns=['code', '現金股利', '股票股利'])
 
 
 # 已公布季報個股code
@@ -299,7 +319,8 @@ def season_codes(year, season):
 
         r.encoding = 'utf8'
         table = pd.read_html(r.text, header=None)
-        codes = codes + pd.concat([df for df in table if df.shape[1] == 23 or df.shape[1] == 22])['公司代號'].tolist()
+        codes = codes + pd.concat([df for df in table if df.shape[1] == 23 or df.shape[1] == 22 or df.shape[1] == 21])[
+            '公司代號'].tolist()
 
         time.sleep(5)
 

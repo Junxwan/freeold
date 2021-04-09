@@ -1,5 +1,6 @@
 import os
 import glob
+import logging
 import pandas as pd
 import numpy as np
 
@@ -20,7 +21,7 @@ def month_revenue(path, toPath):
             if v['code'] not in d:
                 d[v['code']] = {}
 
-            d[v['code']][int(f"{n[:4]}{n[5:]}")] = '{:,}'.format(v['value'])
+            d[v['code']][int(f"{n[:4]}{n[5:]}")] = v['value']
 
     m.sort(reverse=True)
 
@@ -62,7 +63,7 @@ def merge(path, toPath, columns, name):
         if season not in data[code]:
             data[code][season] = []
 
-        n = v['項目'].tolist()
+        n = [c.replace("／", "∕") for c in v['項目'].tolist()]
         m = v['金額']
 
         for c in columns:
@@ -74,9 +75,11 @@ def merge(path, toPath, columns, name):
                 if np.isnan(m[i]):
                     i = i + n[i + 1:].index(c) + 1
 
-                tmp[c] = '{:,}'.format(m[i])
+                tmp[c] = m[i]
 
         data[code][season] = tmp
+
+        logging.info(f"read {code} {season} {name}...")
 
     seasons.sort(reverse=True)
     codes.sort()
@@ -95,6 +98,8 @@ def merge(path, toPath, columns, name):
                     v.append(data[code][season][column])
 
             csv.append(v)
+
+        logging.info(f"save {code} {name}...")
 
     pd.DataFrame(csv, index=index, columns=seasons).to_csv(os.path.join(toPath, f"{name}.csv"), encoding="utf_8_sig")
 
@@ -148,6 +153,7 @@ def consolidated_income_statement(path, toPath):
         '營業費用合計',
         '營業利益（損失）',
         '營業外收入及支出合計',
+        '其他收益及費損淨額',
         '稅前淨利（淨損）',
         '所得稅費用（利益）合計',
         '本期淨利（淨損）',
@@ -224,11 +230,13 @@ def changes_inEquity(path, toPath):
             b = 0
 
             if k[0] in c and k[1] in item:
-                b = '{:,}'.format(v[k[0]].tolist()[item.index(k[1])])
+                b = v[k[0]].tolist()[item.index(k[1])]
 
             tmp[f"{k[0]}-{k[1]}"] = b
 
         data[code][season] = tmp
+
+        logging.info(f"read {code} {season} 權益變動表...")
 
     seasons.sort(reverse=True)
     codes.sort()
@@ -248,6 +256,8 @@ def changes_inEquity(path, toPath):
                     v.append(data[code][season][column])
 
             csv.append(v)
+
+        logging.info(f"save {code} 權益變動表...")
 
     pd.DataFrame(csv, index=index, columns=seasons).to_csv(os.path.join(toPath, "權益變動表.csv"), encoding="utf_8_sig")
 
@@ -295,3 +305,46 @@ def month_close_price(path, toPath):
         data.append(v)
 
     pd.DataFrame(data, columns=['code'] + yms).to_csv(os.path.join(toPath, '月收盤價.csv'), index=False)
+
+
+# 股利
+def dividend(path, toPath):
+    data = {}
+    years = {}
+    codes = {}
+
+    for p in sorted(glob.glob(os.path.join(path, "*.csv")), reverse=True):
+        year = os.path.basename(p).split('.')[0]
+
+        for i, v in pd.read_csv(p).iterrows():
+            code = int(v['code'])
+
+            if code not in codes:
+                codes[code] = 1
+
+            if year not in years:
+                years[year] = 1
+
+            if code not in data:
+                data[code] = {}
+
+            if year not in data[code]:
+                data[code][year] = [v[1], v[2]]
+
+    csv = []
+    for code in codes:
+        for i in range(2):
+            v = []
+
+            for year in years:
+                if year not in data[code]:
+                    v.append(0)
+                else:
+                    v.append(data[code][year][i])
+
+            csv.append(v)
+
+    index = pd.MultiIndex.from_product([list(codes.keys()), ['現金股利', '股票股利']], names=['code', 'name'])
+
+    pd.DataFrame(csv, index=index, columns=list(years.keys())).to_csv(os.path.join(toPath, "股利.csv"),
+                                                                      encoding="utf_8_sig")

@@ -159,6 +159,10 @@ class main():
                         command=lambda: self.switchArg(twse.ChangesInEquity))
         btn.place(x=self.h * 15, y=self.h * 6)
 
+        btn = tk.Button(self.btnGroupFrame, text='股利',
+                        command=lambda: self.switchArg(twse.Dividend))
+        btn.place(x=self.h * 15, y=self.h * 12)
+
         self.setLog('data')
 
     # 自動化功能按鈕組群
@@ -274,8 +278,14 @@ class main():
         btn = tk.Button(self.btnGroupFrame, text='合併財報', command=lambda: self.switchArg(twse.MergeFinancial))
         btn.place(x=5, y=self.h * 36)
 
-        btn = tk.Button(self.btnGroupFrame, text='一鍵合併財報', command=lambda: self.switchArg(twse.MergeFinancials))
+        btn = tk.Button(self.btnGroupFrame, text='合併月營收', command=lambda: self.switchArg(twse.MergeMonthRevenue))
         btn.place(x=self.h * 20, y=5)
+
+        btn = tk.Button(self.btnGroupFrame, text='合併股利', command=lambda: self.switchArg(twse.MergeDividend))
+        btn.place(x=self.h * 20, y=self.h * 6)
+
+        btn = tk.Button(self.btnGroupFrame, text='一鍵合併財報', command=lambda: self.switchArg(twse.MergeFinancials))
+        btn.place(x=self.h * 20, y=self.h * 12)
 
         self.setLog('execl')
 
