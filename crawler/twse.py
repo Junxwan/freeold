@@ -289,7 +289,8 @@ def dividend(year):
         for i, v in table[9].iterrows():
             code = str(v[1])
 
-            if code[-1] == 'B' or code[-1] == 'T' or code[0:2] == '00' or code[-1] == 'A' or code[-1] == 'E' or code[-1] == 'F' or code[-1] == 'C' or code[
+            if code[-1] == 'B' or code[-1] == 'T' or code[0:2] == '00' or code[-1] == 'A' or code[-1] == 'E' or code[
+                -1] == 'F' or code[-1] == 'C' or code[
                 -1] == 'T' or code[-1] == 'C':
                 continue
 
