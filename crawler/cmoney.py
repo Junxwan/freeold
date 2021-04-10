@@ -442,3 +442,15 @@ class Fund():
             fund.append([name, code])
 
         return fund
+
+
+# sp 500
+def sp500(code):
+    r = requests.get(f"https://money.moneydj.com/us/uslist/list0005/{code}", headers=HEADERS)
+    r.encoding = 'utf8'
+    table = pd.read_html(r.text)
+    date = table[3].iloc[0].loc['日期']
+
+    return {
+        f"{datetime.now().year}-{date[:2]}-{date[3:5]}": table[3]
+    }
