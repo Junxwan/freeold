@@ -2,6 +2,7 @@ import click
 import os
 import time
 import glob
+import logging
 import crawler.twse as twse
 import crawler.price as price
 import crawler.cmoney as cmoney
@@ -46,7 +47,21 @@ else:
 
 @click.group()
 def cli():
-    pass
+    dir = os.path.join(os.getcwd(), 'log')
+
+    if os.path.exists(dir) == False:
+        os.mkdir(dir)
+
+    filename = os.path.join(dir, datetime.now().strftime(f"%Y-%m-%d-cli.log"))
+    log = logging.getLogger()
+
+    for hdlr in log.handlers[:]:
+        log.removeHandler(hdlr)
+
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s [%(levelname)s] %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        filename=filename)
 
 
 # 月營收
@@ -76,12 +91,12 @@ def month_revenue(year, month, outpath):
     if os.path.exists(dir) == False:
         os.mkdir(dir)
 
-    click.echo(f'read {year}-{m}')
+    log(f'read month_revenue {year}-{m}')
 
     data = twse.month_revenue(year, month)
     data.to_csv(os.path.join(dir, f"{year}-{m}.csv"), index=False, encoding='utf_8_sig')
 
-    click.echo(f"save {year}-{m}")
+    log(f"save month_revenue {year}-{m}")
 
 
 # 財報
@@ -115,7 +130,7 @@ def dividend(year, outpath):
     data = twse.dividend(year)
     data.to_csv(os.path.join(outPath, f"{year}.csv"), index=False, encoding='utf_8_sig')
 
-    click.echo(f"save dividend {year}")
+    log(f"save dividend {year}")
 
 
 # 合併
@@ -126,34 +141,34 @@ def dividend(year, outpath):
 def merge(input, out, type):
     def m(type):
         if type == BALANCE_SHEET:
-            click.echo("合併 資產負債表...")
+            log("合併 資產負債表...")
             xtwse.balance_sheet(os.path.join(input, type), out)
-            click.echo("資產負債表 合併完成")
+            log("資產負債表 合併完成")
 
         if type == CONSOLIDATED_INCOME_STATEMENT:
-            click.echo("合併 綜合損益表...")
+            log("合併 綜合損益表...")
             xtwse.consolidated_income_statement(os.path.join(input, type), out)
-            click.echo("綜合損益表 合併完成")
+            log("綜合損益表 合併完成")
 
         if type == CASH_FLOW_STATEMENT:
-            click.echo("合併 現金流量表...")
+            log("合併 現金流量表...")
             xtwse.cash_flow_statement(os.path.join(input, type), out)
-            click.echo("現金流量表 合併完成")
+            log("現金流量表 合併完成")
 
         if type == CHANGES_IN_EQUITY:
-            click.echo("合併 權益變動表...")
+            log("合併 權益變動表...")
             xtwse.changes_inEquity(os.path.join(input, type), out)
-            click.echo("權益變動表 合併完成")
+            log("權益變動表 合併完成")
 
         if type == MONTH_REVENUE:
-            click.echo("合併 月營收...")
+            log("合併 月營收...")
             xtwse.month_revenue(os.path.join(input, type), out)
-            click.echo("月營收 合併完成")
+            log("月營收 合併完成")
 
         if type == DIVIDEND:
-            click.echo("合併 股利...")
+            log("合併 股利...")
             xtwse.dividend(os.path.join(input, type), out)
-            click.echo("股利 合併完成")
+            log("股利 合併完成")
 
     if type == 'all':
         MERGE_TYPE.remove('all')
@@ -168,25 +183,25 @@ def merge(input, out, type):
 @cli.command('merge_financial')
 @click.option('-i', '--input', type=click.Path(), help="輸入路徑")
 def merge_financial(input):
-    click.echo("合併 財報...")
+    log("合併 財報...")
 
     data = {}
     f = os.path.join(input, "財報.xlsx")
 
     for p in glob.glob(os.path.join(input, "*.csv")):
         name = os.path.basename(p).split('.')[0]
-        click.echo(f"read {name}...")
+        log(f"read {name}...")
 
         data[name] = pd.read_csv(p)
 
     with pd.ExcelWriter(f) as writer:
         for k, v in data.items():
-            click.echo(f"save {k}...")
+            log(f"save {k}...")
             v.to_excel(writer, sheet_name=k, index=False)
 
-    click.echo("開始合併財報")
+    log("開始合併財報")
     writer.close()
-    click.echo("合併財報完成")
+    log("合併財報完成")
 
 
 # 面板報價
@@ -205,7 +220,7 @@ def wits_view(out):
 
             table.to_csv(os.path.join(dir, f"{date}.csv"), index=False, encoding='utf_8_sig')
 
-            click.echo(f"save {name} {date}")
+            log(f"save {name} {date}")
 
 
 # SP 500
@@ -221,7 +236,7 @@ def sp500(code, out):
 
         table.to_csv(os.path.join(dir, f"{date}.csv"), index=False, encoding='utf_8_sig')
 
-        click.echo(f"save {code} {date}")
+        log(f"save {code} {date}")
 
 
 # 財報
@@ -232,7 +247,7 @@ def _get_financial(year, season, outpath, type):
         seasons = [season]
 
     for season in seasons:
-        click.echo(f"read {type} {year}-{season}")
+        log(f"read {type} {year}-{season}")
         for code in twse.season_codes(year, season):
             outPath = os.path.join(outpath, type)
 
@@ -254,7 +269,7 @@ def _get_financial(year, season, outpath, type):
             d = get(code, year, season)
 
             if len(d) == 0:
-                click.echo(f"{type} {code} not found")
+                log(f"{type} {code} not found")
             else:
                 for k, v in d.items():
                     dir = os.path.join(outPath, k)
@@ -268,9 +283,14 @@ def _get_financial(year, season, outpath, type):
 
                     v.to_csv(f, index=False, encoding='utf_8_sig')
 
-                    click.echo(f"save {type} {code} {k}")
+                    log(f"save {type} {code} {k}")
 
             time.sleep(6)
+
+
+def log(msg):
+    logging.info(msg)
+    click.echo(msg)
 
 
 if __name__ == '__main__':
