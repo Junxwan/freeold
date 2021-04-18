@@ -7,5 +7,6 @@ main.spec
 *.log
 *.pyc
 *.ini
+package
 
 config.json

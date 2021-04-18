@@ -3,12 +3,17 @@ import os
 import time
 import glob
 import logging
+import smtplib
 import crawler.twse as twse
 import crawler.price as price
 import crawler.cmoney as cmoney
+import crawler.news as cnews
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from xlsx import twse as xtwse
+from jinja2 import Template
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # 月營收
 MONTH_REVENUE = 'month_revenue'
@@ -239,6 +244,71 @@ def sp500(code, out):
         log(f"save {code} {date}")
 
 
+# 新聞
+@cli.command('news')
+@click.option('-e', '--email', type=click.STRING, help="email")
+@click.option('-h', '--hours', type=click.INT, help="小時")
+@click.option('-l', '--login_email', type=click.STRING, help="發送者")
+@click.option('-p', '--login_pwd', type=click.STRING, help="發送密碼")
+def news(email, hours, login_email, login_pwd):
+    log('start news')
+
+    date = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+
+    data = [
+        ['聯合報-產經', cnews.udn('6644', date)],
+        ['聯合報-股市', cnews.udn('6645', date)],
+        ['蘋果-財經地產', cnews.appledaily(date)],
+        ['中時', cnews.chinatimes(date)],
+        ['科技新報', cnews.technews(date)],
+        ['經濟日報-產業熱點', cnews.money_udn('5591', '5612', date)],
+        ['經濟日報-生技醫藥', cnews.money_udn('5591', '10161', date)],
+        ['經濟日報-企業CEO', cnews.money_udn('5591', '5649', date)],
+        ['經濟日報-總經趨勢', cnews.money_udn('10846', '10869', date)],
+        ['經濟日報-2021投資前瞻', cnews.money_udn('10846', '121887', date)],
+        ['經濟日報-國際焦點', cnews.money_udn('5588', '5599', date)],
+        ['經濟日報-美中貿易戰', cnews.money_udn('5588', '10511', date)],
+        ['經濟日報-金融脈動', cnews.money_udn('12017', '5613', date)],
+        ['經濟日報-市場焦點', cnews.money_udn('5590', '5607', date)],
+        ['經濟日報-集中市場', cnews.money_udn('5590', '5710', date)],
+        ['經濟日報-櫃買市場', cnews.money_udn('5590', '11074', date)],
+        ['經濟日報-國際期貨', cnews.money_udn('11111', '11114', date)],
+        ['經濟日報-國際綜合', cnews.money_udn('12925', '121854', date)],
+        ['經濟日報-外媒解析', cnews.money_udn('12925', '12937', date)],
+        ['經濟日報-產業動態', cnews.money_udn('12925', '121852', date)],
+        ['經濟日報-產業分析', cnews.money_udn('12925', '12989', date)],
+    ]
+
+    log('get news ok')
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    html = render('email.html',
+                  news=[{'title': v[0], 'news': v[1]} for v in data],
+                  date=now,
+                  end_date=date,
+                  )
+
+    content = MIMEMultipart()
+    content["from"] = "bot.junx@gmail.com"
+    content["subject"] = f"財經新聞-{now}"
+    content["to"] = email
+    content.attach(MIMEText(html, 'html'))
+
+    log(f"login email: {login_email}")
+    log(f"send email: {email}")
+
+    with smtplib.SMTP(host="smtp.gmail.com", port="587") as smtp:
+        try:
+            smtp.ehlo()  # 驗證SMTP伺服器
+            smtp.starttls()  # 建立加密傳輸
+            smtp.login(login_email, login_pwd)
+            smtp.send_message(content)
+            log('set news email ok')
+        except Exception as e:
+            error(f"set news email error {e.__str__()}")
+
+
 # 財報
 def _get_financial(year, season, outpath, type):
     if season == 0:
@@ -291,6 +361,22 @@ def _get_financial(year, season, outpath, type):
 def log(msg):
     logging.info(msg)
     click.echo(msg)
+
+
+def error(msg):
+    logging.error(msg)
+    click.echo(msg)
+
+
+def _read_template(html):
+    with open(os.path.join(f"./template/{html}")) as template:
+        return template.read()
+
+
+def render(html, **kwargs):
+    return Template(
+        _read_template(html)
+    ).render(**kwargs)
 
 
 if __name__ == '__main__':
