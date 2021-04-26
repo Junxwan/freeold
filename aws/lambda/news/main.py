@@ -52,6 +52,10 @@ def main(event, context):
         ['經濟日報-外媒解析', news.money_udn('12925', '12937', date)],
         ['經濟日報-產業動態', news.money_udn('12925', '121852', date)],
         ['經濟日報-產業分析', news.money_udn('12925', '12989', date)],
+        ['工商時報-產業', news.ctee(date, 'industry')],
+        ['工商時報-科技', news.ctee(date, 'tech')],
+        ['工商時報-國際', news.ctee(date, 'global')],
+        ['工商時報-兩岸', news.ctee(date, 'china')],
     ]
 
     logger.info('get news ok')
