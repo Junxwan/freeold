@@ -1,9 +1,10 @@
 import requests
 import time
+import logging
 import pandas as pd
 import numpy as np
 from io import StringIO
-import logging
+from bs4 import BeautifulSoup
 
 USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
 
@@ -326,3 +327,43 @@ def season_codes(year, season):
         time.sleep(5)
 
     return sorted(codes)
+
+
+# 即時重大訊息 https://mops.twse.com.tw/mops/web/t05sr01_1
+def news(end_date):
+    news = []
+    r = requests.get(
+        "https://mops.twse.com.tw/mops/web/t05sr01_1",
+        headers=HEADERS
+    )
+
+    if r.status_code != 200:
+        return news
+
+    data = BeautifulSoup(r.text, 'html.parser').find("table", class_="hasBorder")
+
+    if data is None:
+        return news
+
+    for v in data.findAll("tr")[1:]:
+        v = v.findAll("td")
+        date = f"{int(v[2].text[:3]) + 1911}-{v[2].text[4:6]}-{v[2].text[7:9]} {v[3].text}"
+
+        if date <= end_date:
+            break
+
+        key = ['財務', '處分', '股利', '減資', '增資', '不動產', '辭任', '自結', '澄清']
+        msg = v[4].text
+
+        if any(x in msg for x in key):
+            title = '<font color="#9818BE">' + v[1].text + '</font>' + v[4].text
+        else:
+            title = f"{v[1].text} - {v[4].text}"
+
+        news.append({
+            "title": title,
+            "url": "",
+            "date": date,
+        })
+
+    return news

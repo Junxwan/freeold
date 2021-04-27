@@ -281,6 +281,7 @@ def news(email, hours, login_email, login_pwd):
         ['工商時報-科技', cnews.ctee(date, 'tech')],
         ['工商時報-國際', cnews.ctee(date, 'global')],
         ['工商時報-兩岸', cnews.ctee(date, 'china')],
+        ['證交所-即時重大訊息', twse.news(date)],
     ]
 
     log('get news ok')

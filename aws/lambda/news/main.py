@@ -3,6 +3,7 @@ import os
 import smtplib
 import pytz
 import crawler.news as news
+import crawler.twse as twse
 from jinja2 import Template
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
@@ -56,6 +57,7 @@ def main(event, context):
         ['工商時報-科技', news.ctee(date, 'tech')],
         ['工商時報-國際', news.ctee(date, 'global')],
         ['工商時報-兩岸', news.ctee(date, 'china')],
+        ['證交所-即時重大訊息', twse.news(date)],
     ]
 
     logger.info('get news ok')
