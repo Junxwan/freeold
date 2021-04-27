@@ -205,10 +205,11 @@ def technews(end_date, timezone='Asia/Taipei'):
 # https://ctee.com.tw/category/news/tech (科技)
 # https://ctee.com.tw/category/news/global (國際)
 # https://ctee.com.tw/category/news/china (兩岸)
-def ctee(end_date, type):
+def ctee(end_date, type, timezone='Asia/Taipei'):
     news = []
     isRun = True
     page = 1
+    tz = pytz.timezone(timezone)
 
     while isRun:
         if page >= LIMIT:
@@ -225,7 +226,7 @@ def ctee(end_date, type):
         soup = BeautifulSoup(r.text, 'html.parser')
 
         for v in soup.select('article'):
-            date = dt.fromtimestamp(parser.parse(v.find('time').attrs['datetime']).timestamp()).strftime(
+            date = dt.fromtimestamp(parser.parse(v.find('time').attrs['datetime']).timestamp(), tz=tz).strftime(
                 '%Y-%m-%d %H:%M:%S')
 
             if date <= end_date:
